@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, ShoppingBag, Edit, Trash2, CheckCircle2, XCircle, Package } from 'lucide-react';
+import { Plus, Search, ShoppingBag, Edit, Trash2, CheckCircle2, XCircle, Package, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,7 +26,8 @@ export default function ProductCatalog() {
     price: 0,
     category: 'snack',
     description: '',
-    stockQuantity: 0
+    stockQuantity: 0,
+    nutriPointsReward: 0
   });
 
   const handleSave = async () => {
@@ -39,7 +40,7 @@ export default function ProductCatalog() {
       createdAt: new Date().toISOString()
     });
     setIsModalOpen(false);
-    setFormData({ name: '', price: 0, category: 'snack', description: '', stockQuantity: 0 });
+    setFormData({ name: '', price: 0, category: 'snack', description: '', stockQuantity: 0, nutriPointsReward: 0 });
   };
 
   const showStockField = formData.category === 'snack' || formData.category === 'bebida';
@@ -99,20 +100,34 @@ export default function ProductCatalog() {
                 </div>
               </div>
               
-              {showStockField && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label className="font-bold uppercase text-xs flex items-center gap-2">
-                    <Package className="h-3 w-3 text-primary" />
-                    Cantidad en Inventario (Piezas)
+                    <Zap className="h-3 w-3 text-secondary" />
+                    Nutri-Puntos
                   </Label>
                   <Input 
                     type="number" 
-                    value={formData.stockQuantity}
-                    onChange={(e) => setFormData({...formData, stockQuantity: parseInt(e.target.value)})}
+                    value={formData.nutriPointsReward}
+                    onChange={(e) => setFormData({...formData, nutriPointsReward: parseInt(e.target.value) || 0})}
                     placeholder="0" 
                   />
                 </div>
-              )}
+                {showStockField && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <Label className="font-bold uppercase text-xs flex items-center gap-2">
+                      <Package className="h-3 w-3 text-primary" />
+                      Stock
+                    </Label>
+                    <Input 
+                      type="number" 
+                      value={formData.stockQuantity}
+                      onChange={(e) => setFormData({...formData, stockQuantity: parseInt(e.target.value) || 0})}
+                      placeholder="0" 
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label className="font-bold uppercase text-xs">Descripción</Label>
@@ -150,6 +165,7 @@ export default function ProductCatalog() {
               <TableRow>
                 <TableHead className="font-black uppercase text-xs">Producto</TableHead>
                 <TableHead className="font-black uppercase text-xs">Categoría</TableHead>
+                <TableHead className="font-black uppercase text-xs text-center">Pts</TableHead>
                 <TableHead className="font-black uppercase text-xs text-center">Stock</TableHead>
                 <TableHead className="font-black uppercase text-xs text-right">Precio</TableHead>
                 <TableHead className="font-black uppercase text-xs text-center">Disponible</TableHead>
@@ -165,6 +181,9 @@ export default function ProductCatalog() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize font-bold bg-primary/5">{product.category}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-secondary">
+                    {product.nutriPointsReward || 0}
                   </TableCell>
                   <TableCell className="text-center font-mono font-bold">
                     {product.category === 'comedor' ? '∞' : (product.stockQuantity || 0)}
@@ -187,7 +206,7 @@ export default function ProductCatalog() {
               ))}
               {products?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
+                  <TableCell colSpan={7} className="text-center py-20 text-muted-foreground italic">
                     No hay productos registrados en el catálogo.
                   </TableCell>
                 </TableRow>

@@ -19,7 +19,8 @@ import {
   CreditCard,
   Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { 
@@ -43,7 +44,6 @@ export default function POSScanner() {
   // States
   const [nfcInput, setNfcInput] = useState('');
   const [currentMember, setCurrentMember] = useState<any>(null);
-  const [wallets, setWallets] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [status, setStatus] = useState<'idle' | 'scanning' | 'ready' | 'processing' | 'success' | 'error'>('idle');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -116,7 +116,7 @@ export default function POSScanner() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        // 1. Re-verify member and wallet
+        // 1. Re-verify member
         const memberQuery = query(
           collection(db, 'schools', schoolId, 'members'),
           where('nfcTagUid', '==', tagUid),
@@ -125,29 +125,42 @@ export default function POSScanner() {
         const memberSnap = await getDocs(memberQuery);
         if (memberSnap.empty) throw new Error("Tag no válido");
         
-        const member = memberSnap.docs[0].data();
-        const memberId = memberSnap.docs[0].id;
-        const parentId = member.profileId || "parent1"; // Fallback for proto
+        const memberDoc = memberSnap.docs[0];
+        const member = memberDoc.data();
+        const memberId = memberDoc.id;
+        const parentId = member.profileId || "parent1";
 
-        // 2. Apply Discounts
+        // 2. Apply Discounts & Calculate Points
         const discountPercent = (member.userType === 'staff' && schoolConfig?.staffDiscountActive) 
           ? (schoolConfig?.staffDiscountPercentage || 0) 
           : 0;
         const subtotal = cart.reduce((acc, curr) => acc + curr.price, 0);
         const discount = subtotal * (discountPercent / 100);
         const finalTotal = subtotal - discount;
+        const earnedPoints = cart.reduce((acc, curr) => acc + (curr.nutriPointsReward || 0), 0);
 
-        // 3. Find Wallet
+        // 3. Find Wallet & Check Emergency Fund
         const walletRef = doc(db, 'schools', schoolId, 'members', memberId, 'wallets', 'w1');
         const walletSnap = await transaction.get(walletRef);
         
         if (!walletSnap.exists()) throw new Error("Billetera no configurada");
         const balance = walletSnap.data().balance;
-        
-        if (balance < finalTotal) throw new Error("Saldo insuficiente");
+        const maxOverdraft = member.maxOverdraft || 50;
+
+        // EMERGENCY FUND LOGIC
+        if (balance + maxOverdraft < finalTotal) {
+          throw new Error(`Saldo insuficiente. Límite de emergencia excedido.`);
+        }
+
+        const newBalance = balance - finalTotal;
 
         // 4. Updates
-        transaction.update(walletRef, { balance: balance - finalTotal });
+        transaction.update(walletRef, { balance: newBalance });
+        
+        // Update Nutri-Points
+        transaction.update(doc(db, 'schools', schoolId, 'members', memberId), {
+          earnedNutriPoints: (member.earnedNutriPoints || 0) + earnedPoints
+        });
 
         for (const item of cart) {
           if (item.category !== 'comedor') {
@@ -163,19 +176,31 @@ export default function POSScanner() {
           memberId,
           memberName: `${member.firstName} ${member.lastName}`,
           amount: finalTotal,
-          items: cart.map(i => ({ id: i.id, name: i.name, price: i.price })),
+          pointsEarned: earnedPoints,
+          items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, points: i.nutriPointsReward })),
           timestamp: serverTimestamp(),
-          type: 'purchase'
+          type: 'purchase',
+          isOverdraft: newBalance < 0
         });
 
-        // 5. Create Notification for Parent (Simulated Webhook/Trigger)
+        // 5. Create Notification
         const notificationId = doc(collection(db, 'profiles', parentId, 'notifications')).id;
+        let msg = `${member.firstName} compró: ${cart.map(i => i.name).join(', ')}. Total: $${finalTotal.toFixed(2)}.`;
+        let notificationType = "purchase";
+
+        if (newBalance < 0) {
+          msg += ` ¡ATENCIÓN! Se utilizó el FONDO DE EMERGENCIA. Saldo: $${newBalance.toFixed(2)}. Favor de recargar.`;
+          notificationType = "emergency_fund";
+        } else {
+          msg += ` Saldo restante: $${newBalance.toFixed(2)}.`;
+        }
+
         transaction.set(doc(db, 'profiles', parentId, 'notifications', notificationId), {
           id: notificationId,
           userId: parentId,
-          title: "Compra Realizada",
-          message: `${member.firstName} compró: ${cart.map(i => i.name).join(', ')}. Total: $${finalTotal.toFixed(2)}. Saldo restante: $${(balance - finalTotal).toFixed(2)}`,
-          type: "purchase",
+          title: newBalance < 0 ? "⚠️ ALERTA: FONDO DE EMERGENCIA" : "NutriPass: Compra Realizada",
+          message: msg,
+          type: notificationType,
           isRead: false,
           createdAt: new Date().toISOString()
         });
@@ -205,6 +230,7 @@ export default function POSScanner() {
   };
 
   const rawTotal = cart.reduce((acc, curr) => acc + curr.price, 0);
+  const totalPoints = cart.reduce((acc, curr) => acc + (curr.nutriPointsReward || 0), 0);
   const isStaff = currentMember?.userType === 'staff';
   const discountAmount = isStaff ? (rawTotal * ((schoolConfig?.staffDiscountPercentage || 0) / 100)) : 0;
   const finalTotal = rawTotal - discountAmount;
@@ -250,7 +276,14 @@ export default function POSScanner() {
               <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border-2 border-transparent hover:border-primary/20 transition-all group">
                 <div className="flex-1 min-w-0 pr-2">
                   <p className="font-black text-sm uppercase truncate">{item.name}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">{item.category}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{item.category}</p>
+                    {item.nutriPointsReward > 0 && (
+                      <Badge variant="outline" className="text-[8px] h-4 bg-amber-50 text-amber-600 border-amber-100">
+                        +{item.nutriPointsReward} pts
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="font-mono font-black text-primary">${item.price.toFixed(2)}</span>
@@ -270,6 +303,10 @@ export default function POSScanner() {
 
         <CardFooter className="p-6 border-t bg-slate-900 text-white flex-col gap-4">
           <div className="w-full space-y-2">
+            <div className="flex justify-between items-center text-amber-400 text-xs font-black uppercase tracking-widest">
+              <span>Nutri-Puntos Ganados</span>
+              <span>{totalPoints} pts</span>
+            </div>
             {isStaff && (
               <div className="flex justify-between items-center text-emerald-400 text-xs font-black uppercase tracking-widest">
                 <span>Descuento Staff ({schoolConfig?.staffDiscountPercentage}%)</span>
@@ -323,6 +360,9 @@ export default function POSScanner() {
                       {isStaff ? "PERSONAL" : "ESTUDIANTE"}
                     </Badge>
                     <span className="text-sm font-bold text-muted-foreground uppercase">{currentMember?.identifier}</span>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 font-black">
+                      {currentMember?.earnedNutriPoints || 0} PTS ACUMULADOS
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -345,6 +385,12 @@ export default function POSScanner() {
                     <div className="flex-1 space-y-3">
                       <div className="flex justify-between items-start">
                         <Badge variant="outline" className="bg-slate-50 text-[10px] font-black">{product.category.toUpperCase()}</Badge>
+                        {product.nutriPointsReward > 0 && (
+                          <div className="flex items-center gap-1 text-amber-500 font-black text-[10px]">
+                            <Zap className="h-3 w-3 fill-amber-500" />
+                            +{product.nutriPointsReward}
+                          </div>
+                        )}
                       </div>
                       <h3 className="font-black text-lg leading-tight uppercase group-hover:text-primary transition-colors">{product.name}</h3>
                       <p className="text-xs text-muted-foreground font-medium line-clamp-2">{product.description}</p>
@@ -374,6 +420,10 @@ export default function POSScanner() {
             <p className="text-muted-foreground font-medium">
               Esperando lectura del Tag NFC para autorizar el cargo de <span className="font-black text-foreground text-xl">${finalTotal.toFixed(2)}</span>.
             </p>
+            <div className="flex items-center justify-center gap-2 text-amber-500 bg-amber-50 p-3 rounded-2xl border border-amber-100">
+              <ShieldAlert className="h-5 w-5" />
+              <span className="text-xs font-black uppercase tracking-tight">Fondo de Emergencia Disponible</span>
+            </div>
           </div>
           <Button variant="ghost" className="font-bold text-muted-foreground" onClick={() => setShowCheckoutModal(false)}>CANCELAR OPERACIÓN</Button>
         </DialogContent>

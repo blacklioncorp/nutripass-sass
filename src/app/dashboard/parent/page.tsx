@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Wallet, PlusCircle, AlertTriangle, ShieldCheck, History, Utensils, Settings, CalendarRange } from 'lucide-react';
 import { mockStudents, mockWallets } from '@/lib/supabase';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import NutriPointsCard from '@/components/dashboard/NutriPointsCard';
+import { cn } from '@/lib/utils';
 
 export default function ParentDashboard() {
   const [selectedStudent, setSelectedStudent] = useState(mockStudents[0]);
@@ -133,8 +135,10 @@ export default function ParentDashboard() {
             </Card>
           </div>
 
-          {/* Controls & Allergies */}
+          {/* Controls & Nutri-Points */}
           <div className="space-y-8">
+            <NutriPointsCard points={selectedStudent.id === 's1' ? 450 : 1200} studentName={selectedStudent.full_name} />
+            
             <Card className="border-4 border-primary/20 bg-primary/5 rounded-3xl shadow-lg">
               <CardHeader className="p-8 pb-4">
                 <div className="flex items-center gap-3 mb-2">
@@ -149,7 +153,7 @@ export default function ParentDashboard() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Alergias Registradas</label>
                   <div className="flex flex-wrap gap-2">
-                    {selectedStudent.allergies.length > 0 ? (
+                    {(selectedStudent.allergies || []).length > 0 ? (
                       selectedStudent.allergies.map((a, i) => (
                         <Badge key={i} variant="destructive" className="px-4 py-2 font-black rounded-xl border-none shadow-md">
                           {a.toUpperCase()}
@@ -173,29 +177,6 @@ export default function ParentDashboard() {
                     No hay productos bloqueados manualmente.
                   </div>
                   <Button variant="link" className="text-xs h-auto p-0 font-black text-primary uppercase tracking-tighter">Límites de gasto diario</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-900 text-white rounded-3xl border-none shadow-2xl overflow-hidden relative">
-              <div className="absolute -right-4 -bottom-4 opacity-10">
-                <ShieldCheck className="h-32 w-32" />
-              </div>
-              <CardHeader className="p-8">
-                <CardTitle className="text-lg font-black uppercase tracking-widest text-primary">Guía NutriPass</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 pt-0 text-sm font-medium space-y-4">
-                <div className="flex gap-3">
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center font-black text-[10px] text-foreground shrink-0">1</div>
-                  <p>Recarga el saldo desde tu celular.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center font-black text-[10px] text-foreground shrink-0">2</div>
-                  <p>Tu hijo paga con su tag NFC en la escuela.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center font-black text-[10px] text-foreground shrink-0">3</div>
-                  <p>Recibes alertas de consumo en tiempo real.</p>
                 </div>
               </CardContent>
             </Card>

@@ -37,6 +37,8 @@
         "nfcTagUid": { "type": "string" },
         "grade": { "type": "string" },
         "isActive": { "type": "boolean" },
+        "earnedNutriPoints": { "type": "integer", "default": 0, "description": "Total loyalty points earned for healthy purchases." },
+        "maxOverdraft": { "type": "number", "default": 50, "description": "Maximum emergency fund allowed (negative balance)." },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -55,6 +57,7 @@
         "category": { "type": "string", "enum": ["snack", "comedor", "bebida"] },
         "barcode": { "type": "string", "description": "EAN/UPC barcode for quick inventory management." },
         "stockQuantity": { "type": "integer", "default": 0 },
+        "nutriPointsReward": { "type": "integer", "default": 0, "description": "Points granted for purchasing this item." },
         "isAvailable": { "type": "boolean" },
         "image": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -70,7 +73,7 @@
         "userId": { "type": "string", "description": "The profile ID of the recipient." },
         "title": { "type": "string" },
         "message": { "type": "string" },
-        "type": { "type": "string", "enum": ["purchase", "reminder", "low_balance"] },
+        "type": { "type": "string", "enum": ["purchase", "reminder", "low_balance", "emergency_fund"] },
         "isRead": { "type": "boolean", "default": false },
         "createdAt": { "type": "string", "format": "date-time" }
       },
