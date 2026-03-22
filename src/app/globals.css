@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,9 +11,9 @@
     --card-foreground: 207 100% 26%;
     --popover: 0 0% 100%;
     --popover-foreground: 207 100% 26%;
-    --primary: 206 75% 70%; /* #7CB9E8 */
+    --primary: 206 75% 70%; /* #7CB9E8 fallback */
     --primary-foreground: 207 100% 26%;
-    --secondary: 45 91% 57%; /* #F4C430 */
+    --secondary: 45 91% 57%; /* #F4C430 fallback */
     --secondary-foreground: 207 100% 26%;
     --muted: 208 30% 90%;
     --muted-foreground: 207 50% 40%;
@@ -29,6 +30,10 @@
     --chart-4: 207 100% 26%;
     --chart-5: 27 87% 67%;
     --radius: 0.75rem;
+
+    /* Dynamic Brand Variables */
+    --brand-primary: #7CB9E8;
+    --brand-secondary: #F4C430;
   }
 }
 
