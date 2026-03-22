@@ -3,12 +3,12 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Printer, FileDown, ArrowRight } from 'lucide-react';
+import { ChefHat, Printer, FileDown } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { format, startOfToday } from 'date-fns';
+import { format, startOfToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function KitchenReport() {
