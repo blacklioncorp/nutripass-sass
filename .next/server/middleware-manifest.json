@@ -3,33 +3,30 @@
   "middleware": {
     "/": {
       "files": [
-        "server/edge/chunks/Documents_NUTRIPASS_nutripass-sass_43c4b9df._.js",
-        "server/edge/chunks/24453_@supabase_auth-js_dist_module_ce719de8._.js",
-        "server/edge/chunks/24453_bcde7519._.js",
-        "server/edge/chunks/[root-of-the-server]__3778a2fa._.js",
-        "server/edge/chunks/turbopack-Documents_NUTRIPASS_nutripass-sass_edge-wrapper_407570a3.js"
+        "server/edge-runtime-webpack.js",
+        "server/src/middleware.js"
       ],
-      "name": "middleware",
+      "name": "src/middleware",
       "page": "/",
       "matchers": [
         {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\\\.json)?[\\/#\\?]?$",
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json)?[\\/#\\?]?$",
           "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
         }
       ],
       "wasm": [],
       "assets": [],
       "env": {
-        "__NEXT_BUILD_ID": "development",
+        "__NEXT_BUILD_ID": "SHQufTknMgE-dJIurWLF0",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "2IqVxM34AjOOXcMcuLtUmpCWvKWEUiUqRVnmlfB1LMo=",
-        "__NEXT_PREVIEW_MODE_ID": "d77026dd645a3231a30328c864c75abb",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "9bce947186f117f767dfe6be33a20c1656780052e8665a1002cefd7cccd2bfdd",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a83866448af03724455813addd8f6719857b722efb437f712b43f36663991e11"
+        "__NEXT_PREVIEW_MODE_ID": "f9589a3fe02eaa5011b26fb3f157eec4",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "52259afaa0c4a4aa74499767361679dd80dadffa6d7973206fa77351e7be1b7d",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "a5fe679ec359c8480619fd40c971c4805b7e9e55766f6da3c6d6ae73c55e8477"
       }
     }
   },
+  "functions": {},
   "sortedMiddleware": [
     "/"
-  ],
-  "functions": {}
+  ]
 }
