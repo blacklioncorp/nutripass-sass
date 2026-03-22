@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, PlusCircle, AlertTriangle, ShieldCheck, History, Utensils, Settings } from 'lucide-react';
+import { Wallet, PlusCircle, AlertTriangle, ShieldCheck, History, Utensils, Settings, CalendarRange } from 'lucide-react';
 import { mockStudents, mockWallets } from '@/lib/supabase';
 
 export default function ParentDashboard() {
@@ -23,8 +24,10 @@ export default function ParentDashboard() {
           <span className="text-lg font-headline font-bold text-foreground">NutriPass Padres</span>
         </Link>
         <nav className="ml-auto hidden md:flex items-center gap-6">
+          <Link href="/dashboard/parent/pre-order" className="text-sm font-bold flex items-center gap-2 text-primary hover:text-primary/80">
+            <CalendarRange className="h-4 w-4" /> Reserva Semanal
+          </Link>
           <Link href="#" className="text-sm font-medium hover:text-primary">Mis Alumnos</Link>
-          <Link href="#" className="text-sm font-medium hover:text-primary">Menú Escolar</Link>
           <Link href="#" className="text-sm font-medium hover:text-primary">Facturación</Link>
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5" />

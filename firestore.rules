@@ -1,34 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * NUTRIPASS FIRESTORE SECURITY RULES
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a strict multi-tenant architecture designed for a school cafeteria
-     * management system. It prioritizes "Authorization Independence" by requiring that critical
-     * context (like schoolId) is denormalized onto documents.
-     *
-     * DATA STRUCTURE:
-     * - /profiles/{profileId}: Global user metadata and role assignments.
-     * - /schools/{schoolId}: Root tenant documents.
-     * - /schools/{schoolId}/...: All tenant-specific data (members, products, menus) is nested
-     *   under the school path for logical and secure segregation.
-     *
-     * KEY SECURITY DECISIONS:
-     * 1. DBAC (Database Access Control): User roles ('super_admin', 'school_admin', 'parent') 
-     *    are fetched from the /profiles collection to authorize actions.
-     * 2. Tenant Isolation: 'school_admin' users are strictly restricted to data where the 
-     *    denormalized schoolId matches their assigned schoolId in their profile.
-     * 3. Immutability: Financial transactions and core relational IDs (schoolId) are 
-     *    enforced as immutable once created to preserve audit integrity.
-     * 4. Prototyping Mode: Rules enforce "Who" can access data and "Relational Integrity" 
-     *    (ensuring documents belong to the right school) but do not validate specific 
-     *    data types or non-security fields.
-     */
-
-    // --- GLOBAL HELPER FUNCTIONS ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -54,20 +27,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Checks if the user is the owner of the school member record or the parent linked to it
-    function canAccessMember(memberData) {
-      return isOwner(memberData.profileId) || isOwner(memberData.parentProfileId);
-    }
-
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Profiles store user roles and school associations. Users manage their own; admins manage all.
-     * @path /profiles/{profileId}
-     * @allow (get) If user is owner or super_admin. (create) If user is owner (self-registration).
-     * @deny (create) If UID does not match profileId. (update) If role is changed by a non-admin.
-     * @principle Verified Identity and Self-Creation.
-     */
     match /profiles/{profileId} {
       allow get: if isOwner(profileId) || isSuperAdmin() || (isSignedIn() && getUserData().schoolId == resource.data.schoolId);
       allow list: if isSuperAdmin() || (isSignedIn() && getUserData().schoolId != null);
@@ -76,13 +35,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() && resource != null;
     }
 
-    /**
-     * @description Schools are top-level tenants. Only super_admins can create/delete schools.
-     * @path /schools/{schoolId}
-     * @allow (get) Any signed-in user. (update) super_admin or the specific school_admin.
-     * @deny (write) Any user who is not a super_admin or the designated school_admin.
-     * @principle Multi-tenant isolation and administrative roles.
-     */
     match /schools/{schoolId} {
       allow get: if isSignedIn();
       allow list: if isSuperAdmin();
@@ -91,55 +43,14 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() && resource != null;
     }
 
-    /**
-     * @description School members (students/staff). Managed by school admins.
-     * @path /schools/{schoolId}/members/{memberId}
-     * @allow (get) The member themselves, their parent, or school admin. (create) School admin.
-     * @deny (create) If schoolId in path does not match schoolId in data.
-     * @principle Relational integrity and shared access patterns.
-     */
     match /schools/{schoolId}/members/{memberId} {
-      allow get: if isSchoolAdmin(schoolId) || isSuperAdmin() || (resource != null && canAccessMember(resource.data));
+      allow get: if isSchoolAdmin(schoolId) || isSuperAdmin() || (resource != null && (resource.data.profileId == request.auth.uid || resource.data.parentProfileId == request.auth.uid));
       allow list: if isSchoolAdmin(schoolId) || isSuperAdmin() || (isSignedIn() && getUserData().role == 'parent');
       allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.schoolId == schoolId;
       allow update: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null && request.resource.data.schoolId == resource.data.schoolId;
       allow delete: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null;
     }
 
-    /**
-     * @description Wallets hold balances. Securely managed by admins; viewed by owners/parents.
-     * @path /schools/{schoolId}/members/{memberId}/wallets/{walletId}
-     * @allow (get) Member, parent, or admin. (update) Admin only (via POS or Admin Panel).
-     * @deny (update) If balance is modified by a student/parent directly.
-     * @principle Ownership-based reads with Role-based writes.
-     */
-    match /schools/{schoolId}/members/{memberId}/wallets/{walletId} {
-      allow get, list: if isSchoolAdmin(schoolId) || isSuperAdmin() || (isSignedIn() && getUserData().schoolId == schoolId);
-      allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.schoolMemberId == memberId;
-      allow update: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null && request.resource.data.schoolMemberId == resource.data.schoolMemberId;
-      allow delete: if isSuperAdmin() && resource != null;
-    }
-
-    /**
-     * @description Financial transactions are immutable audit logs.
-     * @path /schools/{schoolId}/members/{memberId}/wallets/{walletId}/transactions/{transactionId}
-     * @allow (create) Admin or Parent (for top-ups). (list) Owners and admins.
-     * @deny (update/delete) Always denied to preserve audit trail.
-     * @principle Immutability of financial records.
-     */
-    match /schools/{schoolId}/members/{memberId}/wallets/{walletId}/transactions/{transactionId} {
-      allow get, list: if isSchoolAdmin(schoolId) || isSuperAdmin() || (isSignedIn() && getUserData().schoolId == schoolId);
-      allow create: if isSignedIn() && (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().role == 'parent') && request.resource.data.walletId == walletId;
-      allow update, delete: if false;
-    }
-
-    /**
-     * @description Products sold in the cafeteria.
-     * @path /schools/{schoolId}/products/{productId}
-     * @allow (get/list) Any user in the school. (write) School admin.
-     * @deny (write) Non-admins.
-     * @principle School-scoped public read with admin-only writes.
-     */
     match /schools/{schoolId}/products/{productId} {
       allow get, list: if isSignedIn() && (isSuperAdmin() || getUserData().schoolId == schoolId);
       allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.schoolId == schoolId;
@@ -147,26 +58,6 @@ service cloud.firestore {
       allow delete: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null;
     }
 
-    /**
-     * @description Dietary restrictions and blocked items.
-     * @path /schools/{schoolId}/members/{memberId}/dietaryRestrictions/{restrictionId}
-     * @allow (get/list) Owner, parent, or admin. (write) Parent or admin.
-     * @deny (create) If not linked to the correct school member.
-     * @principle Restricted shared access for health safety.
-     */
-    match /schools/{schoolId}/members/{memberId}/dietaryRestrictions/{restrictionId} {
-      allow get, list: if isSchoolAdmin(schoolId) || isSuperAdmin() || (isSignedIn() && getUserData().schoolId == schoolId);
-      allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().role == 'parent') && request.resource.data.schoolMemberId == memberId;
-      allow update: if (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().role == 'parent') && resource != null && request.resource.data.schoolMemberId == resource.data.schoolMemberId;
-      allow delete: if (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().role == 'parent') && resource != null;
-    }
-
-    /**
-     * @description School cafeteria menus.
-     * @path /schools/{schoolId}/menus/{menuId}
-     * @allow (get/list) Any user in the school. (write) School admin.
-     * @principle Public read within tenant, restricted writes.
-     */
     match /schools/{schoolId}/menus/{menuId} {
       allow get, list: if isSignedIn() && (isSuperAdmin() || getUserData().schoolId == schoolId);
       allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.schoolId == schoolId;
@@ -174,17 +65,18 @@ service cloud.firestore {
       allow delete: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null;
     }
 
-    /**
-     * @description Junction documents linking products to specific menus.
-     * @path /schools/{schoolId}/menus/{menuId}/menuItems/{menuItemId}
-     * @allow (get/list) Any user in the school. (write) School admin.
-     * @principle Relational consistency between menus and products.
-     */
-    match /schools/{schoolId}/menus/{menuId}/menuItems/{menuItemId} {
-      allow get, list: if isSignedIn() && (isSuperAdmin() || getUserData().schoolId == schoolId);
-      allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.menuId == menuId;
-      allow update: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null && request.resource.data.menuId == resource.data.menuId;
-      allow delete: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null;
+    match /schools/{schoolId}/preOrders/{orderId} {
+      allow get, list: if isSignedIn() && (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().schoolId == schoolId);
+      allow create: if isSignedIn() && request.resource.data.schoolId == schoolId;
+      allow update: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && resource != null && request.resource.data.schoolId == resource.data.schoolId;
+      allow delete: if isSuperAdmin() && resource != null;
+    }
+
+    match /schools/{schoolId}/members/{memberId}/wallets/{walletId} {
+      allow get, list: if isSchoolAdmin(schoolId) || isSuperAdmin() || (isSignedIn() && (getUserData().schoolId == schoolId || getUserData().role == 'parent'));
+      allow create: if (isSchoolAdmin(schoolId) || isSuperAdmin()) && request.resource.data.schoolId == schoolId;
+      allow update: if (isSignedIn() && (isSchoolAdmin(schoolId) || isSuperAdmin() || getUserData().role == 'parent')) && resource != null;
+      allow delete: if isSuperAdmin() && resource != null;
     }
   }
 }

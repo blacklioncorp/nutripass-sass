@@ -10,6 +10,7 @@
         "name": { "type": "string" },
         "address": { "type": "string" },
         "contactEmail": { "type": "string", "format": "email" },
+        "staffDiscountActive": { "type": "boolean", "default": false },
         "staffDiscountPercentage": { "type": "number", "description": "Percentage discount automatically applied to staff purchases (0-100)." },
         "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -53,6 +54,39 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "schoolId", "name", "price", "category", "isAvailable"]
+    },
+    "DailyMenu": {
+      "title": "DailyMenu",
+      "type": "object",
+      "description": "A specific product offered on a particular date.",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "price": { "type": "number" },
+        "availableQuantity": { "type": "number" }
+      },
+      "required": ["id", "schoolId", "date", "productId"]
+    },
+    "PreOrder": {
+      "title": "PreOrder",
+      "type": "object",
+      "description": "A pre-paid meal reservation.",
+      "properties": {
+        "id": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "memberId": { "type": "string" },
+        "menuId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["paid", "consumed", "cancelled"] },
+        "totalPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "schoolId", "memberId", "menuId", "status", "totalPrice"]
     }
   },
   "firestore": {
@@ -68,6 +102,14 @@
       {
         "path": "/schools/{schoolId}/products/{productId}",
         "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" } }
+      },
+      {
+        "path": "/schools/{schoolId}/menus/{menuId}",
+        "definition": { "entityName": "DailyMenu", "schema": { "$ref": "#/backend/entities/DailyMenu" } }
+      },
+      {
+        "path": "/schools/{schoolId}/preOrders/{orderId}",
+        "definition": { "entityName": "PreOrder", "schema": { "$ref": "#/backend/entities/PreOrder" } }
       }
     ]
   }

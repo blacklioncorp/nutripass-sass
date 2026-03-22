@@ -12,7 +12,9 @@ import {
   Settings, 
   CreditCard,
   LogOut,
-  ShoppingBag
+  ShoppingBag,
+  Calendar,
+  ChefHat
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Gestión Usuarios', href: '/admin/members', icon: Users },
     { name: 'Catálogo Productos', href: '/admin/products', icon: ShoppingBag },
+    { name: 'Planificador Menú', href: '/admin/menu', icon: Calendar },
+    { name: 'Reporte Cocina', href: '/admin/kitchen', icon: ChefHat },
     { name: 'Transacciones', href: '/admin/transactions', icon: CreditCard },
   ];
 
