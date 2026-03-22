@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -5,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, ShoppingCart, User, Wifi, Zap } from 'lucide-react';
+import { AlertCircle, ShoppingCart, User, Wifi, Zap, Percent } from 'lucide-react';
 import { supabase, mockWallets, mockProducts } from '@/lib/supabase';
 import { generateAllergySafeMealSuggestions } from '@/ai/flows/generate-allergy-safe-meal-suggestions';
+
+// LÓGICA DE NEGOCIO: Aplicación de descuento para Staff
+const STAFF_DISCOUNT_PERCENT = 15; // Podría venir de firestore/schools/{schoolId}
 
 export default function POSScanner() {
   const [nfcInput, setNfcInput] = useState('');
@@ -20,7 +24,6 @@ export default function POSScanner() {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the hidden input continuously for NFC reader emulation
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.activeElement?.tagName !== 'INPUT') {
@@ -36,7 +39,6 @@ export default function POSScanner() {
 
     setStatus('scanning');
     try {
-      // Simulate Supabase fetch
       const { data: student, error } = await supabase.from('students').select('*').eq('nfc_tag_uid', nfcInput).single();
       
       if (error || !student) {
@@ -45,15 +47,16 @@ export default function POSScanner() {
         return;
       }
 
-      // Fetch wallets
       const studentWallets = mockWallets.filter(w => w.student_id === student.id);
       
-      setCurrentStudent(student);
+      // Simulación de tipo de usuario para demo
+      const userType = nfcInput === '67890' ? 'staff' : 'student';
+      
+      setCurrentStudent({ ...student, userType });
       setWallets(studentWallets);
       setStatus('ready');
       setNfcInput('');
 
-      // Trigger AI Allergy Check if they have allergies
       if (student.allergies?.length > 0) {
         setIsLoadingAi(true);
         const menuString = mockProducts.map(p => `${p.name}: ${p.ingredients.join(', ')}`).join('\n');
@@ -74,7 +77,10 @@ export default function POSScanner() {
     setCart([...cart, product]);
   };
 
-  const total = cart.reduce((acc, curr) => acc + curr.price, 0);
+  const rawTotal = cart.reduce((acc, curr) => acc + curr.price, 0);
+  const isStaff = currentStudent?.userType === 'staff';
+  const discountAmount = isStaff ? (rawTotal * (STAFF_DISCOUNT_PERCENT / 100)) : 0;
+  const finalTotal = rawTotal - discountAmount;
 
   const resetSession = () => {
     setCurrentStudent(null);
@@ -85,34 +91,26 @@ export default function POSScanner() {
   };
 
   const processPayment = () => {
-    // In a real app, this would perform a Supabase transaction
-    alert(`Cobro de $${total} procesado para ${currentStudent.full_name}`);
+    alert(`Cobro de $${finalTotal.toFixed(2)} ${isStaff ? '(Con desc. Staff)' : ''} procesado para ${currentStudent.full_name}`);
     resetSession();
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 max-w-7xl mx-auto min-h-[calc(100svh-8rem)]">
-      {/* Hidden NFC Listener */}
       <form onSubmit={handleNfcSubmit} className="absolute opacity-0 -z-50">
-        <input
-          ref={inputRef}
-          value={nfcInput}
-          onChange={(e) => setNfcInput(e.target.value)}
-          autoFocus
-        />
+        <input ref={inputRef} value={nfcInput} onChange={(e) => setNfcInput(e.target.value)} autoFocus />
       </form>
 
-      {/* Main Checkout Area */}
       <div className="lg:col-span-2 space-y-6">
-        <Card className="border-2 border-primary/20 shadow-xl overflow-hidden">
+        <Card className="border-2 border-primary/20 shadow-xl overflow-hidden bg-white">
           <CardHeader className="bg-primary/10 flex flex-row items-center justify-between py-4">
             <div className="flex items-center gap-3">
               <Zap className="h-6 w-6 text-foreground" />
-              <CardTitle className="text-xl">Punto de Venta Tablet</CardTitle>
+              <CardTitle className="text-xl font-black">NutriPass POS</CardTitle>
             </div>
             <div className="flex items-center gap-2">
               <Wifi className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">En Línea</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Conectado</span>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -121,69 +119,51 @@ export default function POSScanner() {
                 <div className="bg-muted p-8 rounded-full animate-pulse">
                   <User className="h-16 w-16 text-muted-foreground" />
                 </div>
-                <h3 className="text-2xl font-bold">Esperando Estudiante...</h3>
-                <p className="text-muted-foreground">Escanea el tag NFC para comenzar la transacción</p>
+                <h3 className="text-2xl font-black">Acerque el Tag NFC</h3>
+                <p className="text-muted-foreground text-sm">Escanee el carnet del alumno o empleado</p>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => { setNfcInput('12345'); /* trigger manually for demo */ }}>Simular Tag 12345</Button>
-                  <Button variant="outline" onClick={() => { setNfcInput('67890'); }}>Simular Tag 67890</Button>
+                  <Button variant="outline" className="text-xs font-bold" onClick={() => { setNfcInput('12345'); }}>Demo Alumno</Button>
+                  <Button variant="outline" className="text-xs font-bold" onClick={() => { setNfcInput('67890'); }}>Demo Staff (-15%)</Button>
                 </div>
               </div>
             )}
 
             {status === 'ready' && currentStudent && (
-              <div className="space-y-6">
-                <div className="flex items-start justify-between bg-white p-4 rounded-xl border-2 border-primary shadow-sm">
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-bold text-foreground">{currentStudent.full_name}</h3>
-                    <div className="flex gap-4">
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="flex items-start justify-between bg-white p-5 rounded-2xl border-2 border-primary shadow-sm relative overflow-hidden">
+                  {isStaff && (
+                    <div className="absolute top-0 right-0 bg-secondary px-3 py-1 rounded-bl-xl font-black text-[10px] flex items-center gap-1">
+                      <Percent className="h-3 w-3" /> STAFF DISCOUNT
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-foreground">{currentStudent.full_name}</h3>
+                    <div className="flex gap-6">
                       {wallets.map(w => (
                         <div key={w.id} className="flex flex-col">
-                          <span className="text-xs uppercase text-muted-foreground font-bold">{w.type}</span>
-                          <span className="text-lg font-mono font-bold text-foreground">${w.balance.toFixed(2)}</span>
+                          <span className="text-[10px] uppercase text-muted-foreground font-black tracking-widest">{w.type}</span>
+                          <span className="text-xl font-mono font-black text-foreground">${w.balance.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge variant={currentStudent.allergies.length > 0 ? "destructive" : "secondary"} className="mb-2">
-                      {currentStudent.allergies.length > 0 ? `${currentStudent.allergies.length} Alergias` : "Sin Alergias"}
+                    <Badge variant={isStaff ? "secondary" : "default"} className="font-black">
+                      {isStaff ? "EMPLEADO" : "ESTUDIANTE"}
                     </Badge>
                   </div>
                 </div>
-
-                {/* AI Allergy Alert */}
-                {currentStudent.allergies.length > 0 && (
-                  <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-xl space-y-2">
-                    <div className="flex items-center gap-2 text-amber-700 font-bold">
-                      <AlertCircle className="h-5 w-5" />
-                      <h4>Protocolo de Seguridad Alimentaria</h4>
-                    </div>
-                    <p className="text-sm text-amber-800">
-                      Este alumno tiene alergias a: <span className="font-bold">{currentStudent.allergies.join(', ')}</span>.
-                    </p>
-                    {isLoadingAi ? (
-                      <div className="h-8 bg-amber-100 animate-pulse rounded" />
-                    ) : (
-                      <div className="space-y-1">
-                        <p className="text-xs text-amber-900 font-semibold uppercase">Sugerencias de la IA:</p>
-                        <ul className="text-sm list-disc list-inside text-amber-900">
-                          {aiSuggestions.map((s, idx) => <li key={idx}>{s}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {mockProducts.map(product => (
                     <Button
                       key={product.id}
                       variant="outline"
-                      className="h-24 flex flex-col items-center justify-center gap-1 border-2 hover:border-primary hover:bg-primary/5 transition-all"
+                      className="h-28 flex flex-col items-center justify-center gap-1 border-2 border-primary/10 hover:border-primary hover:bg-primary/5 transition-all group"
                       onClick={() => addToCart(product)}
                     >
-                      <span className="font-bold text-sm text-center line-clamp-2">{product.name}</span>
-                      <span className="text-primary font-mono font-bold">${product.price.toFixed(2)}</span>
+                      <span className="font-bold text-sm text-center px-2">{product.name}</span>
+                      <span className="text-primary font-mono font-black text-lg">${product.price.toFixed(2)}</span>
                     </Button>
                   ))}
                 </div>
@@ -193,47 +173,54 @@ export default function POSScanner() {
         </Card>
       </div>
 
-      {/* Cart Sidebar */}
       <div className="space-y-6">
-        <Card className="h-full flex flex-col shadow-xl">
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2">
+        <Card className="h-full flex flex-col shadow-xl border-2 border-primary/5 bg-white">
+          <CardHeader className="border-b bg-muted/30">
+            <CardTitle className="flex items-center gap-2 text-lg font-black">
               <ShoppingCart className="h-5 w-5" />
-              Tu Carrito
+              CARRITO
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
+          <CardContent className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px]">
             {cart.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground italic">El carrito está vacío</div>
+              <div className="text-center py-20 text-muted-foreground text-sm italic font-medium">No hay productos seleccionados</div>
             ) : (
               cart.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-2 bg-muted/30 rounded-lg">
-                  <span className="text-sm font-medium">{item.name}</span>
-                  <span className="font-mono font-bold">${item.price.toFixed(2)}</span>
+                <div key={idx} className="flex justify-between items-center p-3 bg-muted/30 rounded-xl border border-muted animate-in slide-in-from-right-2">
+                  <span className="text-sm font-bold">{item.name}</span>
+                  <span className="font-mono font-black text-primary">${item.price.toFixed(2)}</span>
                 </div>
               ))
             )}
           </CardContent>
-          <CardFooter className="flex-col gap-4 border-t p-6">
-            <div className="flex justify-between w-full">
-              <span className="text-lg font-bold">TOTAL</span>
-              <span className="text-3xl font-mono font-black text-foreground">${total.toFixed(2)}</span>
+          <CardFooter className="flex-col gap-3 border-t p-6 bg-muted/10">
+            <div className="space-y-1 w-full">
+              {isStaff && cart.length > 0 && (
+                <div className="flex justify-between text-emerald-600 text-xs font-black uppercase">
+                  <span>Descuento Staff (15%)</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between w-full items-end pt-2">
+                <span className="text-xs font-black uppercase text-muted-foreground">TOTAL A PAGAR</span>
+                <span className="text-4xl font-mono font-black text-foreground tracking-tighter">${finalTotal.toFixed(2)}</span>
+              </div>
             </div>
-            <div className="grid grid-cols-1 w-full gap-2">
+            <div className="grid grid-cols-1 w-full gap-2 mt-4">
               <Button 
                 size="lg" 
-                className="w-full bg-secondary text-foreground hover:bg-secondary/90 font-bold text-lg h-16 shadow-lg"
-                disabled={!currentStudent || total === 0}
+                className="w-full bg-secondary text-foreground hover:bg-secondary/90 font-black text-xl h-16 shadow-lg rounded-2xl"
+                disabled={!currentStudent || cart.length === 0}
                 onClick={processPayment}
               >
-                PAGAR AHORA
+                CONFIRMAR PAGO
               </Button>
               <Button 
                 variant="ghost" 
-                className="w-full text-destructive hover:bg-destructive/10"
+                className="w-full text-muted-foreground font-bold hover:text-destructive"
                 onClick={resetSession}
               >
-                CANCELAR / LIMPIAR
+                LIMPIAR SESIÓN
               </Button>
             </div>
           </CardFooter>

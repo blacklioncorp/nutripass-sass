@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -6,14 +7,12 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   Users, 
-  School, 
-  UserRound, 
   LayoutDashboard, 
   Utensils, 
   Settings, 
-  FileText,
   CreditCard,
-  LogOut
+  LogOut,
+  ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,16 +21,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Estudiantes', href: '/admin/students', icon: Users },
-    { name: 'Personal (Staff)', href: '/admin/staff', icon: UserRound },
-    { name: 'Menú Escolar', href: '/admin/menu', icon: Utensils },
+    { name: 'Gestión Usuarios', href: '/admin/members', icon: Users },
+    { name: 'Catálogo Productos', href: '/admin/products', icon: ShoppingBag },
     { name: 'Transacciones', href: '/admin/transactions', icon: CreditCard },
-    { name: 'Reportes', href: '/admin/reports', icon: FileText },
   ];
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r shadow-sm flex flex-col hidden md:flex">
         <div className="p-6 border-b">
           <Link href="/" className="flex items-center gap-2">
@@ -76,7 +72,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0">
           <h2 className="text-lg font-black uppercase text-muted-foreground">
