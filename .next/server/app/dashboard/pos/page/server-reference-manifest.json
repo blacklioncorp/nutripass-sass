@@ -1,0 +1,20 @@
+{
+  "node": {
+    "40f7c1f20f0410ee1e2e3bb92490154b08dab3d1c2": {
+      "workers": {
+        "app/dashboard/pos/page": {
+          "moduleId": "[project]/.next-internal/server/app/dashboard/pos/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-allergy-safe-meal-suggestions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "generateAllergySafeMealSuggestions",
+          "filename": "src/ai/flows/generate-allergy-safe-meal-suggestions.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/pos/page": "action-browser"
+      },
+      "exportedName": "generateAllergySafeMealSuggestions",
+      "filename": "src/ai/flows/generate-allergy-safe-meal-suggestions.ts"
+    }
+  },
+  "edge": {}
+}

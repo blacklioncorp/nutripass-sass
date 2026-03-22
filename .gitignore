@@ -1,33 +1,35 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# .gitignore
 
-# testing
-/coverage
+# Dependencias (¡Pesadas y autogeneradas!)
+node_modules/
+/frontend/node_modules/
 
-# next.js
-/.next/
-/out/
+# Entornos de Producción (Generados por Vite)
+/frontend/dist/
+/frontend/build/
 
-# production
-/build
+# Archivos de Entorno y Secretos (¡CRÍTICO DE SEGURIDAD!)
+.env
+.env.local
+.env.production
+.env.development
+*.env*
+supabase/.env
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs y Debugging
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# Archivos del Sistema Operativo
+.DS_Store
+Thumbs.db
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Configuraciones de IDEs y Editores (VS Code, WebStorm, etc.)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,17 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/inventory/page": "app/admin/inventory/page.js",
+  "/admin/kitchen/page": "app/admin/kitchen/page.js",
+  "/admin/members/page": "app/admin/members/page.js",
+  "/admin/menu/page": "app/admin/menu/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/admin/settings/branding/page": "app/admin/settings/branding/page.js",
+  "/dashboard/parent/page": "app/dashboard/parent/page.js",
+  "/dashboard/parent/pre-order/page": "app/dashboard/parent/pre-order/page.js",
+  "/dashboard/pos/page": "app/dashboard/pos/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/super-admin/page": "app/super-admin/page.js"
+}
