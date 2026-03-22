@@ -1,0 +1,656 @@
+{
+  "entities": {
+    "School": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "School",
+      "type": "object",
+      "description": "Represents a school, which is a tenant in the NutriPass system. All other entities for a school are associated with this entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the School entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the school."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the school."
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "The primary contact email for the school administration.",
+          "format": "email"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the school tenant is currently active in the system."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the school record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the school record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactEmail",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Profile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Profile",
+      "type": "object",
+      "description": "Extends the Supabase authentication user table, adding specific roles and associating users with schools. This entity holds metadata for all authenticated users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Profile entity, matching the auth.users.id from Supabase Auth."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Reference to the School this user is associated with. (Relationship: School 1:N Profile). Null for super_admin users."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the system (e.g., 'super_admin', 'school_admin', 'parent')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "role",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SchoolMember": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchoolMember",
+      "type": "object",
+      "description": "Represents a person within a school (student or staff) who can make purchases at the cafeteria using an NFC tag and a digital wallet. This entity consolidates information previously split between 'students' and potentially 'staff'.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SchoolMember entity."
+        },
+        "profileId": {
+          "type": "string",
+          "description": "Reference to the Profile entity associated with this school member. (Relationship: Profile 1:1 SchoolMember)"
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Reference to the School this member belongs to. (Relationship: School 1:N SchoolMember)"
+        },
+        "userType": {
+          "type": "string",
+          "description": "The type of user this school member is ('student' or 'staff')."
+        },
+        "nfcTagUid": {
+          "type": "string",
+          "description": "Unique identifier from the NFC tag assigned to this member, used for quick identification at POS."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet entity associated with this member. (Relationship: Wallet 1:1 SchoolMember)"
+        },
+        "parentProfileId": {
+          "type": "string",
+          "description": "Reference to the Profile of the parent associated with this student member. Null if userType is 'staff'. (Relationship: Profile 1:N SchoolMember)"
+        },
+        "grade": {
+          "type": "string",
+          "description": "The academic grade or year of the student. Null if userType is 'staff'."
+        },
+        "group": {
+          "type": "string",
+          "description": "The specific group or class of the student (e.g., 'A', 'Math Club'). Null if userType is 'staff'."
+        },
+        "position": {
+          "type": "string",
+          "description": "The job position of the staff member. Null if userType is 'student'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the school member record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the school member record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "profileId",
+        "schoolId",
+        "userType",
+        "nfcTagUid",
+        "walletId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Wallet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Wallet",
+      "type": "object",
+      "description": "Manages the financial balances for a specific school member, allowing for multiple balance types (e.g., 'comedor' and 'snack').",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Wallet entity."
+        },
+        "schoolMemberId": {
+          "type": "string",
+          "description": "Reference to the SchoolMember this wallet belongs to. (Relationship: SchoolMember 1:1 Wallet)"
+        },
+        "balanceComedor": {
+          "type": "number",
+          "description": "Current balance available for general meal purchases (e.g., lunch)."
+        },
+        "balanceSnack": {
+          "type": "number",
+          "description": "Current balance available for snack purchases."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the wallet was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the wallet was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "schoolMemberId",
+        "balanceComedor",
+        "balanceSnack",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "An immutable record of all financial movements (top-ups, purchases, adjustments) associated with a specific wallet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet involved in this transaction. (Relationship: Wallet 1:N Transaction)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction. Positive for additions (e.g., top-up), negative for deductions (e.g., purchase)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction (e.g., 'top_up', 'purchase', 'adjustment')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the transaction."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product purchased, if applicable. Null for non-purchase transactions. (Relationship: Product 1:N Transaction)"
+        },
+        "processedByProfileId": {
+          "type": "string",
+          "description": "Reference to the Profile of the user who initiated or processed the transaction (e.g., parent, admin, POS operator). (Relationship: Profile 1:N Transaction)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the transaction was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "walletId",
+        "amount",
+        "type",
+        "description",
+        "processedByProfileId",
+        "createdAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents an individual food item or product offered in the school cafeteria.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Reference to the School that offers this product. (Relationship: School 1:N Product)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the product (e.g., 'main_meal', 'drink', 'snack')."
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Indicates if the product is currently available for purchase."
+        },
+        "allergens": {
+          "type": "array",
+          "description": "A list of known allergens present in the product.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the product was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the product was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "schoolId",
+        "name",
+        "price",
+        "category",
+        "isAvailable",
+        "allergens",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DietaryRestriction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DietaryRestriction",
+      "type": "object",
+      "description": "Records specific dietary restrictions, allergies, or blocked food items for a school member, set typically by a parent.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DietaryRestriction entity."
+        },
+        "schoolMemberId": {
+          "type": "string",
+          "description": "Reference to the SchoolMember to whom this restriction applies. (Relationship: SchoolMember 1:N DietaryRestriction)"
+        },
+        "allergenName": {
+          "type": "string",
+          "description": "The name of a specific allergen (e.g., 'nuts', 'gluten'). Mutually exclusive with foodItemToBlock if restrictionType is 'allergy'."
+        },
+        "foodItemToBlock": {
+          "type": "string",
+          "description": "A specific food item that is blocked for the member (e.g., 'Peanut Butter Sandwich'). Mutually exclusive with allergenName if restrictionType is 'blocked_item'."
+        },
+        "restrictionType": {
+          "type": "string",
+          "description": "The type of restriction ('allergy', 'preference', 'blocked_item')."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes or details regarding the restriction."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the dietary restriction was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "schoolMemberId",
+        "restrictionType",
+        "createdAt"
+      ]
+    },
+    "Menu": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Menu",
+      "type": "object",
+      "description": "Defines a daily or weekly menu offered by a school cafeteria, listing meal types and general descriptions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Menu entity."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "Reference to the School this menu belongs to. (Relationship: School 1:N Menu)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date for which this menu is active.",
+          "format": "date"
+        },
+        "mealType": {
+          "type": "string",
+          "description": "The type of meal (e.g., 'breakfast', 'lunch', 'snack')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A general description or theme for the meal on this day."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the menu was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the menu was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "schoolId",
+        "date",
+        "mealType",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Links a specific product to a menu, indicating its inclusion in a particular meal on a given date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MenuItem entity."
+        },
+        "menuId": {
+          "type": "string",
+          "description": "Reference to the Menu this item is part of. (Relationship: Menu 1:N MenuItem)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product being offered as part of the menu. (Relationship: Product 1:N MenuItem)"
+        },
+        "isMainDish": {
+          "type": "boolean",
+          "description": "Indicates if this menu item is considered a main dish for the meal."
+        },
+        "servingSize": {
+          "type": "string",
+          "description": "Optional: Describes the serving size of the product for this menu item."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the menu item was added.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the menu item was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "menuId",
+        "productId",
+        "isMainDish",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/profiles/{profileId}",
+        "definition": {
+          "entityName": "Profile",
+          "schema": {
+            "$ref": "#/backend/entities/Profile"
+          },
+          "description": "Stores user profiles, including their `role` and associated `schoolId` (for 'school_admin', 'parent', 'staff', 'student'). This is crucial for DBAC (Database Access Control) and multi-tenant Row Level Security (RLS) enforcement in rules. Access is typically restricted to the owning user or 'super_admin'.",
+          "params": [
+            {
+              "name": "profileId",
+              "description": "The unique ID of the user's profile, matching `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}",
+        "definition": {
+          "entityName": "School",
+          "schema": {
+            "$ref": "#/backend/entities/School"
+          },
+          "description": "The top-level collection for school tenants. Documents here represent individual schools. Managed by 'super_admin' or read by an associated 'school_admin' for their specific school. Includes denormalized `id` as `schoolId`.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique identifier of the school tenant."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/members/{memberId}",
+        "definition": {
+          "entityName": "SchoolMember",
+          "schema": {
+            "$ref": "#/backend/entities/SchoolMember"
+          },
+          "description": "Contains all students and staff members belonging to a specific school. Includes the denormalized `schoolId` (as per schema) for Authorization Independence and QAPs. Managed by `school_admin`; parents can access their linked students.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique ID of the school member (student or staff)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/members/{memberId}/wallets/{walletId}",
+        "definition": {
+          "entityName": "Wallet",
+          "schema": {
+            "$ref": "#/backend/entities/Wallet"
+          },
+          "description": "Stores financial wallets for individual school members. Each document includes denormalized `schoolId` and `schoolMemberId` (in addition to schema's `schoolMemberId`) for complete Authorization Independence, allowing direct rule evaluation and QAPs.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique ID of the parent school member."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the wallet."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/members/{memberId}/wallets/{walletId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Immutable records of all financial transactions for a specific wallet. Each document includes denormalized `schoolId`, `schoolMemberId`, and `walletId` (in addition to schema's `walletId`) for full Authorization Independence and QAPs.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique ID of the parent school member."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the parent wallet."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique ID of the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Lists all cafeteria products available for a specific school. Includes the denormalized `schoolId` (as per schema) for Authorization Independence and QAPs. Managed by `school_admin`.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "productId",
+              "description": "The unique ID of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/members/{memberId}/dietaryRestrictions/{restrictionId}",
+        "definition": {
+          "entityName": "DietaryRestriction",
+          "schema": {
+            "$ref": "#/backend/entities/DietaryRestriction"
+          },
+          "description": "Records dietary restrictions or blocked items for a specific school member. Each document includes denormalized `schoolId` and `schoolMemberId` (in addition to schema's `schoolMemberId`) for Authorization Independence and QAPs.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique ID of the parent school member."
+            },
+            {
+              "name": "restrictionId",
+              "description": "The unique ID of the dietary restriction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/menus/{menuId}",
+        "definition": {
+          "entityName": "Menu",
+          "schema": {
+            "$ref": "#/backend/entities/Menu"
+          },
+          "description": "Defines daily or weekly menus for a specific school. Includes the denormalized `schoolId` (as per schema) for Authorization Independence and QAPs. Managed by `school_admin`.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "menuId",
+              "description": "The unique ID of the menu."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schools/{schoolId}/menus/{menuId}/menuItems/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Links products to specific menu entries. Each document includes denormalized `schoolId` and `menuId` (in addition to schema's `menuId`) for Authorization Independence and QAPs. Managed by `school_admin`.",
+          "params": [
+            {
+              "name": "schoolId",
+              "description": "The unique ID of the parent school."
+            },
+            {
+              "name": "menuId",
+              "description": "The unique ID of the parent menu."
+            },
+            {
+              "name": "menuItemId",
+              "description": "The unique ID of the menu item."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for NutriPass is designed with a strong emphasis on multi-tenancy, Authorization Independence, and Queryable Access Patterns (QAPs), following a hierarchical and denormalized approach. The core principle is that every document within a school's scope must contain its `schoolId` explicitly, and subcollection documents must also include the `schoolId` and, where logical, the immediate parent's ID. This denormalization is crucial for robust security rules and efficient queries.\n\n**Authorization Independence:** This is achieved by embedding the necessary authorization context directly within each document. For instance, `Wallet` documents will explicitly store `schoolId` and `schoolMemberId`, and `Transaction` documents will store `schoolId`, `schoolMemberId`, and `walletId`. This eliminates the need for expensive and complex `get()` calls in Firestore Security Rules to check parent documents for permissions. A `school_admin` will have their `schoolId` stored in their `Profile` document. Security rules can then directly compare `request.auth.uid`'s associated `schoolId` with `resource.data.schoolId` (for writes) or `request.path[2]` (for reads on top-level school collections) or `resource.data.schoolId` (for list operations and documents in subcollections). This approach allows for atomic operations (like creating a `SchoolMember` and their initial `Wallet` in a batch) without breaking security rules.\n\n**Queryable Access Patterns (QAPs):** The structural segregation and denormalization strategy directly support QAPs. By ensuring `schoolId` is present in every relevant document, `list` operations for a `school_admin` can include a `where('schoolId', '==', request.auth.schoolId)` clause, which Firestore can efficiently index and filter. This prevents rules from acting as filters, which is an anti-pattern. For example, to list all students for a specific school, the query `/schools/{schoolId}/members` can be performed, and the rule can simply verify that the requested `{schoolId}` matches the `schoolId` from the user's `profile` data.\n\n**DBAC (Database Access Control):** The `profiles` collection serves as the central hub for user roles and their associated `schoolId`. When a user authenticates, their `request.auth.uid` can be used to retrieve their `profile` document, from which `request.auth.schoolId` and `request.auth.role` can be derived for rule evaluation. For `super_admin`s, `request.auth.role` will be 'super_admin', granting them broader access, while `school_admin`s will be restricted to their specific `schoolId`.\n\n**Structural Segregation:** Each entity type (e.g., `SchoolMember`, `Product`, `Menu`) gets its own collection, typically nested under the `schools/{schoolId}` path. This ensures a homogeneous security posture within each collection, simplifying rules. For example, all documents in `/schools/{schoolId}/members` share common access requirements (managed by `school_admin`, read by parents/POS for specific members), allowing for simpler, more predictable rules."
+  }
+}
