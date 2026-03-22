@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -9,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { School, Users, CreditCard, Plus, Search, Building2, TrendingUp, Activity, ExternalLink } from 'lucide-react';
+import { School, Users, CreditCard, Plus, Search, Building2, Activity, ExternalLink } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 export default function SuperAdminDashboard() {
   const db = useFirestore();
