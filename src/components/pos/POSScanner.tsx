@@ -30,7 +30,8 @@ import {
   doc, 
   runTransaction, 
   serverTimestamp,
-  limit
+  limit,
+  addDoc
 } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -80,7 +81,6 @@ export default function POSScanner() {
     if (!nfcInput) return;
 
     if (showCheckoutModal) {
-      // Process sale if we are in checkout mode
       processTransaction(nfcInput);
       setNfcInput('');
       return;
@@ -127,6 +127,7 @@ export default function POSScanner() {
         
         const member = memberSnap.docs[0].data();
         const memberId = memberSnap.docs[0].id;
+        const parentId = member.profileId || "parent1"; // Fallback for proto
 
         // 2. Apply Discounts
         const discountPercent = (member.userType === 'staff' && schoolConfig?.staffDiscountActive) 
@@ -136,8 +137,8 @@ export default function POSScanner() {
         const discount = subtotal * (discountPercent / 100);
         const finalTotal = subtotal - discount;
 
-        // 3. Find Wallet (simplified for prototype, assumes first wallet)
-        const walletRef = doc(db, 'schools', schoolId, 'members', memberId, 'wallets', 'w1'); // Hardcoded ID for proto
+        // 3. Find Wallet
+        const walletRef = doc(db, 'schools', schoolId, 'members', memberId, 'wallets', 'w1');
         const walletSnap = await transaction.get(walletRef);
         
         if (!walletSnap.exists()) throw new Error("Billetera no configurada");
@@ -148,7 +149,6 @@ export default function POSScanner() {
         // 4. Updates
         transaction.update(walletRef, { balance: balance - finalTotal });
 
-        // Update Stock for each product
         for (const item of cart) {
           if (item.category !== 'comedor') {
             const prodRef = doc(db, 'schools', schoolId, 'products', item.id);
@@ -166,6 +166,18 @@ export default function POSScanner() {
           items: cart.map(i => ({ id: i.id, name: i.name, price: i.price })),
           timestamp: serverTimestamp(),
           type: 'purchase'
+        });
+
+        // 5. Create Notification for Parent (Simulated Webhook/Trigger)
+        const notificationId = doc(collection(db, 'profiles', parentId, 'notifications')).id;
+        transaction.set(doc(db, 'profiles', parentId, 'notifications', notificationId), {
+          id: notificationId,
+          userId: parentId,
+          title: "Compra Realizada",
+          message: `${member.firstName} compró: ${cart.map(i => i.name).join(', ')}. Total: $${finalTotal.toFixed(2)}. Saldo restante: $${(balance - finalTotal).toFixed(2)}`,
+          type: "purchase",
+          isRead: false,
+          createdAt: new Date().toISOString()
         });
       });
 
@@ -296,10 +308,6 @@ export default function POSScanner() {
               <h2 className="text-4xl font-black tracking-tight">Identificar Cliente</h2>
               <p className="text-muted-foreground font-medium text-lg">Acerque la tarjeta o el tag NFC al lector para iniciar la venta.</p>
             </div>
-            <div className="flex gap-4 pt-4">
-              <Button variant="outline" className="font-bold h-12 px-6 rounded-xl" onClick={() => setNfcInput('12345')}>Simular Alumno</Button>
-              <Button variant="outline" className="font-bold h-12 px-6 rounded-xl" onClick={() => setNfcInput('67890')}>Simular Staff</Button>
-            </div>
           </div>
         ) : (
           <div className="space-y-8">
@@ -337,23 +345,12 @@ export default function POSScanner() {
                     <div className="flex-1 space-y-3">
                       <div className="flex justify-between items-start">
                         <Badge variant="outline" className="bg-slate-50 text-[10px] font-black">{product.category.toUpperCase()}</Badge>
-                        {product.category !== 'comedor' && (
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            (product.stockQuantity || 0) < 10 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                          )}>
-                            STOCK: {product.stockQuantity || 0}
-                          </span>
-                        )}
                       </div>
                       <h3 className="font-black text-lg leading-tight uppercase group-hover:text-primary transition-colors">{product.name}</h3>
                       <p className="text-xs text-muted-foreground font-medium line-clamp-2">{product.description}</p>
                     </div>
                     <div className="mt-4 flex items-end justify-between">
                       <span className="text-2xl font-mono font-black text-slate-900">${product.price.toFixed(2)}</span>
-                      <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
-                        <Plus className="h-5 w-5" />
-                      </div>
                     </div>
                   </button>
                 );
@@ -377,12 +374,6 @@ export default function POSScanner() {
             <p className="text-muted-foreground font-medium">
               Esperando lectura del Tag NFC para autorizar el cargo de <span className="font-black text-foreground text-xl">${finalTotal.toFixed(2)}</span>.
             </p>
-            <div className="bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Lectura de Lector</p>
-              <div className="h-8 w-full flex items-center justify-center gap-1">
-                {[1,2,3,4,5,6].map(i => <div key={i} className="h-2 w-2 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: `${i*100}ms` }} />)}
-              </div>
-            </div>
           </div>
           <Button variant="ghost" className="font-bold text-muted-foreground" onClick={() => setShowCheckoutModal(false)}>CANCELAR OPERACIÓN</Button>
         </DialogContent>

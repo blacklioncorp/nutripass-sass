@@ -29,7 +29,7 @@
       "properties": {
         "id": { "type": "string" },
         "schoolId": { "type": "string" },
-        "profileId": { "type": "string" },
+        "profileId": { "type": "string", "description": "ID of the user profile (parent or staff member)." },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "identifier": { "type": "string" },
@@ -54,45 +54,27 @@
         "price": { "type": "number" },
         "category": { "type": "string", "enum": ["snack", "comedor", "bebida"] },
         "barcode": { "type": "string", "description": "EAN/UPC barcode for quick inventory management." },
-        "stockQuantity": { "type": "integer", "default": 0, "description": "Inventory level for snacks and drinks." },
+        "stockQuantity": { "type": "integer", "default": 0 },
         "isAvailable": { "type": "boolean" },
         "image": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "schoolId", "name", "price", "category", "isAvailable"]
     },
-    "DailyMenu": {
-      "title": "DailyMenu",
+    "Notification": {
+      "title": "Notification",
       "type": "object",
-      "description": "A specific product offered on a particular date.",
+      "description": "In-app notification for parents and staff.",
       "properties": {
         "id": { "type": "string" },
-        "schoolId": { "type": "string" },
-        "date": { "type": "string", "format": "date" },
-        "productId": { "type": "string" },
-        "productName": { "type": "string" },
-        "price": { "type": "number" },
-        "availableQuantity": { "type": "number" }
-      },
-      "required": ["id", "schoolId", "date", "productId"]
-    },
-    "PreOrder": {
-      "title": "PreOrder",
-      "type": "object",
-      "description": "A pre-paid meal reservation.",
-      "properties": {
-        "id": { "type": "string" },
-        "schoolId": { "type": "string" },
-        "memberId": { "type": "string" },
-        "menuId": { "type": "string" },
-        "productId": { "type": "string" },
-        "productName": { "type": "string" },
-        "date": { "type": "string", "format": "date" },
-        "status": { "type": "string", "enum": ["paid", "consumed", "cancelled"] },
-        "totalPrice": { "type": "number" },
+        "userId": { "type": "string", "description": "The profile ID of the recipient." },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["purchase", "reminder", "low_balance"] },
+        "isRead": { "type": "boolean", "default": false },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "schoolId", "memberId", "menuId", "status", "totalPrice"]
+      "required": ["id", "userId", "title", "message", "type", "isRead", "createdAt"]
     }
   },
   "firestore": {
@@ -110,12 +92,8 @@
         "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" } }
       },
       {
-        "path": "/schools/{schoolId}/menus/{menuId}",
-        "definition": { "entityName": "DailyMenu", "schema": { "$ref": "#/backend/entities/DailyMenu" } }
-      },
-      {
-        "path": "/schools/{schoolId}/preOrders/{orderId}",
-        "definition": { "entityName": "PreOrder", "schema": { "$ref": "#/backend/entities/PreOrder" } }
+        "path": "/profiles/{profileId}/notifications/{notificationId}",
+        "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } }
       }
     ]
   }

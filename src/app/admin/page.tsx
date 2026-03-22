@@ -1,8 +1,10 @@
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserRound, Utensils, CreditCard, TrendingUp, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, UserRound, Utensils, CreditCard, TrendingUp, AlertCircle, Send } from 'lucide-react';
 import { 
   BarChart, 
   Bar, 
@@ -14,6 +16,9 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { toast } from '@/hooks/use-toast';
 
 const data = [
   { name: 'Lun', sales: 4000 },
@@ -31,8 +36,46 @@ const stats = [
 ];
 
 export default function AdminDashboard() {
+  const db = useFirestore();
+
+  const simulateWeeklyReminder = async () => {
+    try {
+      // Simulate sending to parent1
+      const parentId = "parent1";
+      await addDoc(collection(db, 'profiles', parentId, 'notifications'), {
+        userId: parentId,
+        title: "¡Planifica la semana!",
+        message: "Ya está disponible el menú de la próxima semana. Reserva con tiempo para asegurar tus platillos favoritos.",
+        type: "reminder",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+      toast({
+        title: "Recordatorios enviados",
+        description: "Se han enviado notificaciones a todos los padres activos.",
+      });
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron enviar los recordatorios.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-black">Dashboard de Escuela</h1>
+        <Button 
+          onClick={simulateWeeklyReminder}
+          className="bg-secondary text-foreground font-black gap-2 shadow-lg hover:scale-105 transition-transform"
+        >
+          <Send className="h-4 w-4" />
+          ENVIAR RECORDATORIO MATA-MERMAS
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
           <Card key={stat.title} className="border-2 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
