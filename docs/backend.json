@@ -53,6 +53,7 @@
         "description": { "type": "string" },
         "price": { "type": "number" },
         "category": { "type": "string", "enum": ["snack", "comedor", "bebida"] },
+        "barcode": { "type": "string", "description": "EAN/UPC barcode for quick inventory management." },
         "stockQuantity": { "type": "integer", "default": 0, "description": "Inventory level for snacks and drinks." },
         "isAvailable": { "type": "boolean" },
         "image": { "type": "string" },

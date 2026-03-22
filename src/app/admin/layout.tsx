@@ -15,7 +15,8 @@ import {
   ShoppingBag,
   Calendar,
   ChefHat,
-  Palette
+  Palette,
+  Barcode
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Gestión Usuarios', href: '/admin/members', icon: Users },
     { name: 'Catálogo Productos', href: '/admin/products', icon: ShoppingBag },
+    { name: 'Control Inventario', href: '/admin/inventory', icon: Barcode },
     { name: 'Planificador Menú', href: '/admin/menu', icon: Calendar },
     { name: 'Reporte Cocina', href: '/admin/kitchen', icon: ChefHat },
     { name: 'Personalización', href: '/admin/settings/branding', icon: Palette },
