@@ -1,101 +1,327 @@
+-- ==========================================
+-- AUTOMATIC RLS TRIGGER
+-- Creates an event trigger that automatically 
+-- enables RLS on all new tables in public schema
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.auto_enable_rls()
+RETURNS event_trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  rec record;
+BEGIN
+  FOR rec IN
+    SELECT *
+    FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag = 'CREATE TABLE' AND schema_name = 'public'
+  LOOP
+    EXECUTE 'ALTER TABLE ' || rec.object_identity || ' ENABLE ROW LEVEL SECURITY;';
+  END LOOP;
+END;
+$$;
+
+DROP EVENT TRIGGER IF EXISTS enable_rls_on_new_tables;
+CREATE EVENT TRIGGER enable_rls_on_new_tables
+  ON ddl_command_end
+  WHEN TAG IN ('CREATE TABLE')
+  EXECUTE FUNCTION public.auto_enable_rls();
+
+-- ==========================================
+-- SCHEMA DEFINITIONS
+-- ==========================================
+
 -- Schools table
-CREATE TABLE schools (
+CREATE TABLE IF NOT EXISTS schools (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
+  subdomain TEXT UNIQUE NOT NULL,
+  logo_url TEXT,
+  primary_color TEXT DEFAULT '#7CB9E8',
+  secondary_color TEXT DEFAULT '#004B87',
+  staff_discount_active BOOLEAN DEFAULT false,
+  staff_discount_percentage DECIMAL(5,2) DEFAULT 0.00,
+  stripe_account_id TEXT UNIQUE,
+  stripe_onboarding_complete BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Profiles table (extends auth.users)
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   school_id UUID REFERENCES schools(id),
-  role TEXT CHECK (role IN ('admin', 'staff', 'parent')),
+  role TEXT CHECK (role IN ('superadmin', 'school_admin', 'staff', 'parent')),
   full_name TEXT,
-  updated_at TIMESTAMPTZ
-);
-
--- Students table
-CREATE TABLE students (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  school_id UUID REFERENCES schools(id) NOT NULL,
-  parent_id UUID REFERENCES profiles(id),
-  full_name TEXT NOT NULL,
-  nfc_tag_uid TEXT UNIQUE,
-  allergies JSONB DEFAULT '[]',
-  blocked_items TEXT[] DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Wallets table
-CREATE TABLE wallets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
-  type TEXT CHECK (type IN ('comedor', 'snack')) NOT NULL,
-  balance DECIMAL(12,2) DEFAULT 0.00 NOT NULL,
+  push_token TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Transactions table (Immutable)
-CREATE TABLE transactions (
+-- Consumers (Unified table for Students and Staff)
+CREATE TABLE IF NOT EXISTS consumers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) NOT NULL,
+  parent_id UUID REFERENCES profiles(id), -- Nullable, staff might not have a parent
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  identifier TEXT, -- Enrollment Number or Employee ID
+  nfc_tag_uid TEXT UNIQUE,
+  type TEXT CHECK (type IN ('student', 'staff')) NOT NULL,
+  earned_nutri_points INTEGER DEFAULT 0,
+  allergies JSONB DEFAULT '[]',
+  blocked_items TEXT[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Wallets
+CREATE TABLE IF NOT EXISTS wallets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  consumer_id UUID REFERENCES consumers(id) ON DELETE CASCADE NOT NULL,
+  type TEXT CHECK (type IN ('comedor', 'snack')) NOT NULL,
+  balance DECIMAL(12,2) DEFAULT 0.00 NOT NULL,
+  max_overdraft DECIMAL(12,2) DEFAULT 50.00 NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Transactions (Immutable)
+CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   wallet_id UUID REFERENCES wallets(id) NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
   type TEXT CHECK (type IN ('credit', 'debit')) NOT NULL,
   description TEXT,
+  stripe_payment_intent_id TEXT UNIQUE,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Products table
-CREATE TABLE products (
+-- Products
+CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) NOT NULL,
   name TEXT NOT NULL,
-  price DECIMAL(12,2) NOT NULL,
-  category TEXT,
+  description TEXT,
+  base_price DECIMAL(12,2) NOT NULL,
+  category TEXT CHECK (category IN ('snack', 'comedor', 'bebida')) NOT NULL,
+  image_url TEXT,
+  barcode TEXT UNIQUE,
+  is_available BOOLEAN DEFAULT true,
+  stock_quantity INTEGER DEFAULT 0,
+  nutri_points_reward INTEGER DEFAULT 0,
   ingredients TEXT[],
-  is_available BOOLEAN DEFAULT true
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS POLICIES --
+-- Daily Menus (Mata-Mermas)
+CREATE TABLE IF NOT EXISTS daily_menus (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  school_id UUID REFERENCES schools(id) NOT NULL,
+  date DATE NOT NULL,
+  product_id UUID REFERENCES products(id) NOT NULL,
+  available_quantity INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Enable RLS
-ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+-- Pre Orders
+CREATE TABLE IF NOT EXISTS pre_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  consumer_id UUID REFERENCES consumers(id) NOT NULL,
+  daily_menu_id UUID REFERENCES daily_menus(id) NOT NULL,
+  status TEXT CHECK (status IN ('paid', 'consumed', 'cancelled')) DEFAULT 'paid',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Profiles: Users can only see their own profile
-CREATE POLICY "Users can view own profile" ON profiles 
-  FOR SELECT USING (auth.uid() = id);
+-- Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Students: Isolation by school_id linked to user profile
-CREATE POLICY "School isolation for students" ON students
-  FOR ALL USING (
-    school_id = (SELECT school_id FROM profiles WHERE id = auth.uid())
+-- ==========================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ==========================================
+
+-- (Automatic RLS enabled via Trigger, we just define policies here)
+
+-- Profiles
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+
+-- Schools
+CREATE POLICY "Public read for subdomains" ON schools FOR SELECT USING (true);
+CREATE POLICY "Admins can update their school" ON schools FOR UPDATE USING (
+  id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND role = 'school_admin')
+);
+
+-- Consumers
+CREATE POLICY "School isolation for consumers" ON consumers FOR ALL USING (
+  school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
+  parent_id = auth.uid()
+);
+
+-- Products
+CREATE POLICY "School isolation for products" ON products FOR ALL USING (
+  school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+);
+
+-- Wallets
+CREATE POLICY "Parent and School isolated wallets" ON wallets FOR SELECT USING (
+  consumer_id IN (
+    SELECT id FROM consumers WHERE 
+      school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
+      parent_id = auth.uid()
+  )
+);
+
+-- ==========================================
+-- ATOMIC POS TRANSACTION (RPC)
+-- ==========================================
+CREATE OR REPLACE FUNCTION process_pos_sale(
+  p_nfc_uid TEXT,
+  p_cart_total DECIMAL,
+  p_nutri_points_earned INTEGER,
+  p_items JSONB -- [{product_id, quantity}]
+) RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_consumer RECORD;
+  v_school RECORD;
+  v_wallet RECORD;
+  v_final_total DECIMAL;
+  v_new_balance DECIMAL;
+  v_item JSONB;
+BEGIN
+  -- 1. Find Consumer by NFC
+  SELECT * INTO v_consumer FROM consumers WHERE nfc_tag_uid = p_nfc_uid AND is_active = true;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Consumer not found or inactive';
+  END IF;
+
+  -- 2. Find School settings
+  SELECT * INTO v_school FROM schools WHERE id = v_consumer.school_id;
+
+  -- 3. Calculate Final Total (Apply Staff Discount if applicable)
+  v_final_total := p_cart_total;
+  IF v_consumer.type = 'staff' AND v_school.staff_discount_active = true THEN
+    v_final_total := p_cart_total - (p_cart_total * (v_school.staff_discount_percentage / 100));
+  END IF;
+
+  -- 4. Get Primary Wallet
+  SELECT * INTO v_wallet FROM wallets WHERE consumer_id = v_consumer.id AND type = 'snack' LIMIT 1;
+  IF NOT FOUND THEN 
+    SELECT * INTO v_wallet FROM wallets WHERE consumer_id = v_consumer.id LIMIT 1;
+  END IF;
+
+  -- 5. Verify Balance + Overdraft
+  v_new_balance := v_wallet.balance - v_final_total;
+  IF (v_wallet.balance + v_wallet.max_overdraft) < v_final_total THEN
+    RAISE EXCEPTION 'Insufficient Funds including Emergency Overdraft';
+  END IF;
+
+  -- 6. Deduct Balance
+  UPDATE wallets SET balance = v_new_balance, updated_at = NOW() WHERE id = v_wallet.id;
+
+  -- 7. Insert Transaction
+  INSERT INTO transactions (wallet_id, amount, type, description, metadata)
+  VALUES (v_wallet.id, v_final_total, 'debit', 'POS Purchase', p_items);
+
+  -- 8. Deduct Stock & Add Nutripoints
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  LOOP
+    UPDATE products 
+    SET stock_quantity = stock_quantity - (v_item->>'quantity')::INTEGER
+    WHERE id = (v_item->>'product_id')::UUID 
+      AND (category = 'snack' OR category = 'bebida');
+  END LOOP;
+
+  UPDATE consumers 
+  SET earned_nutri_points = earned_nutri_points + p_nutri_points_earned
+  WHERE id = v_consumer.id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'new_balance', v_new_balance,
+    'consumer_name', v_consumer.first_name,
+    'overdraft_triggered', v_new_balance < 0
+  );
+END;
+$$;
+
+-- ==========================================
+-- STORAGE POLICIES (school_assets)
+-- ==========================================
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('school_assets', 'school_assets', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public read for school assets"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'school_assets');
+
+CREATE POLICY "School Admins can upload assets"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'school_assets'
+    AND auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'school_admin' OR role = 'superadmin')
   );
 
--- Wallets: Isolation via students
-CREATE POLICY "School isolation for wallets" ON wallets
-  FOR ALL USING (
-    student_id IN (SELECT id FROM students WHERE school_id = (SELECT school_id FROM profiles WHERE id = auth.uid()))
+CREATE POLICY "School Admins can update assets"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'school_assets'
+    AND auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'school_admin' OR role = 'superadmin')
   );
 
--- Transactions: Isolation via wallets
-CREATE POLICY "School isolation for transactions" ON transactions
-  FOR SELECT USING (
-    wallet_id IN (
-      SELECT id FROM wallets WHERE student_id IN (
-        SELECT id FROM students WHERE school_id = (SELECT school_id FROM profiles WHERE id = auth.uid())
-      )
-    )
+CREATE POLICY "School Admins can delete assets"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'school_assets'
+    AND auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'school_admin' OR role = 'superadmin')
   );
 
--- Products: Schools see their own products
-CREATE POLICY "School isolation for products" ON products
-  FOR ALL USING (
-    school_id = (SELECT school_id FROM profiles WHERE id = auth.uid())
+-- ==========================================
+-- WEBHOOKS AND CRON JOBS (pg_net & pg_cron)
+-- ==========================================
+
+-- Trigger to call Deno Edge Function on Purchase
+CREATE OR REPLACE FUNCTION notify_transaction()
+RETURNS trigger AS $$
+BEGIN
+  -- Requires pg_net extension to be enabled in Supabase
+  PERFORM net.http_post(
+    url := 'https://' || current_setting('request.headers')::json->>'origin' || '/functions/v1/send-purchase-alert',
+    headers := '{"Content-Type": "application/json"}',
+    body := json_build_object('transaction', row_to_json(NEW))
   );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS transaction_webhook ON transactions;
+CREATE TRIGGER transaction_webhook
+  AFTER INSERT ON transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_transaction();
+
+-- Schedule Weekly Reminder
+-- Runs every Friday at 16:00 (Cron: '0 16 * * 5')
+-- Make sure pg_cron is enabled in the database extensions layer.
+/* 
+SELECT cron.schedule(
+  'weekly-preorder-reminder', 
+  '0 16 * * 5', 
+  $$
+  SELECT net.http_post(
+    url := 'https://' || current_setting('request.headers')::json->>'origin' || '/functions/v1/send-weekly-reminder',
+    headers := '{"Content-Type": "application/json"}',
+    body := '{"trigger": "cron"}'
+  );
+  $$
+);
+*/

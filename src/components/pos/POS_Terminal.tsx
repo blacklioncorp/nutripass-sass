@@ -1,0 +1,224 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { processPosSale } from '@/app/(pos)/actions';
+
+export default function POS_Terminal({ catalog }: { catalog: any[] }) {
+  const [cart, setCart] = useState<any[]>([]);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [nfcInput, setNfcInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  
+  const nfcInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus NFC input when Modal opens
+  useEffect(() => {
+    if (isCheckoutOpen && !isProcessing && !checkoutResult && !errorMsg) {
+      setTimeout(() => nfcInputRef.current?.focus(), 100);
+    }
+  }, [isCheckoutOpen, isProcessing, checkoutResult, errorMsg]);
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.id !== productId));
+  };
+
+  const cartTotal = cart.reduce((acc, item) => acc + (parseFloat(item.base_price) * item.quantity), 0);
+
+  const handleNfcSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nfcInput || cart.length === 0) return;
+    
+    setIsProcessing(true);
+    setErrorMsg('');
+    
+    try {
+      const resp = await processPosSale(nfcInput, cart, cartTotal);
+      if (resp.error) throw new Error(resp.error);
+      
+      setCheckoutResult(resp.result);
+      setCart([]); // Clear cart on success
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsProcessing(false);
+      setNfcInput('');
+    }
+  };
+
+  const resetCheckout = () => {
+    setIsCheckoutOpen(false);
+    setCheckoutResult(null);
+    setErrorMsg('');
+  };
+
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      
+      {/* LEFT PANEL: CART */}
+      <div className="w-[350px] bg-white border-r border-slate-200 shadow-xl flex flex-col z-10 relative">
+        <div className="p-6 bg-slate-900 text-white flex justify-between items-center shadow-md">
+          <h2 className="text-xl font-black tracking-widest">NUTRIPASS POS</h2>
+          <span className="text-xs font-bold opacity-50 bg-white/20 px-2 py-1 rounded">CAJA VIRTUAL</span>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-300">
+              <span className="text-6xl mb-4">🛒</span>
+              <p className="font-bold">El carrito está vacío</p>
+            </div>
+          ) : (
+            cart.map(item => (
+              <div key={item.id} className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center gap-3 animate-in slide-in-from-left duration-200">
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-800 leading-tight">{item.name}</h4>
+                  <p className="text-xs font-bold text-primary">${parseFloat(item.base_price).toFixed(2)} c/u</p>
+                </div>
+                <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-2 shadow-sm">
+                  <span className="font-black text-slate-900 w-6 text-center">{item.quantity}</span>
+                </div>
+                <button 
+                  onClick={() => removeFromCart(item.id)}
+                  className="h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white font-bold transition flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-6 border-t border-slate-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
+          <div className="flex justify-between items-end mb-6">
+            <span className="text-slate-500 font-bold uppercase tracking-widest text-sm">Total Orden</span>
+            <span className="text-4xl font-black text-slate-900">${cartTotal.toFixed(2)}</span>
+          </div>
+          <button 
+            onClick={() => setIsCheckoutOpen(true)}
+            disabled={cart.length === 0}
+            className="w-full bg-primary text-white font-black text-xl py-5 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none transition-all transform active:scale-95"
+          >
+            COBRAR ${cartTotal.toFixed(2)}
+          </button>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL: CATALOG GRID */}
+      <div className="flex-1 p-8 overflow-y-auto bg-[#F0F8FF]">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-2">
+          {catalog.map(product => (
+            <div 
+              key={product.id} 
+              onClick={() => addToCart(product)}
+              className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-primary cursor-pointer transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center text-center relative overflow-hidden"
+            >
+              {product.stock_quantity !== null && product.stock_quantity <= 5 && (
+                 <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-bl-lg">
+                   Quedan {product.stock_quantity}
+                 </div>
+              )}
+              {product.nutri_points_reward > 0 && (
+                <div className="absolute top-2 left-2 bg-accent/20 text-accent text-xs font-black px-2 py-1 rounded-lg">
+                  +{product.nutri_points_reward} pts
+                </div>
+              )}
+              <div className="h-24 w-full bg-slate-50 rounded-2xl mb-4 flex items-center justify-center overflow-hidden border border-slate-100">
+                {product.image_url ? 
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> :
+                  <span className="text-4xl">{product.category === 'bebida' ? '🥤' : product.category === 'snack' ? '🥨' : '🍲'}</span>
+                }
+              </div>
+              <h3 className="font-black text-slate-800 leading-tight mb-2 line-clamp-2 min-h-[40px] flex items-center justify-center">{product.name}</h3>
+              <div className="mt-auto block w-full bg-slate-100 text-primary font-black py-2 rounded-xl text-lg">
+                ${parseFloat(product.base_price).toFixed(2)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CHECKOUT MODAL (WAITING FOR NFC) */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={resetCheckout}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
+            
+            {checkoutResult ? (
+              <div className="text-center py-6">
+                <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-4xl">✓</span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">¡Cobro Exitoso!</h2>
+                <p className="text-slate-500 mb-6">Gracias <b>{checkoutResult.consumer_name}</b></p>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 font-code text-center">
+                  <p className="text-sm text-slate-500">Nuevo Saldo:</p>
+                  <p className={`text-2xl font-black ${checkoutResult.new_balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${checkoutResult.new_balance}</p>
+                  {checkoutResult.overdraft_triggered && (
+                    <p className="text-xs text-red-500 mt-2 font-bold animate-pulse">FONDO DE EMERGENCIA UTILIZADO</p>
+                  )}
+                </div>
+                <button onClick={resetCheckout} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition">
+                  CERRAR (Siguiente Cliente)
+                </button>
+              </div>
+            ) : errorMsg ? (
+              <div className="text-center py-6">
+                <div className="h-20 w-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-4xl">✕</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900 mb-2">Error en Transacción</h2>
+                <p className="text-red-600 font-bold bg-red-50 p-4 rounded-xl border border-red-200 mb-6">{errorMsg}</p>
+                <button onClick={() => { setErrorMsg(''); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2">
+                  INTENTAR DE NUEVO
+                </button>
+                <button onClick={resetCheckout} className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition">
+                  CANCELAR
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="h-24 w-24 bg-blue-50 relative rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner overflow-hidden border border-blue-100">
+                  <div className="absolute inset-0 border-4 border-primary rounded-[2rem] opacity-50 animate-ping"></div>
+                  <span className="text-5xl animate-pulse">💳</span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Acerca la Pulsera</h2>
+                <p className="text-slate-500 mb-8 max-w-xs mx-auto">Esperando lectura NFC para cobrar <b>${cartTotal.toFixed(2)}</b>...</p>
+                
+                {/* Lector oculto que recibe el input como teclado (Barcode/RFID mode) */}
+                <form onSubmit={handleNfcSubmit}>
+                  <input 
+                    ref={nfcInputRef}
+                    type="text"
+                    value={nfcInput}
+                    onChange={(e) => setNfcInput(e.target.value)}
+                    className="absolute opacity-0 pointer-events-none"
+                    onBlur={() => { if(!isProcessing) nfcInputRef.current?.focus() }}
+                    autoComplete="off"
+                  />
+                </form>
+
+                <p className="text-xs text-slate-400 font-medium">* El escáner de la tablet está activo</p>
+                <button onClick={resetCheckout} className="mt-6 text-sm text-slate-400 font-bold hover:text-slate-600">
+                  Cancelar Operación
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

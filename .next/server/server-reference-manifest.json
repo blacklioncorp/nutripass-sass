@@ -1,21 +1,133 @@
 {
   "node": {
-    "40f7c1f20f0410ee1e2e3bb92490154b08dab3d1c2": {
+    "60da716820648bbdd6bfc439d51f84f23643f7eb5d": {
       "workers": {
-        "app/dashboard/pos/page": {
-          "moduleId": "[project]/.next-internal/server/app/dashboard/pos/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-allergy-safe-meal-suggestions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+        "app/(auth)/login/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(auth)/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
-          "exportedName": "generateAllergySafeMealSuggestions",
-          "filename": "src/ai/flows/generate-allergy-safe-meal-suggestions.ts"
+          "exportedName": "loginAction",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts"
         }
       },
       "layer": {
-        "app/dashboard/pos/page": "action-browser"
+        "app/(auth)/login/page": "action-browser"
       },
-      "filename": "src/ai/flows/generate-allergy-safe-meal-suggestions.ts",
-      "exportedName": "generateAllergySafeMealSuggestions"
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts",
+      "exportedName": "loginAction"
+    },
+    "6022dcc7e925c54dba83f64e2b57e7888916c0d6ed": {
+      "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSchoolWithAdmin",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/master/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
+      "exportedName": "createSchoolWithAdmin"
+    },
+    "70fa7e8e2226d1a345163d73e24f30456d0d67db44": {
+      "workers": {
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addMenuItem",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/menu/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts",
+      "exportedName": "addMenuItem"
+    },
+    "404de953cf3e3fdc817a4d2d781669215549a34dc6": {
+      "workers": {
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "removeMenuItem",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/menu/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts",
+      "exportedName": "removeMenuItem"
+    },
+    "60dd972ce3055ecde1c83e194dbe2cd0718ca85274": {
+      "workers": {
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "upsertProduct",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/products/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts",
+      "exportedName": "upsertProduct"
+    },
+    "60920a9fa47216a39d462b190f50a70808021d2ca1": {
+      "workers": {
+        "app/(dashboard)/school/consumers/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createConsumer",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/consumers/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "createConsumer"
+    },
+    "603b967af122b4360490b01b0c62b7eccafd1eeda6": {
+      "workers": {
+        "app/(portal)/parent/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(portal)/parent/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateAllergies",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(portal)/parent/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts",
+      "exportedName": "updateAllergies"
+    },
+    "787a17fcd6264f173f006d0528ef64e8b0ef920eb3": {
+      "workers": {
+        "app/(portal)/parent/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(portal)/parent/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "processPreorderCheckout",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts"
+        },
+        "app/(portal)/parent/preorders/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(portal)/parent/preorders/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "processPreorderCheckout",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(portal)/parent/page": "action-browser",
+        "app/(portal)/parent/preorders/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts",
+      "exportedName": "processPreorderCheckout"
     }
   },
   "edge": {},
-  "encryptionKey": "0R8UvpWy/t+EVvhcif9RVS4tjnJ51F6xS3hnJMJJHn0="
+  "encryptionKey": "2IqVxM34AjOOXcMcuLtUmpCWvKWEUiUqRVnmlfB1LMo="
 }

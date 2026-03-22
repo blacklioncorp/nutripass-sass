@@ -4,9 +4,14 @@
 node_modules/
 /frontend/node_modules/
 
-# Entornos de Producción (Generados por Vite)
+# Entornos de Producción
 /frontend/dist/
 /frontend/build/
+
+# Next.js
+.next/
+out/
+build/
 
 # Archivos de Entorno y Secretos (¡CRÍTICO DE SEGURIDAD!)
 .env

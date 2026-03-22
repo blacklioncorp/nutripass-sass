@@ -1,9 +1,8 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { FirebaseClientProvider } from '@/firebase';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { TenantProvider } from '@/components/providers/TenantProvider';
 
 export const metadata: Metadata = {
   title: 'NutriPass - Gestión de Comedores Escolares',
@@ -23,12 +22,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <ThemeProvider>
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </FirebaseClientProvider>
+        <TenantProvider>
+          {children}
+          <Toaster />
+        </TenantProvider>
       </body>
     </html>
   );
