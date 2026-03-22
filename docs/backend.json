@@ -8,6 +8,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "subdomain": { "type": "string", "description": "Unique subdomain for the school (e.g., 'cumbres')" },
         "address": { "type": "string" },
         "contactEmail": { "type": "string", "format": "email" },
         "staffDiscountActive": { "type": "boolean", "default": false },
@@ -52,6 +53,7 @@
         "description": { "type": "string" },
         "price": { "type": "number" },
         "category": { "type": "string", "enum": ["snack", "comedor", "bebida"] },
+        "stockQuantity": { "type": "integer", "default": 0, "description": "Inventory level for snacks and drinks." },
         "isAvailable": { "type": "boolean" },
         "image": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
