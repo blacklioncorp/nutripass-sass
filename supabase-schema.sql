@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS consumers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) NOT NULL,
   parent_id UUID REFERENCES profiles(id), -- Nullable, staff might not have a parent
+  parent_email TEXT, -- Pre-linking: school sets this so parent auto-finds their child
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   identifier TEXT, -- Enrollment Number or Employee ID
@@ -170,8 +171,9 @@ CREATE POLICY "Admins can update their school" ON schools FOR UPDATE USING (
 -- Consumers
 DROP POLICY IF EXISTS "School isolation for consumers" ON consumers;
 CREATE POLICY "School isolation for consumers" ON consumers FOR ALL USING (
-  school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
-  parent_id = auth.uid()
+  school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
+  parent_id = auth.uid() OR
+  parent_email = (SELECT email FROM auth.users WHERE id = auth.uid())
 );
 
 -- Products

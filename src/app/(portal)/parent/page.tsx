@@ -104,6 +104,8 @@ export default async function ParentPortal() {
   ]);
 
   const profile = profileResult.data as UserProfile | null;
+  const userEmail = user!.email ?? '';
+  const needsOnboarding = !profile?.full_name;
   const consumers = consumersResult.data as Consumer[] | null;
 
   // Fetch last 10 transactions for ALL children found
@@ -149,6 +151,8 @@ export default async function ParentPortal() {
       consumers={resolvedConsumers}
       transactions={resolvedTransactions}
       userProfile={profile}
+      needsOnboarding={needsOnboarding}
+      userEmail={userEmail}
     />
   );
 }
