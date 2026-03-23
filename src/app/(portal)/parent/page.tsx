@@ -91,7 +91,7 @@ export default async function ParentPortal() {
 
   // Parallel fetching for performance
   const [profileResult, consumersResult] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, role, school_id').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, full_name, role, school_id').eq('id', user.id).single(),
     supabase
       .from('consumers')
       .select(`
