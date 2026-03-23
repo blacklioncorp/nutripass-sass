@@ -1,59 +1,101 @@
 import { createClient } from '@/utils/supabase/server';
-import MenuPlanner from '@/components/school/MenuPlanner';
+import WeeklyMenuGrid from '@/components/school/WeeklyMenuGrid';
+import type { DailyMenu } from '@/components/school/WeeklyMenuGrid';
 
+// ─── Mock "Lunes": Sopa de pasta, Tacos dorados, Ensalada, Fruta, Jamaica ────
+function getMondayOfCurrentWeek() {
+  const today = new Date();
+  const day = today.getDay() === 0 ? 7 : today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - day + 1);
+  return monday.toISOString().split('T')[0];
+}
+
+const SEED_MOCK: DailyMenu = {
+  date: getMondayOfCurrentWeek(),
+  soup_name: 'Sopa de pasta',
+  main_course_name: 'Tacos dorados',
+  side_dish_name: 'Ensalada César',
+  dessert_name: 'Fruta de temporada',
+  drink_name: 'Jamaica',
+  combo_price: 70,
+};
+
+// ─── Server Component ─────────────────────────────────────────────────────────
 export default async function MenuRoute() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user?.id).single();
-  
-  if (!profile?.school_id) return <div>Acceso denegado</div>;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('school_id')
+    .eq('id', user?.id)
+    .single();
 
-  // Fetch Catalog where it belongs to this school
-  const { data: catalog } = await supabase
-    .from('products')
-    .select('*')
-    .eq('school_id', profile.school_id)
-    .eq('is_available', true);
+  if (!profile?.school_id) {
+    return (
+      <div className="bg-white rounded-2xl p-16 text-center border border-red-100">
+        <p className="text-red-400 font-bold">Acceso denegado — perfil sin escuela asignada.</p>
+      </div>
+    );
+  }
 
-  // Fetch Current Daily Menus along with populated Product info
-  const { data: currentMenus } = await supabase
+  // Fetch this week's menus from DB
+  const today = new Date();
+  const day = today.getDay() === 0 ? 7 : today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - day + 1);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  const { data: dbMenus } = await supabase
     .from('daily_menus')
-    .select(`
-      id,
-      date,
-      products (
-        id, name, base_price, image_url
-      )
-    `)
-    .eq('school_id', profile.school_id);
+    .select('id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name, combo_price')
+    .eq('school_id', profile.school_id)
+    .gte('date', monday.toISOString().split('T')[0])
+    .lte('date', friday.toISOString().split('T')[0]);
+
+  // Use DB data if available, fallback to seeded Monday mock
+  const initialMenus: DailyMenu[] = dbMenus && dbMenus.length > 0
+    ? (dbMenus as DailyMenu[])
+    : [SEED_MOCK];
 
   return (
     <div className="space-y-8">
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <p className="text-[#8aa8cc] font-bold text-xs uppercase tracking-widest mb-1">PLANIFICADOR MENÚ</p>
+          <p className="text-[#8aa8cc] font-black text-xs uppercase tracking-widest mb-1">DASHBOARD ESCOLAR</p>
           <div className="flex items-center gap-3">
             <span className="text-3xl">🧑‍🍳</span>
             <h1 className="text-4xl font-black tracking-tight">
               <span className="text-[#1a3a5c]">Planificador </span>
-              <span className="text-[#3b82f6]">Mata-Mermas</span>
+              <span className="text-[#3b82f6]">Semanal</span>
             </h1>
           </div>
-          <p className="text-[#8aa8cc] font-medium mt-1 text-sm">Diseña la experiencia gastronomica de tus alumnos. Define los platillos del comedor para optimizar la producción.</p>
+          <p className="text-[#8aa8cc] font-medium mt-1 text-sm">
+            Configura el menú combinado de 5 tiempos para cada día escolar.
+          </p>
         </div>
-        <div className="bg-white border border-[#e8f0f7] rounded-2xl px-6 py-4 text-sm shadow-sm flex items-center gap-3">
-          <span className="text-[#3b82f6] text-lg">ⓘ</span>
-          <div>
-            <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">PRÓXIMA SEMANA</p>
-            <p className="text-[#4a6fa5] font-semibold text-xs">Las reservas se cierran los Domingos a las 10 PM.</p>
+
+        {/* Stats strip */}
+        <div className="bg-white border border-[#e8f0f7] rounded-2xl px-6 py-4 shadow-sm flex items-center gap-5 text-sm">
+          <div className="text-center">
+            <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Precio Combo</p>
+            <p className="text-[#004B87] font-black text-xl">$70.00</p>
+          </div>
+          <div className="w-px h-8 bg-[#e8f0f7]" />
+          <div className="text-center">
+            <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Pre-órdenes</p>
+            <p className="text-[#004B87] font-black text-xl">—</p>
           </div>
         </div>
       </div>
-      <MenuPlanner 
-        schoolId={profile.school_id} 
-        catalog={catalog || []} 
-        currentMenus={currentMenus || []} 
+
+      {/* Weekly Grid */}
+      <WeeklyMenuGrid
+        schoolId={profile.school_id}
+        initialMenus={initialMenus}
       />
     </div>
   );

@@ -112,14 +112,22 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Daily Menus (Mata-Mermas)
+-- Daily Menus (Combo de 5 Tiempos)
 CREATE TABLE IF NOT EXISTS daily_menus (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id UUID REFERENCES schools(id) NOT NULL,
   date DATE NOT NULL,
-  product_id UUID REFERENCES products(id) NOT NULL,
+  soup_name TEXT,
+  main_course_name TEXT,
+  side_dish_name TEXT,
+  dessert_name TEXT,
+  drink_name TEXT,
+  combo_price DECIMAL(10,2) DEFAULT 70.00,
+  -- Legacy FK for backward compat (nullable)
+  product_id UUID REFERENCES products(id),
   available_quantity INTEGER,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(school_id, date)
 );
 
 -- Pre Orders
