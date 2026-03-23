@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import ProductCatalog from '@/components/school/ProductCatalog';
+import ProductFormModal from '@/components/school/ProductFormModal';
 
 export default async function ProductsRoute() {
   const supabase = await createClient();
@@ -20,9 +21,7 @@ export default async function ProductsRoute() {
           </div>
           <p className="text-[#8aa8cc] font-medium mt-1 text-sm">Administra los productos y el inventario disponible.</p>
         </div>
-        <button className="bg-[#f4c430] hover:bg-[#e6b310] text-[#1a3a5c] font-black px-6 py-3 rounded-xl shadow transition active:scale-95 flex items-center gap-2 text-sm whitespace-nowrap">
-          + NUEVO PRODUCTO
-        </button>
+        <ProductFormModal />
       </div>
       <ProductCatalog initialProducts={products || []} />
     </div>

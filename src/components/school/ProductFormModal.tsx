@@ -25,8 +25,8 @@ export default function ProductFormModal({ product }: { product?: any }) {
         {product ? (
            <button className="text-primary hover:text-blue-800 text-sm font-bold transition">Editar</button>
         ) : (
-           <button className="bg-primary text-white font-bold px-4 py-2 rounded-xl shadow hover:opacity-90 transition">
-             + Nuevo Producto
+           <button className="bg-[#f4c430] hover:bg-[#e6b310] text-[#1a3a5c] font-black px-6 py-3 rounded-xl shadow transition active:scale-95 flex items-center gap-2 text-sm whitespace-nowrap">
+             + NUEVO PRODUCTO
            </button>
         )}
       </DialogTrigger>
