@@ -148,32 +148,40 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- (Automatic RLS enabled via Trigger, we just define policies here)
 
 -- Profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 
 -- Schools
+DROP POLICY IF EXISTS "Public read for subdomains" ON schools;
 CREATE POLICY "Public read for subdomains" ON schools FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admins can update their school" ON schools;
 CREATE POLICY "Admins can update their school" ON schools FOR UPDATE USING (
   id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND role = 'school_admin')
 );
 
 -- Consumers
+DROP POLICY IF EXISTS "School isolation for consumers" ON consumers;
 CREATE POLICY "School isolation for consumers" ON consumers FOR ALL USING (
   school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
   parent_id = auth.uid()
 );
 
 -- Products
+DROP POLICY IF EXISTS "School isolation for products" ON products;
 CREATE POLICY "School isolation for products" ON products FOR ALL USING (
   school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
 );
 
 -- Wallets
+DROP POLICY IF EXISTS "School Admins can insert wallets" ON wallets;
 CREATE POLICY "School Admins can insert wallets" ON wallets FOR INSERT WITH CHECK (
   consumer_id IN (
     SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND (role = 'school_admin' OR role = 'superadmin'))
   )
 );
+DROP POLICY IF EXISTS "Public read for wallets" ON wallets;
 CREATE POLICY "Public read for wallets" ON wallets FOR SELECT USING (true);
+DROP POLICY IF EXISTS "School Admins can update wallets" ON wallets;
 CREATE POLICY "School Admins can update wallets" ON wallets FOR UPDATE USING (
   consumer_id IN (
     SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND (role = 'school_admin' OR role = 'superadmin'))
@@ -198,7 +206,7 @@ DECLARE
   v_wallet RECORD;
   v_final_total DECIMAL;
   v_new_balance DECIMAL;
-  v_item_record RECORD;
+  i INTEGER;
 BEGIN
   -- 1. Find Consumer by NFC or Identifier
   SELECT * INTO v_consumer FROM consumers WHERE (nfc_tag_uid = p_nfc_uid OR identifier = p_nfc_uid) AND is_active = true;
@@ -235,13 +243,15 @@ BEGIN
   VALUES (v_wallet.id, v_final_total, 'debit', 'POS Purchase', p_items);
 
   -- 8. Deduct Stock & Add Nutripoints
-  FOR v_item_record IN SELECT * FROM jsonb_array_elements(p_items)
-  LOOP
-    UPDATE products 
-    SET stock_quantity = stock_quantity - (v_item_record.value->>'quantity')::INTEGER
-    WHERE id = (v_item_record.value->>'product_id')::UUID 
-      AND (category = 'snack' OR category = 'bebida');
-  END LOOP;
+  IF jsonb_array_length(p_items) > 0 THEN
+    FOR i IN 0 .. jsonb_array_length(p_items) - 1
+    LOOP
+      UPDATE products 
+      SET stock_quantity = stock_quantity - (p_items->i->>'quantity')::INTEGER
+      WHERE id = (p_items->i->>'product_id')::UUID 
+        AND (category = 'snack' OR category = 'bebida');
+    END LOOP;
+  END IF;
 
   UPDATE consumers 
   SET earned_nutri_points = earned_nutri_points + p_nutri_points_earned
@@ -264,10 +274,12 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('school_assets', 'school_assets', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public read for school assets" ON storage.objects;
 CREATE POLICY "Public read for school assets"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'school_assets');
 
+DROP POLICY IF EXISTS "School Admins can upload assets" ON storage.objects;
 CREATE POLICY "School Admins can upload assets"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -275,6 +287,7 @@ CREATE POLICY "School Admins can upload assets"
     AND auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'school_admin' OR role = 'superadmin')
   );
 
+DROP POLICY IF EXISTS "School Admins can update assets" ON storage.objects;
 CREATE POLICY "School Admins can update assets"
   ON storage.objects FOR UPDATE
   USING (
@@ -282,6 +295,7 @@ CREATE POLICY "School Admins can update assets"
     AND auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'school_admin' OR role = 'superadmin')
   );
 
+DROP POLICY IF EXISTS "School Admins can delete assets" ON storage.objects;
 CREATE POLICY "School Admins can delete assets"
   ON storage.objects FOR DELETE
   USING (
