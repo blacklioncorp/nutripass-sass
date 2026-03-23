@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { usePathname } from 'next/navigation';
 
 export interface SchoolTenant {
   id: string;
@@ -22,6 +23,7 @@ const TenantContext = createContext<TenantContextType>({ tenant: null, isLoading
 export const useTenant = () => useContext(TenantContext);
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [tenant, setTenant] = useState<SchoolTenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
@@ -32,8 +34,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       const subdomain = hostname.split('.')[0];
       
       const isLocal = hostname === 'localhost' || hostname.includes('127.0.0.1');
-      // For local development testing, default to mapping 'demo' or let it fail gracefully
-      const targetSubdomain = isLocal ? 'demo' : subdomain;
+      const isRootVercel = hostname === 'nutripass-sass.vercel.app';
+      
+      // Map local test or root vercel domain to an existing school ('sakbe') instead of 'demo'
+      const targetSubdomain = isLocal || isRootVercel ? 'sakbe' : subdomain;
 
       try {
         const { data, error } = await supabase
@@ -74,11 +78,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (!tenant) {
-    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-    
     // Bypass strict tenant matching for administrative or root routes
     if (pathname.startsWith('/master') || pathname.startsWith('/parent') || pathname === '/login' || pathname === '/') {
-       return <>{children}</>;
+       return (
+         <TenantContext.Provider value={{ tenant: null, isLoading: false }}>
+           {children}
+         </TenantContext.Provider>
+       );
     }
 
 
