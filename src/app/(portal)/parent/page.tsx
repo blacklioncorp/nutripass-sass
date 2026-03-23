@@ -95,7 +95,7 @@ export default async function ParentPortal() {
     supabase
       .from('consumers')
       .select(`
-        id, first_name, last_name, identifier, grade,
+        id, first_name, last_name, identifier, type,
         allergies, earned_nutri_points, nfc_tag_uid,
         wallets ( id, type, balance, max_overdraft )
       `)
@@ -109,14 +109,35 @@ export default async function ParentPortal() {
   // Fetch last 10 transactions for ALL children found
   let transactions: Transaction[] = [];
   if (consumers && consumers.length > 0) {
-    const consumerIds = consumers.map(c => c.id);
-    const { data: txData } = await supabase
-      .from('transactions')
-      .select('id, consumer_id, amount, transaction_type, description, wallet_type, created_at')
-      .in('consumer_id', consumerIds)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    transactions = (txData as Transaction[]) || [];
+    const walletIds = consumers.flatMap(c => c.wallets.map(w => w.id));
+    if (walletIds.length > 0) {
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select(`
+          id, 
+          wallet_id, 
+          amount, 
+          type, 
+          description, 
+          created_at,
+          wallets ( consumer_id, type )
+        `)
+        .in('wallet_id', walletIds)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (txData) {
+        transactions = txData.map((tx: any) => ({
+          id: tx.id,
+          consumer_id: tx.wallets?.consumer_id,
+          amount: tx.type === 'debit' ? -Math.abs(tx.amount) : Math.abs(tx.amount),
+          transaction_type: tx.type,
+          description: tx.description || 'Transacción',
+          wallet_type: tx.wallets?.type,
+          created_at: tx.created_at
+        }));
+      }
+    }
   }
 
   // Fall back to mock data when DB is empty (dev mode)

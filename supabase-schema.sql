@@ -181,10 +181,36 @@ CREATE POLICY "School Admins can insert wallets" ON wallets FOR INSERT WITH CHEC
 );
 DROP POLICY IF EXISTS "Public read for wallets" ON wallets;
 CREATE POLICY "Public read for wallets" ON wallets FOR SELECT USING (true);
+-- School Admins can update wallets
 DROP POLICY IF EXISTS "School Admins can update wallets" ON wallets;
 CREATE POLICY "School Admins can update wallets" ON wallets FOR UPDATE USING (
   consumer_id IN (
     SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND (role = 'school_admin' OR role = 'superadmin'))
+  )
+);
+
+-- Daily Menus
+DROP POLICY IF EXISTS "School isolation for daily menus" ON daily_menus;
+CREATE POLICY "School isolation for daily menus" ON daily_menus FOR ALL USING (
+  school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+);
+
+-- Pre Orders
+DROP POLICY IF EXISTS "School isolation for pre orders" ON pre_orders;
+CREATE POLICY "School isolation for pre orders" ON pre_orders FOR ALL USING (
+  consumer_id IN (
+    SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+    OR parent_id = auth.uid()
+  )
+);
+
+-- Transactions (read only for users, inserts are done via Service Role/RPC)
+DROP POLICY IF EXISTS "Read access for transactions" ON transactions;
+CREATE POLICY "Read access for transactions" ON transactions FOR SELECT USING (
+  wallet_id IN (
+    SELECT id FROM wallets WHERE consumer_id IN (
+      SELECT id FROM consumers WHERE parent_id = auth.uid() OR school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+    )
   )
 );
 
