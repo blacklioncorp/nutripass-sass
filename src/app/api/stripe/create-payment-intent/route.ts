@@ -19,33 +19,34 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
     
-    // 1. Fetch destination school to ensure they have an onboarded Stripe Account
+    // 1. Fetch destination school (Optional for testing)
     const { data: school } = await supabase.from('schools').select('stripe_account_id, stripe_onboarding_complete').eq('id', schoolId).single();
     
-    if (!school?.stripe_account_id || !school.stripe_onboarding_complete) {
-      return NextResponse.json({ error: 'El colegio aún no ha configurado recibir pagos en línea.' }, { status: 400 });
-    }
-
-    // 2. Calculate fees
-    // Amount usually arrives in decimals ($200.00). Stripe needs cents.
+    // Calculate fees
     const reloadAmountCents = Math.round(parseFloat(amount) * 100);
     const platformFeeCents = Math.round(reloadAmountCents * PLATFORM_FEE_PERCENTAGE);
     const totalChargeCents = reloadAmountCents + platformFeeCents;
 
-    // 3. Create PaymentIntent with Destination Charge
-    const paymentIntent = await stripe.paymentIntents.create({
+    // 3. Create PaymentIntent
+    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
       amount: totalChargeCents,
       currency: 'mxn',
       payment_method_types: ['card'],
-      application_fee_amount: platformFeeCents,
-      transfer_data: {
-        destination: school.stripe_account_id,
-      },
       metadata: {
         wallet_id: walletId,
-        recharge_amount: (reloadAmountCents / 100).toFixed(2), // Original clean recharge amount
+        recharge_amount: (reloadAmountCents / 100).toFixed(2),
       }
-    });
+    };
+
+    // Only apply Connect routing if the school is fully onboarded
+    if (school?.stripe_account_id && school.stripe_onboarding_complete) {
+      paymentIntentParams.application_fee_amount = platformFeeCents;
+      paymentIntentParams.transfer_data = {
+        destination: school.stripe_account_id,
+      };
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
