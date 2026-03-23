@@ -73,7 +73,9 @@ export default function MenuPlanner({ schoolId, catalog, currentMenus }: { schoo
               {currentMenus
                 .filter(m => m.date === day.date)
                 .map(menuItem => {
-                  const product = menuItem.products;
+                  const product = Array.isArray(menuItem.products) ? menuItem.products[0] : menuItem.products;
+                  if (!product) return null;
+                  
                   return (
                     <div key={menuItem.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative group transition hover:shadow-md">
                       <button 
@@ -91,8 +93,8 @@ export default function MenuPlanner({ schoolId, catalog, currentMenus }: { schoo
                           <span className="text-3xl">🍲</span>
                         }
                       </div>
-                      <h3 className="font-bold text-slate-800 text-sm leading-tight">{product.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1">${parseFloat(product.base_price).toFixed(2)}</p>
+                      <h3 className="font-bold text-slate-800 text-sm leading-tight">{product.name || 'Producto'}</h3>
+                      <p className="text-xs text-slate-500 mt-1">${parseFloat(product.base_price || 0).toFixed(2)}</p>
                     </div>
                   );
               })}

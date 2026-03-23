@@ -168,11 +168,15 @@ CREATE POLICY "School isolation for products" ON products FOR ALL USING (
 );
 
 -- Wallets
-CREATE POLICY "Parent and School isolated wallets" ON wallets FOR SELECT USING (
+CREATE POLICY "School Admins can insert wallets" ON wallets FOR INSERT WITH CHECK (
   consumer_id IN (
-    SELECT id FROM consumers WHERE 
-      school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
-      parent_id = auth.uid()
+    SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND (role = 'school_admin' OR role = 'superadmin'))
+  )
+);
+CREATE POLICY "Public read for wallets" ON wallets FOR SELECT USING (true);
+CREATE POLICY "School Admins can update wallets" ON wallets FOR UPDATE USING (
+  consumer_id IN (
+    SELECT id FROM consumers WHERE school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid() AND (role = 'school_admin' OR role = 'superadmin'))
   )
 );
 
@@ -194,7 +198,7 @@ DECLARE
   v_wallet RECORD;
   v_final_total DECIMAL;
   v_new_balance DECIMAL;
-  v_item JSONB;
+  v_item_record RECORD;
 BEGIN
   -- 1. Find Consumer by NFC or Identifier
   SELECT * INTO v_consumer FROM consumers WHERE (nfc_tag_uid = p_nfc_uid OR identifier = p_nfc_uid) AND is_active = true;
@@ -231,11 +235,11 @@ BEGIN
   VALUES (v_wallet.id, v_final_total, 'debit', 'POS Purchase', p_items);
 
   -- 8. Deduct Stock & Add Nutripoints
-  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  FOR v_item_record IN SELECT * FROM jsonb_array_elements(p_items)
   LOOP
     UPDATE products 
-    SET stock_quantity = stock_quantity - (v_item->>'quantity')::INTEGER
-    WHERE id = (v_item->>'product_id')::UUID 
+    SET stock_quantity = stock_quantity - (v_item_record.value->>'quantity')::INTEGER
+    WHERE id = (v_item_record.value->>'product_id')::UUID 
       AND (category = 'snack' OR category = 'bebida');
   END LOOP;
 
