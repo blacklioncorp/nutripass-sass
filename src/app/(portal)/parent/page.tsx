@@ -37,6 +37,7 @@ export type UserProfile = {
   full_name?: string;
   email?: string;
   role?: string;
+  school_id?: string;
 };
 
 // ─── Mock Data (used when real DB data is empty) ────────────────────────────
@@ -90,7 +91,7 @@ export default async function ParentPortal() {
 
   // Parallel fetching for performance
   const [profileResult, consumersResult] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, role').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, full_name, email, role, school_id').eq('id', user.id).single(),
     supabase
       .from('consumers')
       .select(`

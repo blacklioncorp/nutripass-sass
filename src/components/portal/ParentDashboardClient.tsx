@@ -7,6 +7,8 @@ import {
   Utensils, Tag
 } from 'lucide-react';
 import type { Consumer, Transaction, Wallet as WalletType, UserProfile } from '@/app/(portal)/parent/page';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import WalletReload from './WalletReload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
@@ -352,6 +354,7 @@ function TransactionsFeed({ transactions, consumerId }: { transactions: Transact
 // ─── Main Client Component ────────────────────────────────────────────────────
 export default function ParentDashboardClient({ consumers, transactions, userProfile }: Props) {
   const [activeStudentId, setActiveStudentId] = useState<string>(consumers[0]?.id ?? '');
+  const [reloadWalletId, setReloadWalletId] = useState<string | null>(null);
 
   const activeConsumer = useMemo(
     () => consumers.find(c => c.id === activeStudentId) ?? consumers[0],
@@ -363,12 +366,22 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   const lastName = userProfile?.full_name?.split(' ').slice(-1)[0] ?? 'Familia';
 
   const handleReload = (type: 'comedor' | 'snack') => {
-    // TODO: Open Stripe modal for wallet type
-    alert(`Modal de recarga: Billetera ${type}`);
+    const wId = type === 'comedor' ? comedorWallet?.id : snackWallet?.id;
+    if (wId) {
+      setReloadWalletId(wId);
+    }
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <Dialog open={!!reloadWalletId} onOpenChange={(open) => !open && setReloadWalletId(null)}>
+        <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none p-0">
+          {reloadWalletId && (
+            <WalletReload walletId={reloadWalletId} schoolId={userProfile?.school_id ?? ''} />
+          )}
+        </DialogContent>
+      </Dialog>
+      
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-[#e8f0f7]">
         <div>
