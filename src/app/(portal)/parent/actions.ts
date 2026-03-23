@@ -16,6 +16,19 @@ export async function updateAllergies(consumerId: string, allergies: string[]) {
   revalidatePath('/parent');
 }
 
+export async function updateParentProfile(userId: string, fullName: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ full_name: fullName })
+    .eq('id', userId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/parent');
+}
+
 export async function processPreorderCheckout(
   consumerId: string,
   walletId: string,

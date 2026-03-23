@@ -355,6 +355,9 @@ function TransactionsFeed({ transactions, consumerId }: { transactions: Transact
 export default function ParentDashboardClient({ consumers, transactions, userProfile }: Props) {
   const [activeStudentId, setActiveStudentId] = useState<string>(consumers[0]?.id ?? '');
   const [reloadWalletId, setReloadWalletId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [editingName, setEditingName] = useState(userProfile?.full_name || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const activeConsumer = useMemo(
     () => consumers.find(c => c.id === activeStudentId) ?? consumers[0],
@@ -372,6 +375,20 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
     }
   };
 
+  const handleSaveProfile = async () => {
+    if (!userProfile?.id || !editingName.trim()) return;
+    setIsSavingProfile(true);
+    try {
+      const { updateParentProfile } = await import('@/app/(portal)/parent/actions');
+      await updateParentProfile(userProfile.id, editingName.trim());
+      setShowSettings(false);
+    } catch (e: any) {
+      alert("Error guardando el perfil: " + e.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Dialog open={!!reloadWalletId} onOpenChange={(open) => !open && setReloadWalletId(null)}>
@@ -381,13 +398,62 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Profile Settings Modal */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border-none shadow-xl">
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl font-black text-[#004B87]">Configuración de Perfil</h2>
+            <p className="text-sm text-[#8aa8cc]">Actualiza tu nombre completo para personalizar tu experiencia y los recibos.</p>
+            
+            <div className="space-y-4 mt-2">
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  placeholder="Ej. Familia Pérez"
+                  className="w-full px-4 py-3 text-lg font-semibold text-slate-900 border-2 border-[#e8f0f7] rounded-xl focus:border-[#7CB9E8] focus:outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-1">Correo (Cuenta)</label>
+                <input 
+                  type="email" 
+                  readOnly
+                  value={userProfile?.email || ''}
+                  className="w-full px-4 py-3 text-lg font-semibold text-slate-400 bg-slate-50 border-2 border-slate-100 rounded-xl cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={handleSaveProfile}
+              disabled={isSavingProfile || !editingName.trim() || editingName === userProfile?.full_name}
+              className="mt-4 w-full bg-[#004B87] text-white font-black py-3.5 rounded-xl hover:bg-[#003870] transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSavingProfile ? <><RefreshCcw className="h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar Cambios'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-[#e8f0f7]">
         <div>
-          <h1 className="text-4xl font-black text-[#004B87] tracking-tight">
-            ¡Hola, Fam. {lastName}!
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black text-[#004B87] tracking-tight">
+              ¡Hola, Fam. {lastName}!
+            </h1>
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="h-10 w-10 bg-[#f0f5fb] mt-2 rounded-full flex items-center justify-center text-[#7CB9E8] hover:bg-[#e8f0f7] hover:text-[#004B87] transition active:scale-95 shadow-sm"
+              title="Configuración de Perfil"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
           <p className="text-[#7CB9E8] font-medium mt-1">Gestiona las billeteras y nutrición de tus hijos.</p>
         </div>
 
