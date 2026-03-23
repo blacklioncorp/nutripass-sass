@@ -117,37 +117,46 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
 
       {/* RIGHT PANEL: CATALOG GRID */}
       <div className="flex-1 p-8 overflow-y-auto bg-[#F0F8FF]">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-2">
-          {catalog.map(product => (
-            <div 
-              key={product.id} 
-              onClick={() => addToCart(product)}
-              className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-primary cursor-pointer transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center text-center relative overflow-hidden"
-            >
-              {product.stock_quantity !== null && product.stock_quantity <= 5 && (
-                 <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-bl-lg">
-                   Quedan {product.stock_quantity}
-                 </div>
-              )}
-              {product.nutri_points_reward > 0 && (
-                <div className="absolute top-2 left-2 bg-accent/20 text-accent text-xs font-black px-2 py-1 rounded-lg">
-                  +{product.nutri_points_reward} pts
+        {catalog.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-400">
+            <span className="text-6xl mb-4">🍩</span>
+            <h2 className="text-2xl font-black text-slate-800 mb-2">Catálogo Vacío</h2>
+            <p>No tienes productos registrados en tu escuela.</p>
+            <p>Ve a "Catálogo Productos" en tu panel para añadir Snacks o Bebidas.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-2">
+            {catalog.map(product => (
+              <div 
+                key={product.id} 
+                onClick={() => addToCart(product)}
+                className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-primary cursor-pointer transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center text-center relative overflow-hidden"
+              >
+                {product.stock_quantity !== null && product.stock_quantity <= 5 && (
+                   <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-bl-lg">
+                     Quedan {product.stock_quantity}
+                   </div>
+                )}
+                {product.nutri_points_reward > 0 && (
+                  <div className="absolute top-2 left-2 bg-accent/20 text-accent text-xs font-black px-2 py-1 rounded-lg">
+                    +{product.nutri_points_reward} pts
+                  </div>
+                )}
+                <div className="h-24 w-full bg-slate-50 rounded-2xl mb-4 flex items-center justify-center overflow-hidden border border-slate-100">
+                  {product.image_url ? 
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> :
+                    <span className="text-4xl">{product.category === 'bebida' ? '🥤' : product.category === 'snack' ? '🥨' : '🍲'}</span>
+                  }
                 </div>
-              )}
-              <div className="h-24 w-full bg-slate-50 rounded-2xl mb-4 flex items-center justify-center overflow-hidden border border-slate-100">
-                {product.image_url ? 
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" /> :
-                  <span className="text-4xl">{product.category === 'bebida' ? '🥤' : product.category === 'snack' ? '🥨' : '🍲'}</span>
-                }
+                <h3 className="font-black text-slate-800 leading-tight mb-2 line-clamp-2 min-h-[40px] flex items-center justify-center">{product.name}</h3>
+                <div className="mt-auto block w-full bg-slate-100 text-primary font-black py-2 rounded-xl text-lg">
+                  ${parseFloat(product.base_price).toFixed(2)}
+                </div>
               </div>
-              <h3 className="font-black text-slate-800 leading-tight mb-2 line-clamp-2 min-h-[40px] flex items-center justify-center">{product.name}</h3>
-              <div className="mt-auto block w-full bg-slate-100 text-primary font-black py-2 rounded-xl text-lg">
-                ${parseFloat(product.base_price).toFixed(2)}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* CHECKOUT MODAL (WAITING FOR NFC) */}
@@ -194,23 +203,24 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                   <div className="absolute inset-0 border-4 border-primary rounded-[2rem] opacity-50 animate-ping"></div>
                   <span className="text-5xl animate-pulse">💳</span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2">Acerca la Pulsera</h2>
-                <p className="text-slate-500 mb-8 max-w-xs mx-auto">Esperando lectura NFC para cobrar <b>${cartTotal.toFixed(2)}</b>...</p>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Identificar Alumno</h2>
+                <p className="text-slate-500 mb-6 max-w-xs mx-auto">Acerca la pulsera al lector o teclea la matrícula para cobrar <b>${cartTotal.toFixed(2)}</b>.</p>
                 
-                {/* Lector oculto que recibe el input como teclado (Barcode/RFID mode) */}
-                <form onSubmit={handleNfcSubmit}>
+                <form onSubmit={handleNfcSubmit} className="max-w-[250px] mx-auto">
                   <input 
                     ref={nfcInputRef}
                     type="text"
+                    placeholder="Ej. 2024-001"
                     value={nfcInput}
                     onChange={(e) => setNfcInput(e.target.value)}
-                    className="absolute opacity-0 pointer-events-none"
+                    className="w-full text-center font-black text-2xl tracking-widest text-slate-700 bg-slate-100 border-2 border-slate-200 rounded-xl py-4 focus:ring-4 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all outline-none"
                     onBlur={() => { if(!isProcessing) nfcInputRef.current?.focus() }}
                     autoComplete="off"
                   />
+                  <button type="submit" className="opacity-0 w-0 h-0 p-0 m-0 absolute">Submit</button>
                 </form>
 
-                <p className="text-xs text-slate-400 font-medium">* El escáner de la tablet está activo</p>
+                <p className="text-xs text-slate-400 font-medium mt-6">* El lector físico también está activo</p>
                 <button onClick={resetCheckout} className="mt-6 text-sm text-slate-400 font-bold hover:text-slate-600">
                   Cancelar Operación
                 </button>
