@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { markMenuAsPrepared } from './actions';
 
 export default async function KitchenReportPage() {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export default async function KitchenReportPage() {
     .select(`
       id, date,
       products ( name ),
-      pre_orders ( id )
+      pre_orders ( id, status )
     `)
     .eq('school_id', profile.school_id)
     .order('date', { ascending: true });
@@ -20,11 +21,14 @@ export default async function KitchenReportPage() {
   // Agrupar por fecha
   const groupedTasks: Record<string, any[]> = {};
   menus?.forEach(menu => {
-    if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
-    if (menu.pre_orders.length > 0) {
+    const paidOrders = (menu.pre_orders as any[]).filter(o => o.status === 'paid');
+
+    if (paidOrders.length > 0) {
+       if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
        groupedTasks[menu.date].push({
+         menuId: menu.id,
          name: (menu.products as any).name,
-         count: menu.pre_orders.length
+         count: paidOrders.length
        });
     }
   });
@@ -33,7 +37,7 @@ export default async function KitchenReportPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Reporte de Cocina</h1>
-        <p className="text-slate-500 mt-2">Sumario de preparación basado en las pre-órdenes pagadas de la semana.</p>
+        <p className="text-slate-500 mt-2">Sumario de preparación basado en las pre-órdenes pagadas activas.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -44,29 +48,36 @@ export default async function KitchenReportPage() {
             </h2>
             
             {items.length === 0 ? (
-              <p className="text-slate-400 text-sm flex-1">No hay platillos agendados o pre-ordenados para esta fecha.</p>
+              <p className="text-slate-400 text-sm flex-1">Sin órdenes pendientes.</p>
             ) : (
               <div className="space-y-4 flex-1">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <span className="font-bold text-slate-700">{item.name}</span>
-                    <span className="bg-primary text-white font-black px-3 py-1 rounded-lg text-lg">
-                      {item.count} <span className="text-xs font-medium opacity-80">pzs</span>
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-700">{item.name}</span>
+                      <span className="text-primary font-black text-lg">
+                        {item.count} <span className="text-xs font-medium opacity-80">pzs</span>
+                      </span>
+                    </div>
+                    <form action={async () => {
+                      'use server';
+                      await markMenuAsPrepared(item.menuId);
+                    }}>
+                      <button type="submit" className="h-10 w-10 bg-white border border-slate-200 text-slate-400 font-black rounded-lg hover:bg-green-500 hover:text-white hover:border-green-500 transition-all shadow-sm flex items-center justify-center">
+                        ✓
+                      </button>
+                    </form>
                   </div>
                 ))}
               </div>
             )}
-            
-            <button className="w-full mt-6 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl hover:bg-green-100 hover:text-green-700 transition">
-              ✔ Marcar Preparado
-            </button>
           </div>
         ))}
 
         {Object.keys(groupedTasks).length === 0 && (
           <div className="col-span-full text-center p-12 bg-white rounded-3xl border border-slate-100 border-dashed">
-            <h3 className="text-xl text-slate-500 font-bold">No hay un menú configurado para la semana.</h3>
+            <div className="text-6xl mb-4">🍽️</div>
+            <h3 className="text-xl text-slate-500 font-bold">Sin órdenes pendientes por preparar.</h3>
           </div>
         )}
       </div>

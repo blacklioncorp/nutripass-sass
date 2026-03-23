@@ -196,10 +196,10 @@ DECLARE
   v_new_balance DECIMAL;
   v_item JSONB;
 BEGIN
-  -- 1. Find Consumer by NFC
-  SELECT * INTO v_consumer FROM consumers WHERE nfc_tag_uid = p_nfc_uid AND is_active = true;
+  -- 1. Find Consumer by NFC or Identifier
+  SELECT * INTO v_consumer FROM consumers WHERE (nfc_tag_uid = p_nfc_uid OR identifier = p_nfc_uid) AND is_active = true;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Consumer not found or inactive';
+    RAISE EXCEPTION 'Consumidor no encontrado o inactivo.';
   END IF;
 
   -- 2. Find School settings
