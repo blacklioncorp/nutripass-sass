@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS consumers (
   nfc_tag_uid TEXT UNIQUE,
   type TEXT CHECK (type IN ('student', 'staff')) NOT NULL,
   earned_nutri_points INTEGER DEFAULT 0,
+  grade TEXT, -- Academic Grade / Group
   allergies JSONB DEFAULT '[]',
   blocked_items TEXT[] DEFAULT '{}',
   is_active BOOLEAN DEFAULT true,
