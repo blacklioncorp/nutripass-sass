@@ -39,9 +39,17 @@ export default function ConsumerFormModal() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Matrícula / ID Empleado</label>
-            <input name="identifier" required className="w-full p-2 border border-slate-200 rounded-lg font-code" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Matrícula / ID Empleado</label>
+              <input name="identifier" required className="w-full p-2 border border-slate-200 rounded-lg font-code" />
+            </div>
+            {consumerType === 'student' && (
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Grado / Grupo</label>
+                <input name="grade" placeholder="ej. 4° A" className="w-full p-2 border border-slate-200 rounded-lg" />
+              </div>
+            )}
           </div>
 
           <div>
