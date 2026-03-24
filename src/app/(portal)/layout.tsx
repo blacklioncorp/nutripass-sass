@@ -17,7 +17,7 @@ export default function PortalLayout({
             <a href="/parent/preorders" className="hover:text-[#3b82f6] transition flex items-center gap-1.5">
               <span className="text-base">🗓️</span> Reserva Semanal
             </a>
-            <a href="/parent" className="hover:text-[#3b82f6] transition">Mis Alumnos</a>
+            <a href="/parent" className="hover:text-[#3b82f6] transition">Mis Hijos</a>
             <button className="hover:bg-[#e8f0f7] p-2.5 rounded-full transition" title="Notificaciones">
               <span className="text-lg">🔔</span>
             </button>

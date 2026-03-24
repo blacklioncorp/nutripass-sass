@@ -22,6 +22,9 @@ const TenantContext = createContext<TenantContextType>({ tenant: null, isLoading
 
 export const useTenant = () => useContext(TenantContext);
 
+// Routes that don't require a tenant (superadmin, parent portal, auth)
+const TENANT_FREE_PREFIXES = ['/master', '/parent', '/login', '/'];
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [tenant, setTenant] = useState<SchoolTenant | null>(null);
@@ -29,75 +32,77 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchTenant = async () => {
-      const hostname = window.location.hostname;
-      const subdomain = hostname.split('.')[0];
-      
-      const isLocal = hostname === 'localhost' || hostname.includes('127.0.0.1');
-      const isRootVercel = hostname === 'nutripass-sass.vercel.app';
-      
-      // Map local test or root vercel domain to an existing school ('sakbe') instead of 'demo'
-      const targetSubdomain = isLocal || isRootVercel ? 'sakbe' : subdomain;
+    // Reset tenant on every route change to prevent bleed-over between schools
+    setTenant(null);
+    setIsLoading(true);
 
+    // Clear CSS branding variables back to safe NutriPass defaults
+    const root = document.documentElement;
+    root.style.setProperty('--brand-primary', '#7CB9E8');
+    root.style.setProperty('--brand-secondary', '#004B87');
+
+    // Routes that don't need tenant resolution
+    const isTenantFree = TENANT_FREE_PREFIXES.some(p =>
+      p === '/' ? pathname === '/' : pathname.startsWith(p)
+    );
+    if (isTenantFree) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchTenantForUser = async () => {
       try {
-        const { data, error } = await supabase
-          .from('schools')
-          .select('*')
-          .eq('subdomain', targetSubdomain)
+        // Step 1: Get the authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setIsLoading(false); return; }
+
+        // Step 2: Get their profile to find school_id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id, role')
+          .eq('id', user.id)
           .single();
 
-        if (data && !error) {
-          setTenant(data as SchoolTenant);
+        if (!profile?.school_id) {
+          // Superadmin with no school: skip tenant loading
+          setIsLoading(false);
+          return;
+        }
+
+        // Step 3: Fetch the school by the user's OWN school_id (strict isolation)
+        const { data: school, error } = await supabase
+          .from('schools')
+          .select('id, name, subdomain, logo_url, primary_color, secondary_color')
+          .eq('id', profile.school_id)
+          .single();
+
+        if (school && !error) {
+          setTenant(school as SchoolTenant);
         }
       } catch (err) {
-        console.error("Error fetching tenant:", err);
+        console.error('TenantProvider error:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchTenant();
+    fetchTenantForUser();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pathname]);
 
+  // Apply branding CSS variables whenever the tenant changes
   useEffect(() => {
-    if (tenant) {
-      const root = document.documentElement;
-      if (tenant.primary_color) root.style.setProperty('--brand-primary', tenant.primary_color);
-      if (tenant.secondary_color) root.style.setProperty('--brand-secondary', tenant.secondary_color);
-    }
+    if (!tenant) return;
+    const root = document.documentElement;
+    root.style.setProperty('--brand-primary', tenant.primary_color || '#7CB9E8');
+    root.style.setProperty('--brand-secondary', tenant.secondary_color || '#004B87');
   }, [tenant]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest">Identificando Institución...</h2>
-      </div>
-    );
-  }
-
-  if (!tenant) {
-    // Bypass strict tenant matching for administrative or root routes
-    if (pathname.startsWith('/master') || pathname.startsWith('/parent') || pathname === '/login' || pathname === '/') {
-       return (
-         <TenantContext.Provider value={{ tenant: null, isLoading: false }}>
-           {children}
-         </TenantContext.Provider>
-       );
-    }
-
-
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-red-100 p-6 rounded-3xl mb-6 shadow-sm border border-red-200">
-          <span className="text-5xl">🏫</span>
-        </div>
-        <h1 className="text-3xl font-black text-slate-900 mb-2">Escuela No Encontrada</h1>
-        <p className="text-slate-500 font-medium mb-8 max-w-md">La dirección a la que intentas acceder no está registrada en NutriPass o el subdominio es incorrecto.</p>
-        <button onClick={() => window.location.href = '/login'} className="bg-blue-600 text-white font-bold px-8 py-4 rounded-2xl shadow hover:bg-blue-700 transition">
-          IR AL PANEL GLOBAL DE ADMINISTRACIÓN
-        </button>
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest">Cargando Portal...</h2>
       </div>
     );
   }
