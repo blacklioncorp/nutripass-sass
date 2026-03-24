@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import {
   ChevronLeft, ChevronRight, Copy, UtensilsCrossed, Beef, Carrot,
   IceCream, GlassWater, Plus, Pencil, Trash2, RefreshCcw
 } from 'lucide-react';
+import { upsertDailyMenu, clearDailyMenu } from '@/app/(dashboard)/school/menuActions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type DailyMenu = {
@@ -22,13 +23,6 @@ type WeeklyGridProps = {
   schoolId: string;
   initialMenus: DailyMenu[];
 };
-
-// ─── Mock product lists (simulating DB categories) ───────────────────────────
-const MOCK_SOUPS = ['Sopa de pasta', 'Sopa de lima', 'Crema de espinaca', 'Caldo tlalpeño', 'Sopa azteca'];
-const MOCK_MAINS = ['Tacos dorados', 'Pollo empanizado', 'Bistec a la mexicana', 'Enchiladas verdes', 'Milanesa de res'];
-const MOCK_SIDES = ['Ensalada César', 'Arroz rojo', 'Frijoles de la olla', 'Verduras al vapor', 'Puré de papa'];
-const MOCK_DESSERTS = ['Fruta de temporada', 'Gelatina de frutas', 'Arroz con leche', 'Pan dulce', 'Mazapán'];
-const MOCK_DRINKS = ['Jamaica', 'Horchata', 'Agua de limón', 'Agua de tamarindo', 'Leche'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getWeekDates(reference: Date): Date[] {
@@ -73,9 +67,9 @@ function EmptyDayCard({ label, date, onConfigure }: { label: string; date: Date;
 }
 
 // ─── Filled Day Card ──────────────────────────────────────────────────────────
-function FilledDayCard({ label, date, menu, onEdit, onClear }: {
+function FilledDayCard({ label, date, menu, onEdit, onClear, isClearing }: {
   label: string; date: Date; menu: DailyMenu;
-  onEdit: () => void; onClear: () => void;
+  onEdit: () => void; onClear: () => void; isClearing: boolean;
 }) {
   const courses = [
     { icon: <UtensilsCrossed className="h-4 w-4" />, label: 'Sopa', value: menu.soup_name, color: 'text-orange-400' },
@@ -91,15 +85,11 @@ function FilledDayCard({ label, date, menu, onEdit, onClear }: {
         <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest mb-1">{label.toUpperCase()}</p>
         <span className="text-5xl font-black text-[#2b5fa6] leading-none">{date.getDate()}</span>
       </div>
-
-      {/* Combo Price Badge */}
       <div className="px-4 pt-4">
         <span className="inline-flex items-center gap-1.5 bg-[#F4C430] text-[#1a3a5c] font-black text-sm px-3 py-1 rounded-full shadow-sm">
           ${Number(menu.combo_price ?? 70).toFixed(2)} <span className="font-semibold text-[10px] opacity-70">combo</span>
         </span>
       </div>
-
-      {/* Courses List */}
       <div className="flex-1 px-4 py-3 space-y-2">
         {courses.map((c, i) => (
           <div key={i} className="flex items-start gap-2.5">
@@ -111,72 +101,74 @@ function FilledDayCard({ label, date, menu, onEdit, onClear }: {
           </div>
         ))}
       </div>
-
-      {/* Actions */}
       <div className="px-4 pb-4 flex gap-2">
-        <button
-          onClick={onEdit}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-[#e8f0f7] text-[#004B87] font-black text-xs py-2 rounded-xl hover:bg-[#d0e4f5] transition"
-        >
+        <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-1.5 bg-[#e8f0f7] text-[#004B87] font-black text-xs py-2 rounded-xl hover:bg-[#d0e4f5] transition">
           <Pencil className="h-3 w-3" /> Editar
         </button>
         <button
           onClick={onClear}
-          className="flex items-center justify-center gap-1.5 bg-red-50 text-red-400 font-black text-xs px-3 py-2 rounded-xl hover:bg-red-100 transition"
+          disabled={isClearing}
+          className="flex items-center justify-center gap-1.5 bg-red-50 text-red-400 font-black text-xs px-3 py-2 rounded-xl hover:bg-red-100 transition disabled:opacity-50"
           title="Limpiar día"
         >
-          <Trash2 className="h-3 w-3" />
+          {isClearing ? <RefreshCcw className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Menu Builder Modal ───────────────────────────────────────────────────────
-function MenuBuilderModal({ date, dayLabel, initialData, onSave, onClose }: {
-  date: string; dayLabel: string; initialData: Partial<DailyMenu>;
-  onSave: (d: Partial<DailyMenu>) => void; onClose: () => void;
+// ─── Text Input Field ─────────────────────────────────────────────────────────
+function CourseInput({ label, icon, value, onChange, placeholder }: {
+  label: string; icon: React.ReactNode; value: string;
+  onChange: (v: string) => void; placeholder: string;
 }) {
-  const [form, setForm] = useState<Partial<DailyMenu>>({
-    combo_price: 70,
-    soup_name: '',
-    main_course_name: '',
-    side_dish_name: '',
-    dessert_name: '',
-    drink_name: '',
-    ...initialData,
-  });
-  const [saving, setSaving] = useState(false);
-
-  const set = (key: keyof DailyMenu) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    setForm(f => ({ ...f, [key]: key === 'combo_price' ? Number(e.target.value) : e.target.value }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 400)); // simulate async
-    onSave({ ...form, date });
-    setSaving(false);
-  };
-
-  const SelectField = ({ label, icon, options, field }: {
-    label: string; icon: React.ReactNode; options: string[];
-    field: keyof DailyMenu;
-  }) => (
+  return (
     <div className="space-y-1">
       <label className="flex items-center gap-1.5 text-xs font-black text-[#004B87] uppercase tracking-wider">
         <span className="text-[#7CB9E8]">{icon}</span> {label}
       </label>
-      <select
-        value={(form[field] as string) ?? ''}
-        onChange={set(field) as any}
-        className="w-full border-2 border-[#e8f0f7] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#004B87] bg-white focus:border-[#7CB9E8] focus:outline-none transition appearance-none"
-      >
-        <option value="">— Seleccionar —</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full border-2 border-[#e8f0f7] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#004B87] bg-white focus:border-[#7CB9E8] focus:outline-none transition placeholder:text-slate-300 placeholder:font-normal"
+      />
     </div>
   );
+}
+
+// ─── Menu Builder Modal (Slide-over) ──────────────────────────────────────────
+function MenuBuilderModal({ schoolId, date, dayLabel, initialData, onSaved, onClose }: {
+  schoolId: string; date: string; dayLabel: string; initialData: Partial<DailyMenu>;
+  onSaved: (d: DailyMenu) => void; onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    combo_price: initialData.combo_price ?? 70,
+    soup_name: initialData.soup_name ?? '',
+    main_course_name: initialData.main_course_name ?? '',
+    side_dish_name: initialData.side_dish_name ?? '',
+    dessert_name: initialData.dessert_name ?? '',
+    drink_name: initialData.drink_name ?? '',
+  });
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState('');
+
+  const set = (key: keyof typeof form) => (value: string | number) =>
+    setForm(f => ({ ...f, [key]: value }));
+
+  const handleSave = () => {
+    setError('');
+    startTransition(async () => {
+      try {
+        await upsertDailyMenu(schoolId, { ...form, date });
+        onSaved({ ...form, date });
+      } catch (e: any) {
+        setError(e.message || 'Error al guardar');
+      }
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -188,7 +180,9 @@ function MenuBuilderModal({ date, dayLabel, initialData, onSave, onClose }: {
             <div>
               <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Planificador Menú</p>
               <h2 className="text-xl font-black text-[#004B87] mt-0.5">Menú del {dayLabel}</h2>
-              <p className="text-xs text-[#8aa8cc] mt-1">{new Date(date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p className="text-xs text-[#8aa8cc] mt-1">
+                {new Date(date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-slate-100 h-9 w-9 rounded-full flex items-center justify-center font-bold text-xl">✕</button>
           </div>
@@ -196,40 +190,40 @@ function MenuBuilderModal({ date, dayLabel, initialData, onSave, onClose }: {
           <div className="mt-4 flex items-center gap-3 bg-[#F4C430]/10 border border-[#F4C430]/30 rounded-xl px-4 py-3">
             <span className="text-2xl">💰</span>
             <div className="flex-1">
-              <p className="text-[10px] font-black text-[#8aa8cc] uppercase tracking-widest">Precio del Combo</p>
+              <p className="text-[10px] font-black text-[#8aa8cc] uppercase tracking-widest">Precio del Combo (MXN)</p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[#004B87] font-black text-lg">$</span>
                 <input
                   type="number"
                   min={0}
                   step={5}
-                  value={form.combo_price ?? 70}
-                  onChange={set('combo_price') as any}
+                  value={form.combo_price}
+                  onChange={(e) => set('combo_price')(Number(e.target.value))}
                   className="w-28 text-xl font-black text-[#004B87] border-none focus:outline-none bg-transparent"
                 />
-                <span className="text-[#8aa8cc] text-xs font-bold">MXN</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Course Selectors */}
+        {/* Course Inputs — all free text, no hardcoded lists */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <SelectField label="Sopa / Crema" icon={<UtensilsCrossed className="h-3.5 w-3.5" />} options={MOCK_SOUPS} field="soup_name" />
-          <SelectField label="Plato Fuerte" icon={<Beef className="h-3.5 w-3.5" />} options={MOCK_MAINS} field="main_course_name" />
-          <SelectField label="Guarnición" icon={<Carrot className="h-3.5 w-3.5" />} options={MOCK_SIDES} field="side_dish_name" />
-          <SelectField label="Postre" icon={<IceCream className="h-3.5 w-3.5" />} options={MOCK_DESSERTS} field="dessert_name" />
-          <SelectField label="Agua / Bebida" icon={<GlassWater className="h-3.5 w-3.5" />} options={MOCK_DRINKS} field="drink_name" />
+          <CourseInput label="Sopa / Crema" icon={<UtensilsCrossed className="h-3.5 w-3.5" />} value={form.soup_name} onChange={set('soup_name') as any} placeholder="Ej: Sopa de pasta, Crema de elote..." />
+          <CourseInput label="Plato Fuerte" icon={<Beef className="h-3.5 w-3.5" />} value={form.main_course_name} onChange={set('main_course_name') as any} placeholder="Ej: Tacos dorados, Pollo a la plancha..." />
+          <CourseInput label="Guarnición" icon={<Carrot className="h-3.5 w-3.5" />} value={form.side_dish_name} onChange={set('side_dish_name') as any} placeholder="Ej: Ensalada César, Arroz rojo..." />
+          <CourseInput label="Postre" icon={<IceCream className="h-3.5 w-3.5" />} value={form.dessert_name} onChange={set('dessert_name') as any} placeholder="Ej: Fruta de temporada, Gelatina..." />
+          <CourseInput label="Agua / Bebida" icon={<GlassWater className="h-3.5 w-3.5" />} value={form.drink_name} onChange={set('drink_name') as any} placeholder="Ej: Jamaica, Horchata, Agua de limón..." />
+          {error && <p className="text-red-500 text-sm font-semibold bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-slate-100 space-y-2">
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={isPending}
             className="w-full flex items-center justify-center gap-2 bg-[#004B87] text-white font-black py-4 rounded-xl hover:bg-[#003870] transition shadow active:scale-95 disabled:opacity-60"
           >
-            {saving ? <><RefreshCcw className="h-4 w-4 animate-spin" /> Guardando...</> : '✓ Guardar Menú del Día'}
+            {isPending ? <><RefreshCcw className="h-4 w-4 animate-spin" /> Guardando...</> : '✓ Guardar Menú del Día'}
           </button>
           <button onClick={onClose} className="w-full text-[#8aa8cc] font-bold text-sm py-2 hover:text-slate-700 transition">Cancelar</button>
         </div>
@@ -241,10 +235,13 @@ function MenuBuilderModal({ date, dayLabel, initialData, onSave, onClose }: {
 // ─── Main Weekly Grid ─────────────────────────────────────────────────────────
 export default function WeeklyMenuGrid({ schoolId, initialMenus }: WeeklyGridProps) {
   const [weekRef, setWeekRef] = useState(new Date());
+  // Initialize from server-fetched data — survives tab changes because Next.js re-fetches on navigation
   const [menus, setMenus] = useState<Record<string, DailyMenu>>(
     () => Object.fromEntries(initialMenus.map(m => [m.date, m]))
   );
   const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [clearingDate, setClearingDate] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   const weekDates = useMemo(() => getWeekDates(weekRef), [weekRef]);
 
@@ -253,16 +250,24 @@ export default function WeeklyMenuGrid({ schoolId, initialMenus }: WeeklyGridPro
 
   const weekLabel = `Semana del ${weekDates[0].toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })} al ${weekDates[4].toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 
-  const handleSave = (data: Partial<DailyMenu>) => {
-    if (!data.date) return;
-    setMenus(m => ({ ...m, [data.date!]: { ...m[data.date!], ...data, date: data.date! } }));
+  const handleSaved = (data: DailyMenu) => {
+    setMenus(m => ({ ...m, [data.date]: data }));
     setEditingDate(null);
-    // In production: call addOrUpdateMenuItem(schoolId, data)
   };
 
   const handleClear = (date: string) => {
     if (!confirm('¿Seguro que quieres limpiar el menú de este día?')) return;
-    setMenus(m => { const next = { ...m }; delete next[date]; return next; });
+    setClearingDate(date);
+    startTransition(async () => {
+      try {
+        await clearDailyMenu(schoolId, date);
+        setMenus(m => { const next = { ...m }; delete next[date]; return next; });
+      } catch (e: any) {
+        alert('Error: ' + e.message);
+      } finally {
+        setClearingDate(null);
+      }
+    });
   };
 
   const editingMenu = editingDate ? menus[editingDate] : undefined;
@@ -302,25 +307,22 @@ export default function WeeklyMenuGrid({ schoolId, initialMenus }: WeeklyGridPro
               menu={menu}
               onEdit={() => setEditingDate(iso)}
               onClear={() => handleClear(iso)}
+              isClearing={clearingDate === iso}
             />
           ) : (
-            <EmptyDayCard
-              key={iso}
-              label={DAY_LABELS[i]}
-              date={date}
-              onConfigure={() => setEditingDate(iso)}
-            />
+            <EmptyDayCard key={iso} label={DAY_LABELS[i]} date={date} onConfigure={() => setEditingDate(iso)} />
           );
         })}
       </div>
 
-      {/* Modal */}
+      {/* Slide-over Modal */}
       {editingDate && (
         <MenuBuilderModal
+          schoolId={schoolId}
           date={editingDate}
           dayLabel={editingDayLabel}
           initialData={editingMenu ?? {}}
-          onSave={handleSave}
+          onSaved={handleSaved}
           onClose={() => setEditingDate(null)}
         />
       )}

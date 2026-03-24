@@ -173,7 +173,7 @@ DROP POLICY IF EXISTS "School isolation for consumers" ON consumers;
 CREATE POLICY "School isolation for consumers" ON consumers FOR ALL USING (
   school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
   parent_id = auth.uid() OR
-  parent_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+  parent_email = auth.email()
 );
 
 -- Products
