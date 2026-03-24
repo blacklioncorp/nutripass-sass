@@ -8,6 +8,7 @@ export async function createConsumer(prevState: any, formData: FormData) {
   const lastName = formData.get('lastName') as string;
   const identifier = formData.get('identifier') as string;
   const type = formData.get('type') as 'student' | 'staff';
+  const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
   
   const supabase = await createClient();
 
@@ -26,6 +27,7 @@ export async function createConsumer(prevState: any, formData: FormData) {
       last_name: lastName,
       identifier,
       type,
+      parent_email: type === 'student' ? parentEmail : null,
       is_active: true
     })
     .select()

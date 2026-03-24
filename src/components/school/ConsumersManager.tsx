@@ -4,16 +4,11 @@ import { useState } from 'react';
 import CSVUploader from './CSVUploader';
 import ConsumerFormModal from './ConsumerFormModal';
 
-const mockConsumers = [
-  { id: 'm1', first_name: 'Juan', last_name: 'Pérez', identifier: '2024-001', nfc_tag_uid: '123-456', consumer_type: 'student', grade: '4° A', wallets: [{ type: 'comedor', balance: 450 }], status: 'active' },
-  { id: 'm2', first_name: 'Carlos', last_name: 'Ruiz', identifier: '2024-002', nfc_tag_uid: null, consumer_type: 'student', grade: '5° C', wallets: [{ type: 'comedor', balance: 0 }], status: 'suspended' },
-];
-
 export default function ConsumersManager({ initialConsumers }: { initialConsumers: any[] }) {
   const [activeTab, setActiveTab] = useState<'student' | 'staff'>('student');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const source = initialConsumers.length > 0 ? initialConsumers : mockConsumers;
+  const source = initialConsumers;
 
   const students = source.filter(c => (c.consumer_type === 'student' || c.type === 'student'));
   const staff = source.filter(c => (c.consumer_type === 'staff' || c.type === 'staff'));
