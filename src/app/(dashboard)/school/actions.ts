@@ -49,7 +49,50 @@ export async function createConsumer(prevState: any, formData: FormData) {
   if (walletError) return { error: walletError.message };
 
   revalidatePath('/school/consumers');
-  return { success: true };
+  return { success: true, data: consumer };
+}
+
+export async function updateConsumer(prevState: any, formData: FormData) {
+  const consumerId = formData.get('id') as string;
+  const firstName = formData.get('firstName') as string;
+  const lastName = formData.get('lastName') as string;
+  const identifier = formData.get('identifier') as string;
+  const type = formData.get('type') as 'student' | 'staff';
+  const grade = formData.get('grade') as string;
+  const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
+  
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'No authenticated' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('school_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profile not found' };
+
+  const { data: consumer, error } = await supabase
+    .from('consumers')
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      identifier,
+      type,
+      grade: type === 'student' ? grade : null,
+      parent_email: type === 'student' ? parentEmail : null,
+    })
+    .eq('id', consumerId)
+    .eq('school_id', profile.school_id)
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  
+  revalidatePath('/school/consumers');
+  return { success: true, data: consumer };
 }
 
 export async function linkNfcTag(consumerId: string, nfcTagUid: string) {

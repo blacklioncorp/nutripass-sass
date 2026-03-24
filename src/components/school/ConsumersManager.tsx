@@ -116,9 +116,16 @@ export default function ConsumersManager({ initialConsumers }: { initialConsumer
                         {isActive ? 'Activo' : 'Suspendido'}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <button className="text-[#8aa8cc] hover:text-[#2b5fa6] transition p-1.5 rounded-lg hover:bg-[#e8f0f7]" title="Editar">✏️</button>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <ConsumerFormModal 
+                          consumer={c} 
+                          trigger={
+                            <button className="text-[#8aa8cc] hover:text-[#2b5fa6] transition p-1.5 rounded-lg hover:bg-[#e8f0f7]" title="Editar">
+                              ✏️
+                            </button>
+                          }
+                        />
                         <button className="text-[#8aa8cc] hover:text-[#2b5fa6] transition p-1.5 rounded-lg hover:bg-[#e8f0f7]" title="Más opciones">⋮</button>
                       </div>
                     </td>
