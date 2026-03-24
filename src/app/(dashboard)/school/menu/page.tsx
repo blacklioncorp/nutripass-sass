@@ -2,26 +2,6 @@ import { createClient } from '@/utils/supabase/server';
 import WeeklyMenuGrid from '@/components/school/WeeklyMenuGrid';
 import type { DailyMenu } from '@/components/school/WeeklyMenuGrid';
 
-// ─── Mock "Lunes": Sopa de pasta, Tacos dorados, Ensalada, Fruta, Jamaica ────
-function getMondayOfCurrentWeek() {
-  const today = new Date();
-  const day = today.getDay() === 0 ? 7 : today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - day + 1);
-  return monday.toISOString().split('T')[0];
-}
-
-const SEED_MOCK: DailyMenu = {
-  date: getMondayOfCurrentWeek(),
-  soup_name: 'Sopa de pasta',
-  main_course_name: 'Tacos dorados',
-  side_dish_name: 'Ensalada César',
-  dessert_name: 'Fruta de temporada',
-  drink_name: 'Jamaica',
-  combo_price: 70,
-};
-
-// ─── Server Component ─────────────────────────────────────────────────────────
 export default async function MenuRoute() {
   const supabase = await createClient();
 
@@ -55,10 +35,8 @@ export default async function MenuRoute() {
     .gte('date', monday.toISOString().split('T')[0])
     .lte('date', friday.toISOString().split('T')[0]);
 
-  // Use DB data if available, fallback to seeded Monday mock
-  const initialMenus: DailyMenu[] = dbMenus && dbMenus.length > 0
-    ? (dbMenus as DailyMenu[])
-    : [SEED_MOCK];
+  // Use DB data or empty array
+  const initialMenus: DailyMenu[] = (dbMenus as DailyMenu[]) || [];
 
   return (
     <div className="space-y-8">
