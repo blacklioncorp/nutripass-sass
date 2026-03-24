@@ -40,45 +40,7 @@ export type UserProfile = {
   school_id?: string;
 };
 
-// ─── Mock Data (used when real DB data is empty) ────────────────────────────
-const MOCK_CONSUMERS: Consumer[] = [
-  {
-    id: 'mock-1',
-    first_name: 'Juan',
-    last_name: 'Pérez',
-    identifier: '2024-001',
-    grade: '4° A',
-    allergies: ['Maní', 'Lactosa'],
-    earned_nutri_points: 450,
-    nfc_tag_uid: '123-456',
-    wallets: [
-      { id: 'w1', type: 'comedor', balance: 450.0 },
-      { id: 'w2', type: 'snack', balance: 50.0 },
-    ],
-  },
-  {
-    id: 'mock-2',
-    first_name: 'María',
-    last_name: 'García',
-    identifier: '2024-002',
-    grade: '2° B',
-    allergies: [],
-    earned_nutri_points: 110,
-    nfc_tag_uid: undefined,
-    wallets: [
-      { id: 'w3', type: 'comedor', balance: 1200.0 },
-      { id: 'w4', type: 'snack', balance: 15.0 },
-    ],
-  },
-];
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: 't1', consumer_id: 'mock-1', amount: -35, transaction_type: 'purchase', description: 'Sándwich de Jamón', wallet_type: 'snack', created_at: new Date().toISOString() },
-  { id: 't2', consumer_id: 'mock-1', amount: 500, transaction_type: 'reload', description: 'Recarga Tarjeta Crédito', wallet_type: 'comedor', created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: 't3', consumer_id: 'mock-1', amount: -85, transaction_type: 'purchase', description: 'Almuerzo Ejecutivo', wallet_type: 'comedor', created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: 't4', consumer_id: 'mock-2', amount: 200, transaction_type: 'reload', description: 'Recarga App', wallet_type: 'comedor', created_at: new Date(Date.now() - 172800000).toISOString() },
-  { id: 't5', consumer_id: 'mock-2', amount: -45, transaction_type: 'purchase', description: 'Menú del Día', wallet_type: 'comedor', created_at: new Date(Date.now() - 172800000).toISOString() },
-];
+// No mock data — the app starts clean for every new school/parent.
 
 // ─── Server Component ────────────────────────────────────────────────────────
 export default async function ParentPortal() {
@@ -142,9 +104,8 @@ export default async function ParentPortal() {
     }
   }
 
-  // Fall back to mock data when DB is empty (dev mode)
-  const resolvedConsumers = consumers && consumers.length > 0 ? consumers : MOCK_CONSUMERS;
-  const resolvedTransactions = transactions.length > 0 ? transactions : MOCK_TRANSACTIONS;
+  const resolvedConsumers = consumers ?? [];
+  const resolvedTransactions = transactions;
 
   return (
     <ParentDashboardClient
