@@ -4,8 +4,8 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { label: 'Dashboard', href: '/master', icon: '⊞' },
-  { label: 'Colegios', href: '/master/schools', icon: '🏫' },
-  { label: 'Configuración', href: '/master/settings', icon: '⚙️' },
+  { label: 'Colegios', href: '/master', icon: '🏫' },
+  { label: 'Configuración', href: '/master', icon: '⚙️' },
 ];
 
 export default function MasterSidebar() {

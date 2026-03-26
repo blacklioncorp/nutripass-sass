@@ -1,19 +1,24 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import MasterDashboardClient from '@/components/master/MasterDashboardClient';
 
 export default async function MasterDashboardPage() {
-  const supabase = await createClient();
+  const supabaseAdmin = await createAdminClient();
 
-  const { data: schools } = await supabase
+  const { data: schoolsData } = await supabaseAdmin
     .from('schools')
-    .select('*')
+    .select('*, users:consumers(count)')
     .order('created_at', { ascending: false });
 
-  const { count: usersCount } = await supabase
+  const schools = (schoolsData || []).map(s => ({
+    ...s,
+    users: (s.users as any)?.[0]?.count || 0
+  }));
+
+  const { count: usersCount } = await supabaseAdmin
     .from('profiles')
     .select('*', { count: 'exact', head: true });
 
-  const { count: txCount } = await supabase
+  const { count: txCount } = await supabaseAdmin
     .from('transactions')
     .select('*', { count: 'exact', head: true });
 

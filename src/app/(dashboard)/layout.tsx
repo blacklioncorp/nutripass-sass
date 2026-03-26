@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import SchoolSidebar from '@/components/school/SchoolSidebar';
 import MasterSidebar from '@/components/master/MasterSidebar';
 import { headers } from 'next/headers';
@@ -9,16 +9,25 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
+  const supabaseAdmin = await createAdminClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const headersList = await headers();
-  const referer = headersList.get('x-invoke-path') || '';
-
+  
   let school = null;
   let role = 'school_admin';
+
   if (user) {
-    const { data: profile } = await supabase.from('profiles').select('*, schools(*)').eq('id', user.id).single();
-    school = (profile as any)?.schools;
-    role = (profile as any)?.role || 'school_admin';
+    // We use the admin client here to reliably get the role and school, 
+    // bypassing any RLS issues that might occur during layout initialization.
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('*, schools(*)')
+      .eq('id', user.id)
+      .single();
+      
+    if (profile) {
+      school = (profile as any).schools;
+      role = (profile as any).role || 'school_admin';
+    }
   }
 
   const isMaster = role === 'superadmin';
