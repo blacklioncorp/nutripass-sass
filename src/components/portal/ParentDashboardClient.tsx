@@ -41,16 +41,18 @@ function formatDate(iso: string) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function WalletCard({ wallet, onReload }: { wallet: WalletType | undefined; type: string; label: string; onReload: () => void }) {
+function WalletCard({ wallet, type, onReload }: { wallet: WalletType | undefined; type: string; label: string; onReload: () => void }) {
   const balance = wallet?.balance ?? 0;
   const low = balance < 50;
+  // Use the explicit `type` prop so the label is always correct even if wallet.type is null
+  const walletType = wallet?.type ?? type;
 
   return (
     <div className={`bg-white rounded-2xl p-6 border shadow-sm hover:shadow-md transition-shadow flex flex-col gap-5 ${low ? 'border-amber-200' : 'border-[#e8f0f7]'}`}>
       <div className="flex justify-between items-start">
         <div>
           <p className="text-[#8aa8cc] text-[10px] font-black uppercase tracking-widest">
-            {wallet?.type === 'snack' ? 'Billetera Snack' : 'Billetera Comedor'}
+            {walletType === 'snack' ? 'Billetera Snack' : 'Billetera Comedor'}
           </p>
           {low && (
             <span className="inline-flex items-center gap-1 text-amber-600 text-[10px] font-bold mt-1">
@@ -417,7 +419,7 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <Dialog open={!!reloadWalletId} onOpenChange={(open) => !open && setReloadWalletId(null)}>
-        <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none p-0">
+        <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none p-0 max-h-[85vh] overflow-y-auto">
           <DialogHeader className="sr-only">
             <DialogTitle>Recargar Billetera</DialogTitle>
             <DialogDescription>Formulario para recargar el saldo de la billetera escolar.</DialogDescription>
@@ -434,7 +436,7 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
 
       {/* BULK RELOAD DIALOG */}
       <Dialog open={isBulkReloadOpen} onOpenChange={setIsBulkReloadOpen}>
-        <DialogContent className="max-w-2xl bg-transparent border-none shadow-none p-0 overflow-visible">
+        <DialogContent className="max-w-2xl bg-transparent border-none shadow-none p-0 max-h-[85vh] overflow-y-auto">
           <DialogHeader className="sr-only">
             <DialogTitle>Recarga Múltiple</DialogTitle>
             <DialogDescription>Recarga saldo para todos tus hijos en una sola transacción.</DialogDescription>
