@@ -57,7 +57,7 @@ function CheckoutForm({ amount, onSuccess }: { amount: string, onSuccess: () => 
   )
 }
 
-export default function WalletReload({ walletId, schoolId }: { walletId: string, schoolId: string }) {
+export default function WalletReload({ walletId, schoolId, onSuccess }: { walletId: string, schoolId: string, onSuccess?: () => void }) {
   const [amount, setAmount] = useState<string>('');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
@@ -99,7 +99,13 @@ export default function WalletReload({ walletId, schoolId }: { walletId: string,
         <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">✓</div>
         <h2 className="text-2xl font-black text-slate-900 mb-2">¡Recarga Exitosa!</h2>
         <p className="text-slate-500 mb-6">Los fondos se han reflejado en la billetera virtual de forma instantánea.</p>
-        <button onClick={() => router.refresh()} className="bg-slate-100 text-slate-600 font-bold px-6 py-3 rounded-xl hover:bg-slate-200 transition">
+        <button 
+          onClick={() => {
+            if (onSuccess) onSuccess();
+            router.refresh();
+          }} 
+          className="bg-slate-100 text-slate-600 font-bold px-6 py-3 rounded-xl hover:bg-slate-200 transition"
+        >
           Cerrar y Actualizar
         </button>
       </div>

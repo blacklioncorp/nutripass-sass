@@ -11,6 +11,7 @@ import type { Consumer, Transaction, Wallet as WalletType, UserProfile } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import WalletReload from './WalletReload';
 import TransactionReceiptModal from './TransactionReceiptModal';
+import BulkReloadModal from './BulkReloadModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
@@ -374,6 +375,7 @@ function TransactionsFeed({
 export default function ParentDashboardClient({ consumers, transactions, userProfile, needsOnboarding, userEmail }: Props) {
   const [activeStudentId, setActiveStudentId] = useState<string>(consumers[0]?.id ?? '');
   const [reloadWalletId, setReloadWalletId] = useState<string | null>(null);
+  const [isBulkReloadOpen, setIsBulkReloadOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [showSettings, setShowSettings] = useState(needsOnboarding ?? false);
   const [editingName, setEditingName] = useState(userProfile?.full_name || '');
@@ -421,8 +423,27 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
             <DialogDescription>Formulario para recargar el saldo de la billetera escolar.</DialogDescription>
           </DialogHeader>
           {reloadWalletId && (
-            <WalletReload walletId={reloadWalletId} schoolId={userProfile?.school_id ?? ''} />
+            <WalletReload 
+              walletId={reloadWalletId} 
+              schoolId={userProfile?.school_id ?? ''} 
+              onSuccess={() => setReloadWalletId(null)}
+            />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* BULK RELOAD DIALOG */}
+      <Dialog open={isBulkReloadOpen} onOpenChange={setIsBulkReloadOpen}>
+        <DialogContent className="max-w-2xl bg-transparent border-none shadow-none p-0 overflow-visible">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Recarga Múltiple</DialogTitle>
+            <DialogDescription>Recarga saldo para todos tus hijos en una sola transacción.</DialogDescription>
+          </DialogHeader>
+          <BulkReloadModal 
+            consumers={consumers} 
+            userProfile={userProfile} 
+            onSuccess={() => setIsBulkReloadOpen(false)} 
+          />
         </DialogContent>
       </Dialog>
 
@@ -491,26 +512,41 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
       </Dialog>
       
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-[#e8f0f7]">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black text-[#004B87] tracking-tight">
-              ¡Hola, Fam. {lastName}!
+      <div className="flex flex-col gap-6 pb-6 border-b border-[#e8f0f7]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-[32px] border border-[#e8f0f7] shadow-sm w-full">
+          <div>
+            <h1 className="text-4xl font-black text-[#004B87] tracking-tighter flex items-center gap-3">
+              ¡Hola, Fam. {lastName}! 👋
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="h-10 w-10 bg-[#f0f5fb] rounded-full flex items-center justify-center text-[#7CB9E8] hover:bg-[#e8f0f7] hover:text-[#004B87] transition active:scale-95 shadow-sm"
+                title="Configuración de Perfil"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </h1>
-            <button 
-              onClick={() => setShowSettings(true)}
-              className="h-10 w-10 bg-[#f0f5fb] mt-2 rounded-full flex items-center justify-center text-[#7CB9E8] hover:bg-[#e8f0f7] hover:text-[#004B87] transition active:scale-95 shadow-sm"
-              title="Configuración de Perfil"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
+            <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
           </div>
-          <p className="text-[#7CB9E8] font-medium mt-1">Gestiona las billeteras y nutrición de tus hijos.</p>
+
+          {consumers.length > 1 && (
+            <button 
+              onClick={() => setIsBulkReloadOpen(true)}
+              className="group bg-[#004B87] hover:bg-[#003a6b] text-white px-8 py-4 rounded-2xl flex items-center gap-3 transition shadow-xl shadow-blue-100 active:scale-95"
+            >
+              <div className="h-8 w-8 bg-blue-400/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <RefreshCcw className="h-4 w-4 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black uppercase text-blue-200 tracking-widest leading-none mb-1">nuevo</p>
+                <p className="font-black text-sm">Recarga Múltiple</p>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Student Selector Pills */}
         {consumers.length > 1 && (
-          <div className="flex bg-white rounded-full p-1 shadow-sm border border-[#e8f0f7] flex-wrap gap-1">
+          <div className="flex bg-white rounded-full p-1 shadow-sm border border-[#e8f0f7] flex-wrap gap-1 w-fit">
             {consumers.map(c => (
               <button
                 key={c.id}

@@ -33,51 +33,86 @@ export async function POST(req: Request) {
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     
-    const walletId = paymentIntent.metadata.wallet_id;
-    const rechargeAmount = parseFloat(paymentIntent.metadata.recharge_amount);
+    const isBulk = paymentIntent.metadata.is_bulk === 'true';
+    const bulkRechargeId = paymentIntent.metadata.bulk_recharge_id;
+    const singleWalletId = paymentIntent.metadata.wallet_id;
+    const singleRechargeAmount = parseFloat(paymentIntent.metadata.recharge_amount);
     const intentId = paymentIntent.id;
 
-    if (!walletId || isNaN(rechargeAmount)) {
-      console.error('Missing required metadata on payment intent');
-      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
-    }
-
     try {
-      // 1. Get current balance
-      const { data: wallet, error: walletError } = await supabaseAdmin
-        .from('wallets')
-        .select('balance')
-        .eq('id', walletId)
-        .single();
+      if (isBulk && bulkRechargeId) {
+        // --- BULK RECHARGE LOGIC ---
+        const { data: bulkDoc, error: bulkError } = await supabaseAdmin
+          .from('bulk_recharges')
+          .select('*')
+          .eq('id', bulkRechargeId)
+          .single();
+        
+        if (bulkError || !bulkDoc) throw new Error('Bulk recharge document not found');
+        if (bulkDoc.status === 'completed') return NextResponse.json({ received: true });
 
-      if (walletError || !wallet) throw new Error('Wallet not found');
+        const allocations = bulkDoc.allocations as any[];
 
-      // 2. Perform recharge and log transaction atomically (Or via individual updates if not wrapping in RPC)
-      // Wait, there is no generic "recharge" RPC function right now so we will do it via two calls or an RPC if we add it. 
-      // We will perform two updates assuming no race condition immediately since webhooks are singular inserts here.
-      
-      const newBalance = wallet.balance + rechargeAmount;
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('wallets')
-        .update({ balance: newBalance })
-        .eq('id', walletId);
-      
-      if (updateError) throw updateError;
+        // Update each wallet
+        for (const alloc of allocations) {
+          const { data: wallet } = await supabaseAdmin
+            .from('wallets')
+            .select('balance')
+            .eq('id', alloc.walletId)
+            .single();
+          
+          if (wallet) {
+            const newBalance = wallet.balance + parseFloat(alloc.amount);
+            await supabaseAdmin
+              .from('wallets')
+              .update({ balance: newBalance })
+              .eq('id', alloc.walletId);
+            
+            // Log individual transaction
+            await supabaseAdmin.from('transactions').insert({
+              wallet_id: alloc.walletId,
+              amount: alloc.amount,
+              type: 'credit',
+              description: 'Recarga Múltiple (Stripe)',
+              stripe_payment_intent_id: intentId,
+            });
+          }
+        }
 
-      // 3. Register transaction
-      await supabaseAdmin.from('transactions').insert({
-        wallet_id: walletId,
-        amount: rechargeAmount,
-        type: 'credit',
-        description: 'Recarga Billetera vía Tarjeta (Stripe)',
-        stripe_payment_intent_id: intentId,
-      });
+        // Mark bulk recharge as completed
+        await supabaseAdmin
+          .from('bulk_recharges')
+          .update({ status: 'completed' })
+          .eq('id', bulkRechargeId);
 
+      } else if (singleWalletId && !isNaN(singleRechargeAmount)) {
+        // --- SINGLE RECHARGE LOGIC (Original) ---
+        const { data: wallet, error: walletError } = await supabaseAdmin
+          .from('wallets')
+          .select('balance')
+          .eq('id', singleWalletId)
+          .single();
+
+        if (walletError || !wallet) throw new Error('Wallet not found');
+        
+        const newBalance = wallet.balance + singleRechargeAmount;
+        
+        await supabaseAdmin
+          .from('wallets')
+          .update({ balance: newBalance })
+          .eq('id', singleWalletId);
+        
+        await supabaseAdmin.from('transactions').insert({
+          wallet_id: singleWalletId,
+          amount: singleRechargeAmount,
+          type: 'credit',
+          description: 'Recarga Billetera vía Tarjeta (Stripe)',
+          stripe_payment_intent_id: intentId,
+        });
+      }
     } catch (err: any) {
       console.error('Error processing successful payment:', err);
-      // Even if our DB fails, Stripe consider it done. We return 500 so Stripe retries.
-      return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
+      return NextResponse.json({ error: err.message }, { status: 500 });
     }
   }
 

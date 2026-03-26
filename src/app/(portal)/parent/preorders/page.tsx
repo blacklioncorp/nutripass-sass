@@ -1,55 +1,56 @@
 import { createClient } from '@/utils/supabase/server';
-import WeeklyPreOrder from '@/components/portal/WeeklyPreOrder';
+import PreordersClient from '@/components/portal/PreordersClient';
 
 export default async function PreordersRoute() {
   const supabase = await createClient();
 
-  // 1. Get logged-in parent
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return <div>Acceso denegado</div>;
 
-  // 2. Get their child (we assume the first consumer where parent_id = user.id)
+  // 1. Get ALL linked consumers
   const { data: consumers } = await supabase
     .from('consumers')
     .select('*, wallets(*)')
-    .eq('parent_id', user.id);
+    .eq('parent_id', user.id)
+    .order('first_name');
 
-  const activeConsumer = consumers?.[0];
-
-  if (!activeConsumer) {
+  if (!consumers || consumers.length === 0) {
     return (
-      <div className="p-12 text-center">
-        <h2 className="text-xl font-bold">No tienes alumnos vinculados aún.</h2>
-        <p className="text-slate-500">Contacta a la escuela para que vinculen a tu hijo a esta cuenta de correo.</p>
+      <div className="p-12 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Menú Semanal</h1>
+        <h2 className="text-xl font-black text-slate-900">No tienes alumnos vinculados aún.</h2>
+        <p className="text-slate-500 font-medium mt-2">Contacta a la escuela para que vinculen a tu hijo a esta cuenta de correo.</p>
       </div>
     );
   }
 
-  // 3. Get the active daily menus for this school (ideally filtered by >= today, here we just fetch all for prototype)
+  // 2. Get daily menus for all schools involved
+  const schoolIds = Array.from(new Set(consumers.map(c => c.school_id)));
   const { data: dailyMenus } = await supabase
     .from('daily_menus')
     .select(`
-      id, date, product_id,
+      id, date, product_id, school_id,
       products ( id, name, description, base_price, image_url )
     `)
-    .eq('school_id', activeConsumer.school_id)
+    .in('school_id', schoolIds)
     .order('date', { ascending: true });
 
-  // 4. Get existing preorders for this consumer to mark them as paid
+  // 3. Get existing preorders for all consumers
+  const consumerIds = consumers.map(c => c.id);
   const { data: existingPreorders } = await supabase
     .from('pre_orders')
     .select('daily_menu_id, consumer_id')
-    .eq('consumer_id', activeConsumer.id);
+    .in('consumer_id', consumerIds);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-32">
+    <div className="max-w-6xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Menú Semanal</h1>
-        <p className="text-slate-500 mt-2">Evita filas y asegura la comida de tu hijo pre-ordenando para los próximos días.</p>
+        <h1 className="text-4xl font-black text-[#004B87] tracking-tight">Menú Semanal</h1>
+        <p className="text-[#7CB9E8] font-medium mt-1">Asegura la comida de tus hijos pre-ordenando para los próximos días.</p>
       </div>
 
-      <WeeklyPreOrder 
-        consumer={activeConsumer} 
+      <PreordersClient 
+        initialConsumers={consumers} 
         dailyMenus={dailyMenus || []} 
         existingPreorders={existingPreorders || []} 
       />
