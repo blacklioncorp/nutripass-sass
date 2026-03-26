@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Wallet, Zap, ShieldCheck, History, ChevronDown,
   RefreshCcw, AlertTriangle, Pencil, Star, TrendingUp, CreditCard,
   Utensils, Tag, Receipt
 } from 'lucide-react';
 import type { Consumer, Transaction, Wallet as WalletType, UserProfile } from '@/app/(portal)/parent/page';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import WalletReload from './WalletReload';
 import TransactionReceiptModal from './TransactionReceiptModal';
 
@@ -377,6 +378,7 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   const [showSettings, setShowSettings] = useState(needsOnboarding ?? false);
   const [editingName, setEditingName] = useState(userProfile?.full_name || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const router = useRouter();
 
   const activeConsumer = useMemo(
     () => consumers.find(c => c.id === activeStudentId) ?? consumers[0],
@@ -399,8 +401,10 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
     setIsSavingProfile(true);
     try {
       const { updateParentProfile } = await import('@/app/(portal)/parent/actions');
-      await updateParentProfile(userProfile.id, editingName.trim());
+      const email = userEmail || userProfile?.email;
+      await updateParentProfile(userProfile.id, editingName.trim(), email);
       setShowSettings(false);
+      router.refresh();
     } catch (e: any) {
       alert("Error guardando el perfil: " + e.message);
     } finally {
@@ -412,8 +416,10 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
     <div className="space-y-8 animate-in fade-in duration-500">
       <Dialog open={!!reloadWalletId} onOpenChange={(open) => !open && setReloadWalletId(null)}>
         <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none p-0">
-          <DialogTitle className="sr-only">Recargar Billetera</DialogTitle>
-          <DialogDescription className="sr-only">Formulario para recargar el saldo de la billetera escolar.</DialogDescription>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Recargar Billetera</DialogTitle>
+            <DialogDescription>Formulario para recargar el saldo de la billetera escolar.</DialogDescription>
+          </DialogHeader>
           {reloadWalletId && (
             <WalletReload walletId={reloadWalletId} schoolId={userProfile?.school_id ?? ''} />
           )}
@@ -435,35 +441,37 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
           setShowSettings(open);
         }}
       >
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border-none shadow-xl">
-          <DialogTitle className="text-2xl font-black text-[#004B87]">
-            {needsOnboarding ? '¡Bienvenido a NutriPass!' : 'Configuración de Perfil'}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-[#8aa8cc] -mt-1">
-            {needsOnboarding
-              ? 'Para comenzar, dinos cómo llamarte. Este nombre aparecerá en tus recibos y notificaciones.'
-              : 'Actualiza tu nombre completo para personalizar tu experiencia y los recibos.'}
-          </DialogDescription>
+        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-8 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-black text-[#004B87] tracking-tight">
+              {needsOnboarding ? '¡Bienvenido a NutriPass!' : 'Configuración de Perfil'}
+            </DialogTitle>
+            <DialogDescription className="text-base text-[#8aa8cc] font-medium mt-1">
+              {needsOnboarding
+                ? 'Para comenzar, dinos cómo llamarte. Este nombre aparecerá en tus recibos y notificaciones.'
+                : 'Actualiza tu nombre completo para personalizar tu experiencia y los recibos.'}
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="space-y-4 mt-2">
-            <div>
-              <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Completo</label>
+          <div className="space-y-6 mt-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-[#8aa8cc] uppercase tracking-widest ml-1">Nombre Completo</label>
               <input
                 type="text"
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
                 placeholder="Ej. Familia Pérez"
-                className="w-full px-4 py-3 text-lg font-semibold text-slate-900 border-2 border-[#e8f0f7] rounded-xl focus:border-[#7CB9E8] focus:outline-none transition"
+                className="w-full px-5 py-4 text-lg font-bold text-[#004B87] border-2 border-[#f0f5fb] rounded-2xl focus:border-[#7CB9E8] focus:outline-none transition-all placeholder:text-[#b0c8e0] bg-[#f8fafd]"
                 autoFocus={needsOnboarding}
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-600 mb-1">Correo (Cuenta)</label>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-[#8aa8cc] uppercase tracking-widest ml-1">Correo (Cuenta)</label>
               <input
                 type="email"
                 disabled
                 value={userEmail || userProfile?.email || ''}
-                className="w-full px-4 py-3 text-lg font-semibold text-slate-400 bg-slate-50 border-2 border-slate-100 rounded-xl cursor-not-allowed"
+                className="w-full px-5 py-4 text-lg font-bold text-[#b0c8e0] bg-[#f0f5fb] border-2 border-[#f0f5fb] rounded-2xl cursor-not-allowed"
               />
             </div>
           </div>
@@ -471,9 +479,13 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
           <button
             onClick={handleSaveProfile}
             disabled={isSavingProfile || !editingName.trim()}
-            className="mt-4 w-full bg-[#004B87] text-white font-black py-3.5 rounded-xl hover:bg-[#003870] transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            className="mt-8 w-full bg-[#004B87] hover:bg-[#003870] text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/10 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-3 text-lg uppercase tracking-wide"
           >
-            {isSavingProfile ? <><RefreshCcw className="h-4 w-4 animate-spin" /> Guardando...</> : needsOnboarding ? 'Comenzar →' : 'Guardar Cambios'}
+            {isSavingProfile ? (
+              <><RefreshCcw className="h-5 w-5 animate-spin" /> Guardando...</>
+            ) : (
+              <>{needsOnboarding ? 'Comenzar →' : 'Guardar Cambios'}</>
+            )}
           </button>
         </DialogContent>
       </Dialog>

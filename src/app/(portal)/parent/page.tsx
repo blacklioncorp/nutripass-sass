@@ -53,7 +53,7 @@ export default async function ParentPortal() {
 
   // Parallel fetching for performance
   let [profileResult, consumersResult] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, role, school_id').eq('id', user.id).single(),
+    supabase.from('parents').select('id, full_name, email').eq('id', user.id).single(),
     supabase
       .from('consumers')
       .select(`
@@ -67,6 +67,16 @@ export default async function ParentPortal() {
 
   let profile = profileResult.data as UserProfile | null;
   let consumers = consumersResult.data as Consumer[] | null;
+
+  // Fetch school_id from profiles (since parents table might not have it yet, or it's separate)
+  // The system seems to use 'profiles' for roles/school_id and 'parents' for parent-specific data.
+  // We'll keep school_id logic but transition the main 'onboarding' trigger to 'parents' table.
+  if (!profile || !profile.full_name) {
+    const { data: profileRel } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).single();
+    if (profileRel) {
+      profile = { ...profile, ...profileRel } as UserProfile;
+    }
+  }
 
   // AUTO-LINKING LOGIC: If no children linked by ID, search by email
   if (user.email && (!consumers || consumers.length === 0)) {
@@ -85,21 +95,22 @@ export default async function ParentPortal() {
       
       const schoolId = (linkedConsumers[0] as any).school_id;
 
-      // Ensure profile exists and has school_id
-      const { data: newProfile } = await supabase
-        .from('profiles')
-        .upsert({
+      // Ensure parents record exists and has school_id in profiles
+      await Promise.all([
+        supabase.from('parents').upsert({
+          id: user.id,
+          email: user.email.toLowerCase(),
+          full_name: profile?.full_name || null
+        }, { onConflict: 'id' }),
+        supabase.from('profiles').upsert({
           id: user.id,
           role: 'parent',
-          school_id: schoolId,
-          full_name: profile?.full_name || null // Keep existing name if any
+          school_id: schoolId
         }, { onConflict: 'id' })
-        .select()
-        .single();
+      ]);
 
-      if (newProfile) {
-        profile = newProfile as UserProfile;
-      }
+      const { data: refreshedProfile } = await supabase.from('parents').select('id, full_name, email').eq('id', user.id).single();
+      profile = { ...refreshedProfile, school_id: schoolId, role: 'parent' } as UserProfile;
       
       // Update consumers with parent_id
       const consumerIds = linkedConsumers.map(c => c.id);

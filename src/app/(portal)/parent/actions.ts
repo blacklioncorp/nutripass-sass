@@ -16,15 +16,23 @@ export async function updateAllergies(consumerId: string, allergies: string[]) {
   revalidatePath('/parent');
 }
 
-export async function updateParentProfile(userId: string, fullName: string) {
+export async function updateParentProfile(userId: string, fullName: string, email?: string) {
   const supabase = await createClient();
 
+  // Perform UPSERT into 'parents' table
+  // We include email if provided, otherwise we just update full_name
   const { error } = await supabase
-    .from('profiles')
-    .update({ full_name: fullName })
-    .eq('id', userId);
+    .from('parents')
+    .upsert({ 
+      id: userId, 
+      full_name: fullName,
+      ...(email ? { email } : {})
+    }, { onConflict: 'id' });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('Error updating parent profile:', error);
+    throw new Error(`Error de Supabase: ${error.message}`);
+  }
 
   revalidatePath('/parent');
 }
