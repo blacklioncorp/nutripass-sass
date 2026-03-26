@@ -2,6 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 // We must use the Service Role Key to bypass RLS and use Admin Auth functions
 const supabaseAdmin = createClient(
@@ -58,4 +60,36 @@ export async function createSchoolWithAdmin(prevState: any, formData: FormData) 
   } catch (error: any) {
     return { error: error.message };
   }
+}
+
+export async function toggleSchoolStatus(schoolId: string, currentStatus: string) {
+  const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+  
+  const { error } = await supabaseAdmin
+    .from('schools')
+    .update({ status: newStatus })
+    .eq('id', schoolId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/master');
+  return { success: true, newStatus };
+}
+
+export async function impersonateSchool(schoolId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set('impersonated_school_id', schoolId, {
+    path: '/',
+    maxAge: 60 * 60 * 2, // 2 hours
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+
+  redirect('/school');
+}
+
+export async function stopImpersonation() {
+  const cookieStore = await cookies();
+  cookieStore.delete('impersonated_school_id');
+  redirect('/master');
 }

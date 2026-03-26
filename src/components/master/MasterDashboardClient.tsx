@@ -6,9 +6,11 @@ import {
 } from 'recharts';
 import {
   TrendingUp, DollarSign, Building2, Users, Activity,
-  ChevronDown, MoreVertical, ExternalLink, Settings, Ban
+  ChevronDown, MoreVertical, ExternalLink, Settings, Ban, ShieldCheck, Loader2
 } from 'lucide-react';
 import CreateSchoolModal from '@/components/master/CreateSchoolModal';
+import StripeStatusModal from '@/components/master/StripeStatusModal';
+import { toggleSchoolStatus, impersonateSchool } from '@/app/(dashboard)/master/actions';
 
 // ── Shared Types ───────────────────────────────────────────
 type School = {
@@ -17,9 +19,11 @@ type School = {
   subdomain: string;
   primary_color: string | null;
   secondary_color: string | null;
-  status?: string;
+  status: string;
   users?: number;
   monthly_volume?: number;
+  stripe_account_id: string | null;
+  stripe_onboarding_complete: boolean;
   created_at: string;
 };
 
@@ -66,12 +70,39 @@ function KpiCard({
 }
 
 // ── Actions Menu ───────────────────────────────────────────
-function SchoolActionsMenu({ school, host }: { school: School; host: string }) {
+function SchoolActionsMenu({ 
+  school, 
+  onShowStripe 
+}: { 
+  school: School; 
+  onShowStripe: () => void 
+}) {
   const [open, setOpen] = useState(false);
-  const isLocal = host.includes('localhost');
-  const protocol = isLocal ? 'http' : 'https';
-  // Use subdomains if on production, or just root if local
-  const panelUrl = isLocal ? `/school` : `${protocol}://${school.subdomain}.nutripass.com/school`;
+  const [loading, setLoading] = useState(false);
+  
+  const isSuspended = school.status === 'suspended';
+
+  const handleToggleStatus = async () => {
+    setLoading(true);
+    try {
+      await toggleSchoolStatus(school.id, school.status || 'active');
+      setOpen(false);
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImpersonate = async () => {
+    setLoading(true);
+    try {
+      await impersonateSchool(school.id);
+    } catch (e: any) {
+      alert("Error al entrar: " + e.message);
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative">
@@ -85,15 +116,28 @@ function SchoolActionsMenu({ school, host }: { school: School; host: string }) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-20 bg-white rounded-xl shadow-xl border border-[#e8f0f7] py-1 w-52 overflow-hidden">
-            <a href={panelUrl} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-[#004B87] font-semibold hover:bg-[#f0f5fb] transition">
-              <ExternalLink className="h-4 w-4 text-[#7CB9E8]" /> Entrar al Panel
-            </a>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#004B87] font-semibold hover:bg-[#f0f5fb] transition">
+            <button 
+              onClick={handleImpersonate}
+              disabled={loading}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#004B87] font-semibold hover:bg-[#f0f5fb] transition disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4 text-[#7CB9E8]" />} 
+              Entrar al Panel
+            </button>
+            <button 
+              onClick={() => { onShowStripe(); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#004B87] font-semibold hover:bg-[#f0f5fb] transition"
+            >
               <Settings className="h-4 w-4 text-[#7CB9E8]" /> Configuración Stripe
             </button>
             <hr className="border-[#e8f0f7] my-1" />
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 font-semibold hover:bg-red-50 transition">
-              <Ban className="h-4 w-4" /> Suspender
+            <button 
+              onClick={handleToggleStatus}
+              disabled={loading}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-red-50 transition disabled:opacity-50 ${isSuspended ? 'text-emerald-600' : 'text-red-500'}`}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />} 
+              {isSuspended ? 'Activar Escuela' : 'Suspender Escuela'}
             </button>
           </div>
         </>
@@ -126,6 +170,7 @@ export default function MasterDashboardPage({
 }) {
   const [selectedRange, setSelectedRange] = useState('Este Mes');
   const [openRange, setOpenRange] = useState(false);
+  const [selectedStripeSchool, setSelectedStripeSchool] = useState<School | null>(null);
 
   // If no schools in DB, it starts empty. No more MOCK_SCHOOLS hardcoded.
   const schools = initialSchools || [];
@@ -138,6 +183,14 @@ export default function MasterDashboardPage({
 
   return (
     <div className="space-y-8">
+      <StripeStatusModal
+        isOpen={!!selectedStripeSchool}
+        onOpenChange={(o) => !o && setSelectedStripeSchool(null)}
+        schoolName={selectedStripeSchool?.name || ''}
+        stripeAccountId={selectedStripeSchool?.stripe_account_id || null}
+        onboardingComplete={selectedStripeSchool?.stripe_onboarding_complete || false}
+      />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -253,15 +306,22 @@ export default function MasterDashboardPage({
                         </div>
                       </td>
                       <td className="px-7 py-5">
-                        <span className="px-3 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-700">
-                          Activo
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-black ${
+                          school.status === 'suspended' 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {school.status === 'suspended' ? 'Suspendido' : 'Activo'}
                         </span>
                       </td>
                       <td className="px-7 py-5 text-center">
                         <span className="font-black text-[#0d1f3c] text-base">{school.users || 0}</span>
                       </td>
                       <td className="px-7 py-5 text-right">
-                        <SchoolActionsMenu school={school} host={host} />
+                        <SchoolActionsMenu 
+                          school={school} 
+                          onShowStripe={() => setSelectedStripeSchool(school)} 
+                        />
                       </td>
                     </tr>
                   );
