@@ -92,3 +92,29 @@ export async function processPreorderCheckout(
 
   return { success: true, overdraft };
 }
+
+export async function submitInvoiceRequest(data: {
+  transaction_id: string;
+  rfc: string;
+  razon_social: string;
+  codigo_postal: string;
+  regimen_fiscal: string;
+  uso_cfdi: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Usuario no autenticado');
+
+  const { error } = await supabase
+    .from('invoice_requests')
+    .insert({
+      user_id: user.id,
+      ...data
+    });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/parent');
+  return { success: true };
+}

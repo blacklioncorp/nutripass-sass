@@ -4,11 +4,12 @@ import { useState, useMemo } from 'react';
 import {
   Wallet, Zap, ShieldCheck, History, ChevronDown,
   RefreshCcw, AlertTriangle, Pencil, Star, TrendingUp, CreditCard,
-  Utensils, Tag
+  Utensils, Tag, Receipt
 } from 'lucide-react';
 import type { Consumer, Transaction, Wallet as WalletType, UserProfile } from '@/app/(portal)/parent/page';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import WalletReload from './WalletReload';
+import TransactionReceiptModal from './TransactionReceiptModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
@@ -303,7 +304,15 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
 }
 
 
-function TransactionsFeed({ transactions, consumerId }: { transactions: Transaction[]; consumerId: string }) {
+function TransactionsFeed({ 
+  transactions, 
+  consumerId,
+  onSelectTransaction
+}: { 
+  transactions: Transaction[]; 
+  consumerId: string;
+  onSelectTransaction: (tx: Transaction) => void;
+}) {
   const filtered = transactions.filter(t => t.consumer_id === consumerId).slice(0, 5);
 
   return (
@@ -327,7 +336,11 @@ function TransactionsFeed({ transactions, consumerId }: { transactions: Transact
         ) : filtered.map(tx => {
           const isCredit = tx.amount > 0;
           return (
-            <div key={tx.id} className="flex items-center justify-between px-7 py-5 hover:bg-[#f8fafd] transition cursor-pointer group">
+            <div 
+              key={tx.id} 
+              onClick={() => onSelectTransaction(tx)}
+              className="flex items-center justify-between px-7 py-5 hover:bg-[#f8fafd] transition cursor-pointer group"
+            >
               <div className="flex items-center gap-5">
                 <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform flex-shrink-0 ${isCredit ? 'bg-emerald-50' : 'bg-red-50'}`}>
                   {isCredit ? <CreditCard className="h-5 w-5 text-emerald-500" /> : <Utensils className="h-5 w-5 text-red-400" />}
@@ -342,9 +355,12 @@ function TransactionsFeed({ transactions, consumerId }: { transactions: Transact
                   </p>
                 </div>
               </div>
-              <span className={`font-black text-lg tracking-tight flex-shrink-0 ${isCredit ? 'text-emerald-500' : 'text-[#004B87]'}`}>
-                {isCredit ? '+' : '-'}{formatMoney(tx.amount)}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`font-black text-lg tracking-tight flex-shrink-0 ${isCredit ? 'text-emerald-500' : 'text-[#004B87]'}`}>
+                  {isCredit ? '+' : '-'}{formatMoney(tx.amount)}
+                </span>
+                <Receipt className="h-4 w-4 text-[#8aa8cc] group-hover:text-[#004B87] transition-colors" />
+              </div>
             </div>
           );
         })}
@@ -357,6 +373,7 @@ function TransactionsFeed({ transactions, consumerId }: { transactions: Transact
 export default function ParentDashboardClient({ consumers, transactions, userProfile, needsOnboarding, userEmail }: Props) {
   const [activeStudentId, setActiveStudentId] = useState<string>(consumers[0]?.id ?? '');
   const [reloadWalletId, setReloadWalletId] = useState<string | null>(null);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [showSettings, setShowSettings] = useState(needsOnboarding ?? false);
   const [editingName, setEditingName] = useState(userProfile?.full_name || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -402,6 +419,12 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
           )}
         </DialogContent>
       </Dialog>
+
+      <TransactionReceiptModal 
+        isOpen={!!selectedTx} 
+        onOpenChange={(o) => !o && setSelectedTx(null)} 
+        transaction={selectedTx} 
+      />
 
       {/* Profile Settings Modal */}
       <Dialog
@@ -515,7 +538,11 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
             </div>
 
             {/* Transactions */}
-            <TransactionsFeed transactions={transactions} consumerId={activeConsumer.id} />
+            <TransactionsFeed 
+              transactions={transactions} 
+              consumerId={activeConsumer.id} 
+              onSelectTransaction={setSelectedTx}
+            />
           </div>
 
           {/* Right: Nutri-Puntos + Salud */}

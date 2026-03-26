@@ -43,6 +43,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // --- SCHOOL SUSPENSION CHECK ---
+  if (user && isProtectedPath && request.nextUrl.pathname !== '/cuenta-suspendida') {
+    // Fetch profile and school status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, schools(status)')
+      .eq('id', user.id)
+      .single();
+
+    const role = profile?.role;
+    const schoolStatus = (profile as any)?.schools?.status;
+
+    // If school is suspended, block access (unless user is superadmin)
+    if (schoolStatus === 'suspended' && role !== 'superadmin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/cuenta-suspendida';
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Si YA está logueado y trata de ir al login o landing... redirigirlo a su rol
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/')) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
