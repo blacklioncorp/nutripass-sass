@@ -70,7 +70,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
       .from('profiles')
       .upsert({
         id: data.user.id,
-        email: data.user.email,
         role: 'parent',
       }, { onConflict: 'id' });
 

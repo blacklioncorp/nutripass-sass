@@ -52,7 +52,7 @@ export default async function ParentPortal() {
   }
 
   // Parallel fetching for performance
-  const [profileResult, consumersResult] = await Promise.all([
+  let [profileResult, consumersResult] = await Promise.all([
     supabase.from('profiles').select('id, full_name, role, school_id').eq('id', user.id).single(),
     supabase
       .from('consumers')
@@ -65,10 +65,55 @@ export default async function ParentPortal() {
       .order('first_name'),
   ]);
 
-  const profile = profileResult.data as UserProfile | null;
+  let profile = profileResult.data as UserProfile | null;
+  let consumers = consumersResult.data as Consumer[] | null;
+
+  // AUTO-LINKING LOGIC: If no children linked by ID, search by email
+  if (user.email && (!consumers || consumers.length === 0)) {
+    const { data: linkedConsumers } = await supabase
+      .from('consumers')
+      .select(`
+        id, first_name, last_name, identifier, type, school_id,
+        allergies, earned_nutri_points, nfc_tag_uid,
+        wallets ( id, type, balance, max_overdraft )
+      `)
+      .eq('parent_email', user.email.toLowerCase())
+      .is('parent_id', null);
+
+    if (linkedConsumers && linkedConsumers.length > 0) {
+      console.log(`Auto-linking ${linkedConsumers.length} consumers to parent ${user.email}`);
+      
+      const schoolId = (linkedConsumers[0] as any).school_id;
+
+      // Ensure profile exists and has school_id
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          role: 'parent',
+          school_id: schoolId,
+          full_name: profile?.full_name || null // Keep existing name if any
+        }, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (newProfile) {
+        profile = newProfile as UserProfile;
+      }
+      
+      // Update consumers with parent_id
+      const consumerIds = linkedConsumers.map(c => c.id);
+      await supabase
+        .from('consumers')
+        .update({ parent_id: user.id })
+        .in('id', consumerIds);
+
+      consumers = linkedConsumers as unknown as Consumer[];
+    }
+  }
+
   const userEmail = user!.email ?? '';
   const needsOnboarding = !profile?.full_name;
-  const consumers = consumersResult.data as Consumer[] | null;
 
   // Fetch last 10 transactions for ALL children found
   let transactions: Transaction[] = [];
