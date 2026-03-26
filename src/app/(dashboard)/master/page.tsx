@@ -15,7 +15,7 @@ export default async function MasterDashboardPage() {
   }));
 
   const { count: usersCount } = await supabaseAdmin
-    .from('profiles')
+    .from('consumers')
     .select('*', { count: 'exact', head: true });
 
   const { count: txCount } = await supabaseAdmin
