@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import WalletReload from './WalletReload';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import BulkReloadModal from './BulkReloadModal';
+import ParentProfileModal from './ParentProfileModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
@@ -380,8 +381,6 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   const [isBulkReloadOpen, setIsBulkReloadOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [showSettings, setShowSettings] = useState(needsOnboarding ?? false);
-  const [editingName, setEditingName] = useState(userProfile?.full_name || '');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const router = useRouter();
 
   const activeConsumer = useMemo(
@@ -397,22 +396,6 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
     const wId = type === 'comedor' ? comedorWallet?.id : snackWallet?.id;
     if (wId) {
       setReloadWalletId(wId);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!userProfile?.id || !editingName.trim()) return;
-    setIsSavingProfile(true);
-    try {
-      const { updateParentProfile } = await import('@/app/(portal)/parent/actions');
-      const email = userEmail || userProfile?.email;
-      await updateParentProfile(userProfile.id, editingName.trim(), email);
-      setShowSettings(false);
-      router.refresh();
-    } catch (e: any) {
-      alert("Error guardando el perfil: " + e.message);
-    } finally {
-      setIsSavingProfile(false);
     }
   };
 
@@ -455,63 +438,13 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
         transaction={selectedTx} 
       />
 
-      {/* Profile Settings Modal */}
-      <Dialog
-        open={showSettings}
-        onOpenChange={(open) => {
-          // Block closing if this is the mandatory onboarding step
-          if (needsOnboarding && !open) return;
-          setShowSettings(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-8 border-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-3xl font-black text-[#004B87] tracking-tight">
-              {needsOnboarding ? '¡Bienvenido a NutriPass!' : 'Configuración de Perfil'}
-            </DialogTitle>
-            <DialogDescription className="text-base text-[#8aa8cc] font-medium mt-1">
-              {needsOnboarding
-                ? 'Para comenzar, dinos cómo llamarte. Este nombre aparecerá en tus recibos y notificaciones.'
-                : 'Actualiza tu nombre completo para personalizar tu experiencia y los recibos.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 mt-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-[#8aa8cc] uppercase tracking-widest ml-1">Nombre Completo</label>
-              <input
-                type="text"
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                placeholder="Ej. Familia Pérez"
-                className="w-full px-5 py-4 text-lg font-bold text-[#004B87] border-2 border-[#f0f5fb] rounded-2xl focus:border-[#7CB9E8] focus:outline-none transition-all placeholder:text-[#b0c8e0] bg-[#f8fafd]"
-                autoFocus={needsOnboarding}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-[#8aa8cc] uppercase tracking-widest ml-1">Correo (Cuenta)</label>
-              <input
-                type="email"
-                disabled
-                value={userEmail || userProfile?.email || ''}
-                className="w-full px-5 py-4 text-lg font-bold text-[#b0c8e0] bg-[#f0f5fb] border-2 border-[#f0f5fb] rounded-2xl cursor-not-allowed"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleSaveProfile}
-            disabled={isSavingProfile || !editingName.trim()}
-            className="mt-8 w-full bg-[#004B87] hover:bg-[#003870] text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/10 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-3 text-lg uppercase tracking-wide"
-          >
-            {isSavingProfile ? (
-              <><RefreshCcw className="h-5 w-5 animate-spin" /> Guardando...</>
-            ) : (
-              <>{needsOnboarding ? 'Comenzar →' : 'Guardar Cambios'}</>
-            )}
-          </button>
-        </DialogContent>
-      </Dialog>
+      <ParentProfileModal
+        isOpen={showSettings}
+        onOpenChange={setShowSettings}
+        userProfile={userProfile}
+        userEmail={userEmail}
+        needsOnboarding={needsOnboarding}
+      />
       
       {/* ── Header ── */}
       <div className="flex flex-col gap-6 pb-6 border-b border-[#e8f0f7]">
