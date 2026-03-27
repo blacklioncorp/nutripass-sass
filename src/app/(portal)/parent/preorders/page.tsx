@@ -1,6 +1,8 @@
 import { createClient } from '@/utils/supabase/server';
 import PreordersClient from '@/components/portal/PreordersClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PreordersRoute() {
   const supabase = await createClient();
 
@@ -8,11 +10,33 @@ export default async function PreordersRoute() {
   if (!user) return <div>Acceso denegado</div>;
 
   // 1. Get ALL linked consumers
-  const { data: consumers } = await supabase
+  let { data: consumers } = await supabase
     .from('consumers')
     .select('*, wallets(*)')
     .eq('parent_id', user.id)
     .order('first_name');
+
+  // AUTO-LINKING FALLBACK: If no children found by parent_id, try by email
+  if ((!consumers || consumers.length === 0) && user.email) {
+    const { data: linkedByEmail } = await supabase
+      .from('consumers')
+      .select('*, wallets(*)')
+      .eq('parent_email', user.email.toLowerCase());
+
+    if (linkedByEmail && linkedByEmail.length > 0) {
+      // If they are not linked to THIS parent_id yet, link them using ADMIN client
+      const toLink = linkedByEmail.filter((c: any) => c.parent_id !== user.id);
+      if (toLink.length > 0) {
+        const { createAdminClient } = await import('@/utils/supabase/server');
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from('consumers')
+          .update({ parent_id: user.id })
+          .in('id', toLink.map((c: any) => c.id));
+      }
+      consumers = linkedByEmail;
+    }
+  }
 
   if (!consumers || consumers.length === 0) {
     return (

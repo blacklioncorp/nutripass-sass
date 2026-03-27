@@ -112,9 +112,12 @@ export default async function ParentPortal() {
       const { data: refreshedProfile } = await supabase.from('parents').select('id, full_name, email').eq('id', user.id).single();
       profile = { ...refreshedProfile, school_id: schoolId, role: 'parent' } as UserProfile;
       
-      // Update consumers with parent_id
+      // Update consumers with parent_id using ADMIN client to bypass RLS
+      const { createAdminClient } = await import('@/utils/supabase/server');
+      const adminClient = await createAdminClient();
+      
       const consumerIds = linkedConsumers.map(c => c.id);
-      await supabase
+      await adminClient
         .from('consumers')
         .update({ parent_id: user.id })
         .in('id', consumerIds);

@@ -7,6 +7,8 @@ export const metadata = {
   description: 'Pre-ordena los alimentos de tus hijos para la semana.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function MenuPage() {
   const supabase = await createClient();
 
@@ -30,15 +32,20 @@ export default async function MenuPage() {
     const { data: linkedByEmail } = await supabase
       .from('consumers')
       .select('*, wallets(*)')
-      .eq('parent_email', user.email.toLowerCase())
-      .is('parent_id', null);
+      .eq('parent_email', user.email.toLowerCase());
 
     if (linkedByEmail && linkedByEmail.length > 0) {
-      // Link them now so future loads are faster
-      await supabase
-        .from('consumers')
-        .update({ parent_id: user.id })
-        .in('id', linkedByEmail.map((c: any) => c.id));
+      // If they are not linked to THIS parent_id yet, link them
+      const toLink = linkedByEmail.filter((c: any) => c.parent_id !== user.id);
+      // If they are not linked to THIS parent_id yet, link them using ADMIN client
+      if (toLink.length > 0) {
+        const { createAdminClient } = await import('@/utils/supabase/server');
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from('consumers')
+          .update({ parent_id: user.id })
+          .in('id', toLink.map((c: any) => c.id));
+      }
       consumers = linkedByEmail;
     }
   }

@@ -86,7 +86,15 @@ export async function POST(req: Request) {
           .eq('id', bulkRechargeId);
 
       } else if (singleWalletId && !isNaN(singleRechargeAmount)) {
-        // --- SINGLE RECHARGE LOGIC (Original) ---
+        const rechargeAmount = parseFloat(singleRechargeAmount.toString());
+        await supabaseAdmin.from('transactions').insert({
+          wallet_id: singleWalletId,
+          amount: rechargeAmount,
+          type: 'credit',
+          description: 'Recarga Billetera vía Tarjeta (Stripe)',
+          stripe_payment_intent_id: intentId,
+        });
+
         const { data: wallet, error: walletError } = await supabaseAdmin
           .from('wallets')
           .select('balance')
@@ -94,21 +102,12 @@ export async function POST(req: Request) {
           .single();
 
         if (walletError || !wallet) throw new Error('Wallet not found');
-        
-        const newBalance = wallet.balance + singleRechargeAmount;
+        const newBalance = (parseFloat(wallet.balance.toString()) || 0) + rechargeAmount;
         
         await supabaseAdmin
           .from('wallets')
           .update({ balance: newBalance })
           .eq('id', singleWalletId);
-        
-        await supabaseAdmin.from('transactions').insert({
-          wallet_id: singleWalletId,
-          amount: singleRechargeAmount,
-          type: 'credit',
-          description: 'Recarga Billetera vía Tarjeta (Stripe)',
-          stripe_payment_intent_id: intentId,
-        });
       }
     } catch (err: any) {
       console.error('Error processing successful payment:', err);
