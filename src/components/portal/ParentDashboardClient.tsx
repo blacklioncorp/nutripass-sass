@@ -52,7 +52,7 @@ function WalletCard({ wallet, type, onReload }: { wallet: WalletType | undefined
       <div className="flex justify-between items-start">
         <div>
           <p className="text-[#8aa8cc] text-[10px] font-black uppercase tracking-widest">
-            {walletType === 'snack' ? 'Billetera Snack' : 'Billetera Comedor'}
+            {type === 'snack' ? 'Billetera Snack' : 'Billetera Comedor'}
           </p>
           {low && (
             <span className="inline-flex items-center gap-1 text-amber-600 text-[10px] font-bold mt-1">
@@ -530,20 +530,18 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
             <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
           </div>
 
-          {consumers.length > 1 && (
-            <button 
-              onClick={() => setIsBulkReloadOpen(true)}
-              className="group bg-[#004B87] hover:bg-[#003a6b] text-white px-8 py-4 rounded-2xl flex items-center gap-3 transition shadow-xl shadow-blue-100 active:scale-95"
-            >
-              <div className="h-8 w-8 bg-blue-400/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-                <RefreshCcw className="h-4 w-4 text-white" />
-              </div>
-              <div className="text-left">
-                <p className="text-[10px] font-black uppercase text-blue-200 tracking-widest leading-none mb-1">nuevo</p>
-                <p className="font-black text-sm">Recarga Múltiple</p>
-              </div>
-            </button>
-          )}
+          <button 
+            onClick={() => setIsBulkReloadOpen(true)}
+            className="group bg-[#004B87] hover:bg-[#003a6b] text-white px-8 py-4 rounded-2xl flex items-center gap-3 transition shadow-xl shadow-blue-100 active:scale-95"
+          >
+            <div className="h-8 w-8 bg-blue-400/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+              <RefreshCcw className="h-4 w-4 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] font-black uppercase text-blue-200 tracking-widest leading-none mb-1">nuevo</p>
+              <p className="font-black text-sm">Recarga Múltiple</p>
+            </div>
+          </button>
         </div>
 
         {/* Student Selector Pills */}

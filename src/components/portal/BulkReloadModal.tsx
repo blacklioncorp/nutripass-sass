@@ -96,8 +96,9 @@ export default function BulkReloadModal({
         const val = amounts[student.id]?.[wType];
         const num = Number(val);
         if (val && !isNaN(num) && num > 0) {
-          const wallet = student.wallets?.find((w: any) => w.type === wType);
+          const wallet = (student.wallets || []).find((w: any) => String(w.type).toLowerCase() === wType.toLowerCase());
           if (wallet) {
+            console.log(`Mapping allocation for ${student.first_name}: ${wType} -> ${wallet.id}`);
             result.push({ walletId: wallet.id, amount: num });
           }
         }
