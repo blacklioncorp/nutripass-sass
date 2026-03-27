@@ -393,9 +393,11 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   const lastName = userProfile?.full_name?.split(' ').slice(-1)[0] ?? 'Familia';
 
   const handleReload = (type: 'comedor' | 'snack') => {
-    const wId = type === 'comedor' ? comedorWallet?.id : snackWallet?.id;
-    if (wId) {
-      setReloadWalletId(wId);
+    const wallet = type === 'comedor' ? comedorWallet : snackWallet;
+    if (wallet?.id) {
+      setReloadWalletId(wallet.id);
+    } else {
+      alert(`La billetera de ${type === 'snack' ? 'Snack' : 'Comedor'} no está configurada para este alumno. Contacta a la escuela.`);
     }
   };
 

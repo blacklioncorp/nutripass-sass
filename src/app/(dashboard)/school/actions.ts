@@ -37,14 +37,13 @@ export async function createConsumer(prevState: any, formData: FormData) {
 
   if (error) return { error: error.message };
 
-  // Create a default 'comedor' wallet for this consumer
+  // Create BOTH wallets (comedor + snack) for this consumer
   const { error: walletError } = await supabase
     .from('wallets')
-    .insert({
-      consumer_id: consumer.id,
-      type: 'comedor',
-      balance: 0.00
-    });
+    .insert([
+      { consumer_id: consumer.id, type: 'comedor', balance: 0.00 },
+      { consumer_id: consumer.id, type: 'snack', balance: 0.00 },
+    ]);
 
   if (walletError) return { error: walletError.message };
 

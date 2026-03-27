@@ -19,11 +19,29 @@ export default async function MenuPage() {
   }
 
   // 1. Fetch all students linked to this parent — direct query, no layout dependency
-  const { data: consumers } = await supabase
+  let { data: consumers } = await supabase
     .from('consumers')
     .select('*, wallets(*)')
     .eq('parent_id', user.id)
     .order('first_name');
+
+  // AUTO-LINKING FALLBACK: If no children found by parent_id, try by email
+  if ((!consumers || consumers.length === 0) && user.email) {
+    const { data: linkedByEmail } = await supabase
+      .from('consumers')
+      .select('*, wallets(*)')
+      .eq('parent_email', user.email.toLowerCase())
+      .is('parent_id', null);
+
+    if (linkedByEmail && linkedByEmail.length > 0) {
+      // Link them now so future loads are faster
+      await supabase
+        .from('consumers')
+        .update({ parent_id: user.id })
+        .in('id', linkedByEmail.map((c: any) => c.id));
+      consumers = linkedByEmail;
+    }
+  }
 
   if (!consumers || consumers.length === 0) {
     return (
