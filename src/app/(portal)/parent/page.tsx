@@ -80,7 +80,10 @@ export default async function ParentPortal() {
 
   // AUTO-LINKING LOGIC: If no children linked by ID, search by email
   if (user.email && (!consumers || consumers.length === 0)) {
-    const { data: linkedConsumers } = await supabase
+    const { createAdminClient } = await import('@/utils/supabase/server');
+    const adminClient = await createAdminClient();
+
+    const { data: linkedConsumers } = await adminClient
       .from('consumers')
       .select(`
         id, first_name, last_name, identifier, type, school_id,
@@ -113,8 +116,6 @@ export default async function ParentPortal() {
       profile = { ...refreshedProfile, school_id: schoolId, role: 'parent' } as UserProfile;
       
       // Update consumers with parent_id using ADMIN client to bypass RLS
-      const { createAdminClient } = await import('@/utils/supabase/server');
-      const adminClient = await createAdminClient();
       
       const consumerIds = linkedConsumers.map(c => c.id);
       await adminClient

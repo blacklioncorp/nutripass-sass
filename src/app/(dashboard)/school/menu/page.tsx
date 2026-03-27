@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import WeeklyMenuGrid from '@/components/school/WeeklyMenuGrid';
 import type { DailyMenu } from '@/components/school/WeeklyMenuGrid';
 
-export default async function MenuRoute() {
+export default async function MenuRoute(props: { searchParams?: Promise<{ date?: string }> }) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,11 +20,16 @@ export default async function MenuRoute() {
     );
   }
 
-  // Fetch this week's menus from DB
-  const today = new Date();
-  const day = today.getDay() === 0 ? 7 : today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - day + 1);
+  // Next.js 15 requires awaiting searchParams if it's dynamic
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  
+  // Fetch this week's menus from DB based on date param or today
+  const currentDateStr = searchParams.date || new Date().toISOString().split('T')[0];
+  const refDate = new Date(currentDateStr + 'T12:00:00'); // Use T12:00:00 to avoid timezone shifting
+
+  const day = refDate.getDay() === 0 ? 7 : refDate.getDay();
+  const monday = new Date(refDate);
+  monday.setDate(refDate.getDate() - day + 1);
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
 
@@ -74,6 +79,7 @@ export default async function MenuRoute() {
       <WeeklyMenuGrid
         schoolId={profile.school_id}
         initialMenus={initialMenus}
+        currentDateStr={currentDateStr}
       />
     </div>
   );

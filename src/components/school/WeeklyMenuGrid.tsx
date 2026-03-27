@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   ChevronLeft, ChevronRight, Copy, UtensilsCrossed, Beef, Carrot,
   IceCream, GlassWater, Plus, Pencil, Trash2, RefreshCcw
@@ -22,6 +23,7 @@ export type DailyMenu = {
 type WeeklyGridProps = {
   schoolId: string;
   initialMenus: DailyMenu[];
+  currentDateStr: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -233,20 +235,37 @@ function MenuBuilderModal({ schoolId, date, dayLabel, initialData, onSaved, onCl
 }
 
 // ─── Main Weekly Grid ─────────────────────────────────────────────────────────
-export default function WeeklyMenuGrid({ schoolId, initialMenus }: WeeklyGridProps) {
-  const [weekRef, setWeekRef] = useState(new Date());
-  // Initialize from server-fetched data — survives tab changes because Next.js re-fetches on navigation
+export default function WeeklyMenuGrid({ schoolId, initialMenus, currentDateStr }: WeeklyGridProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const weekRef = new Date(currentDateStr + 'T12:00:00');
+  
+  // Initialize from server-fetched data
   const [menus, setMenus] = useState<Record<string, DailyMenu>>(
     () => Object.fromEntries(initialMenus.map(m => [m.date, m]))
   );
+
+  // Keep state in sync with server when navigating or after saving
+  useEffect(() => {
+    setMenus(Object.fromEntries(initialMenus.map(m => [m.date, m])));
+  }, [initialMenus]);
+
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [clearingDate, setClearingDate] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const weekDates = useMemo(() => getWeekDates(weekRef), [weekRef]);
+  const weekDates = useMemo(() => getWeekDates(weekRef), [currentDateStr]);
 
-  const prevWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() - 7); setWeekRef(d); };
-  const nextWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() + 7); setWeekRef(d); };
+  const updateDateParam = (d: Date) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('date', toISODate(d));
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const prevWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() - 7); updateDateParam(d); };
+  const nextWeek = () => { const d = new Date(weekRef); d.setDate(d.getDate() + 7); updateDateParam(d); };
 
   const weekLabel = `Semana del ${weekDates[0].toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })} al ${weekDates[4].toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 

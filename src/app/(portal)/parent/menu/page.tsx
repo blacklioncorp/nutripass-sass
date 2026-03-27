@@ -29,7 +29,10 @@ export default async function MenuPage() {
 
   // AUTO-LINKING FALLBACK: If no children found by parent_id, try by email
   if ((!consumers || consumers.length === 0) && user.email) {
-    const { data: linkedByEmail } = await supabase
+    const { createAdminClient } = await import('@/utils/supabase/server');
+    const adminClient = await createAdminClient();
+
+    const { data: linkedByEmail } = await adminClient
       .from('consumers')
       .select('*, wallets(*)')
       .eq('parent_email', user.email.toLowerCase());
@@ -39,8 +42,6 @@ export default async function MenuPage() {
       const toLink = linkedByEmail.filter((c: any) => c.parent_id !== user.id);
       // If they are not linked to THIS parent_id yet, link them using ADMIN client
       if (toLink.length > 0) {
-        const { createAdminClient } = await import('@/utils/supabase/server');
-        const adminClient = await createAdminClient();
         await adminClient
           .from('consumers')
           .update({ parent_id: user.id })
