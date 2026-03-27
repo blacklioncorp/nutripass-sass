@@ -1,1 +1,155 @@
-{"version":3,"caseSensitive":false,"basePath":"","rewrites":{"beforeFiles":[],"afterFiles":[],"fallback":[]},"redirects":[{"source":"/:path+/","destination":"/:path+","permanent":true,"internal":true,"regex":"^(?:\\/((?:[^\\/]+?)(?:\\/(?:[^\\/]+?))*))\\/$"}],"headers":[]}
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/auth/logout",
+      "regex": "^/auth/logout(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/logout(?:/)?$"
+    },
+    {
+      "page": "/cuenta-suspendida",
+      "regex": "^/cuenta\\-suspendida(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cuenta\\-suspendida(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/master",
+      "regex": "^/master(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/master(?:/)?$"
+    },
+    {
+      "page": "/parent",
+      "regex": "^/parent(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/parent(?:/)?$"
+    },
+    {
+      "page": "/parent/menu",
+      "regex": "^/parent/menu(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/parent/menu(?:/)?$"
+    },
+    {
+      "page": "/parent/preorders",
+      "regex": "^/parent/preorders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/parent/preorders(?:/)?$"
+    },
+    {
+      "page": "/point-of-sale",
+      "regex": "^/point\\-of\\-sale(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/point\\-of\\-sale(?:/)?$"
+    },
+    {
+      "page": "/school",
+      "regex": "^/school(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school(?:/)?$"
+    },
+    {
+      "page": "/school/consumers",
+      "regex": "^/school/consumers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/consumers(?:/)?$"
+    },
+    {
+      "page": "/school/finanzas",
+      "regex": "^/school/finanzas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/finanzas(?:/)?$"
+    },
+    {
+      "page": "/school/inventory",
+      "regex": "^/school/inventory(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/inventory(?:/)?$"
+    },
+    {
+      "page": "/school/kitchen",
+      "regex": "^/school/kitchen(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/kitchen(?:/)?$"
+    },
+    {
+      "page": "/school/menu",
+      "regex": "^/school/menu(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/menu(?:/)?$"
+    },
+    {
+      "page": "/school/products",
+      "regex": "^/school/products(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/products(?:/)?$"
+    },
+    {
+      "page": "/school/settings",
+      "regex": "^/school/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/school/settings(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

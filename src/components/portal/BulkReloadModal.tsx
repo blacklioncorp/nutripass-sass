@@ -100,6 +100,8 @@ export default function BulkReloadModal({
           if (wallet) {
             console.log(`Mapping allocation for ${student.first_name}: ${wType} -> ${wallet.id}`);
             result.push({ walletId: wallet.id, amount: num });
+          } else {
+            console.warn(`Missing ${wType} wallet for student ${student.first_name} (${student.id})`);
           }
         }
       }
@@ -186,47 +188,44 @@ export default function BulkReloadModal({
 
                 {/* Two inputs side by side */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Comedor */}
-                  <div>
-                    <label className="block text-[10px] font-black text-[#004B87] uppercase tracking-widest mb-1.5 ml-1">
-                      🍽 Monto Comedor
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="50"
-                        placeholder="0.00"
-                        value={amounts[student.id]?.comedor || ''}
-                        onChange={(e) => handleAmountChange(student.id, 'comedor', e.target.value)}
-                        className="w-full pl-7 pr-3 py-3 font-bold text-slate-900 border border-slate-200 rounded-2xl focus:border-[#7CB9E8] focus:outline-none bg-white transition text-sm"
-                      />
-                    </div>
-                  </div>
+                  {(['comedor', 'snack'] as const).map((wType) => {
+                    const wallet = (student.wallets || []).find((w: any) => String(w.type).toLowerCase() === wType.toLowerCase());
+                    const hasWallet = !!wallet;
+                    const val = amounts[student.id]?.[wType] || '';
 
-                  {/* Snack */}
-                  <div>
-                    <label className="block text-[10px] font-black text-[#7CB9E8] uppercase tracking-widest mb-1.5 ml-1">
-                      🍎 Monto Snack
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="50"
-                        placeholder="0.00"
-                        value={amounts[student.id]?.snack || ''}
-                        onChange={(e) => handleAmountChange(student.id, 'snack', e.target.value)}
-                        className="w-full pl-7 pr-3 py-3 font-bold text-slate-900 border border-slate-200 rounded-2xl focus:border-[#7CB9E8] focus:outline-none bg-white transition text-sm"
-                      />
-                    </div>
-                  </div>
+                    return (
+                      <div key={wType} className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <span className="text-[10px] font-black text-[#8aa8cc] uppercase tracking-wider ml-1">
+                          {wType === 'comedor' ? '🍽 Monto Comedor' : '🍎 Monto Snack'}
+                        </span>
+                        <div className="relative group">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-black text-[#8aa8cc]">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            placeholder="0.00"
+                            value={val}
+                            onChange={(e) => handleAmountChange(student.id, wType, e.target.value)}
+                            className={`w-full pl-6 pr-3 py-2.5 text-sm font-black rounded-xl border-2 transition-all outline-none ${
+                              !hasWallet && val
+                                ? 'border-red-200 bg-red-50 text-red-500'
+                                : 'border-[#f0f5fb] focus:border-[#7CB9E8] text-[#004B87] group-hover:border-[#e8f0f7]'
+                            }`}
+                          />
+                        </div>
+                        {!hasWallet && val && (
+                          <span className="text-[9px] text-red-400 font-bold ml-1 animate-pulse">
+                            ⚠️ Billetera no existe
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Mini subtotal per student */}
-                {(Number(amounts[student.id]?.comedor) + Number(amounts[student.id]?.snack)) > 0 && (
+                {(Number(amounts[student.id]?.comedor || 0) + Number(amounts[student.id]?.snack || 0)) > 0 && (
                   <p className="text-right text-xs font-black text-slate-400 mt-3">
                     Subtotal {student.first_name}:{' '}
                     <span className="text-[#004B87]">
