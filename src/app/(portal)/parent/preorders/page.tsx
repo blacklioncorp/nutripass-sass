@@ -60,6 +60,9 @@ export default async function PreordersRoute() {
   const schoolIds = Array.from(new Set(consumers.map((c: any) => c.school_id)));
   const consumerIds = consumers.map((c: any) => c.id);
 
+  const { createAdminClient } = await import('@/utils/supabase/server');
+  const adminClient = await createAdminClient();
+
   // 2. Concurrent fetches: daily menus + snack/bebida products + existing pre_orders
   const [{ data: dailyMenus }, { data: products }, { data: existingPreorders }] = await Promise.all([
     supabase
@@ -72,7 +75,7 @@ export default async function PreordersRoute() {
       .in('school_id', schoolIds)
       .order('date', { ascending: true }),
 
-    supabase
+    adminClient
       .from('products')
       .select('id, school_id, name, description, base_price, category, image_url, is_available, stock_quantity, nutri_points_reward')
       .in('school_id', schoolIds)
@@ -85,6 +88,7 @@ export default async function PreordersRoute() {
       .select('daily_menu_id, consumer_id')
       .in('consumer_id', consumerIds),
   ]);
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-40 animate-in fade-in duration-500">

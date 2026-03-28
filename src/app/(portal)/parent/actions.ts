@@ -204,10 +204,10 @@ export async function createPreOrderTransaction(
             consumer_id: consumerId,
             daily_menu_id: item.id,
             status: 'paid',
-          })),
-          { onConflict: 'consumer_id,daily_menu_id' }
+          }))
         ))]
       : []),
+
 
     // Insert transaction records for comedor items
     ...(comedorItems.length > 0 && comedorWallet
@@ -251,11 +251,17 @@ export async function createPreOrderTransaction(
   ];
 
   // 6. Execute all operations concurrently
-  const results = await Promise.all(ops);
-  const failed = results.find((r: any) => r?.error);
-  if (failed) {
-    console.error('[createPreOrderTransaction] DB error:', failed.error);
-    throw new Error(`Error al guardar la transacción: ${failed.error.message}`);
+  try {
+    const results = await Promise.all(ops);
+    const failed = results.find((r: any) => r?.error);
+    
+    if (failed) {
+      console.error('[createPreOrderTransaction] Database returned error:', JSON.stringify(failed.error, null, 2));
+      throw new Error(`Error de base de datos: ${failed.error.message || 'Error desconocido'}`);
+    }
+  } catch (err: any) {
+    console.error('[createPreOrderTransaction] Unhandled exception:', err);
+    throw new Error(err.message || 'Error crítico al procesar la pre-venta.');
   }
 
   revalidatePath('/parent/menu');
@@ -263,6 +269,7 @@ export async function createPreOrderTransaction(
 
   return { success: true };
 }
+
 
 
 export async function submitInvoiceRequest(data: {

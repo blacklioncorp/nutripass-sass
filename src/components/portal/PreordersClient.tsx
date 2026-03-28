@@ -168,13 +168,28 @@ export default function PreordersClient({
   // Filtered products for active consumer's school + category
   const filteredProducts = useMemo<Product[]>(() => {
     if (!activeConsumer) return [];
-    return (products as Product[]).filter(
-      p =>
-        p.school_id === activeConsumer.school_id &&
-        p.is_available &&
-        (categoryFilter === 'all' || p.category === categoryFilter)
+    
+    const filtered = (products as Product[]).filter(
+      p => {
+        const schoolMatch = String(p.school_id) === String(activeConsumer.school_id);
+        const availableMatch = p.is_available !== false; // Handle null as true if needed, but schema says DEFAULT true
+        const categoryMatch = categoryFilter === 'all' || p.category === categoryFilter;
+        return schoolMatch && availableMatch && categoryMatch;
+      }
     );
+
+    // Sanity log to help debug if products are missing in production
+    if (products.length > 0 && filtered.length === 0) {
+      console.log('[Preorders] Products found in DB but filtered out for student:', {
+        studentSchoolId: activeConsumer.school_id,
+        firstProductSchoolId: products[0]?.school_id,
+        categoryFilter,
+      });
+    }
+
+    return filtered;
   }, [products, activeConsumer, categoryFilter]);
+
 
   // Wallet references
   const comedorWallet = activeConsumer?.wallets?.find(w => w.type === 'comedor');

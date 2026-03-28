@@ -73,8 +73,12 @@ export default async function MenuPage() {
 
   const schoolIds = Array.from(new Set(consumers.map((c) => c.school_id)));
 
+  // 1. Fetch all students linked to this parent (standard client)
   // 2. Fetch all data concurrently: daily_menus, products (snacks/bebidas), and existing pre_orders
   const consumerIds = consumers.map((c) => c.id);
+  
+  const { createAdminClient } = await import('@/utils/supabase/server');
+  const adminClient = await createAdminClient();
 
   const [{ data: dailyMenus }, { data: products }, { data: existingPreorders }] = await Promise.all([
     supabase
@@ -87,7 +91,7 @@ export default async function MenuPage() {
       .in('school_id', schoolIds)
       .order('date', { ascending: true }),
 
-    supabase
+    adminClient
       .from('products')
       .select('id, school_id, name, description, base_price, category, image_url, is_available, stock_quantity, nutri_points_reward')
       .in('school_id', schoolIds)
@@ -100,6 +104,7 @@ export default async function MenuPage() {
       .select('daily_menu_id, consumer_id')
       .in('consumer_id', consumerIds),
   ]);
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-40 animate-in fade-in duration-500">
