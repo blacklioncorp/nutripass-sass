@@ -27,10 +27,20 @@ export default async function MenuPage() {
     .eq('parent_id', user.id)
     .order('first_name');
 
-  // AUTO-LINKING FALLBACK: If no children found by parent_id, try by email
+  // AUTO-LINKING FALLBACK: If no children found by parent_id, try by email  
   if ((!consumers || consumers.length === 0) && user.email) {
     const { createAdminClient } = await import('@/utils/supabase/server');
     const adminClient = await createAdminClient();
+
+    // Ensure profile exists for this user (required for FK constraint on parent_id)
+    await adminClient.from('profiles').upsert(
+      { id: user.id, role: 'parent' },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+    await adminClient.from('parents').upsert(
+      { id: user.id, email: user.email },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
 
     const { data: linkedByEmail } = await adminClient
       .from('consumers')
@@ -70,6 +80,7 @@ export default async function MenuPage() {
     .from('daily_menus')
     .select(`
       id, date, product_id, school_id,
+      combo_price, soup_name, main_course_name, side_dish_name, dessert_name, drink_name,
       products ( id, name, description, base_price, image_url )
     `)
     .in('school_id', schoolIds)

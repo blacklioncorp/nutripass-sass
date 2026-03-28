@@ -4,32 +4,41 @@ import { markMenuAsPrepared } from './actions';
 export default async function KitchenReportPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user?.id).single();
+  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user?.id).maybeSingle();
 
   if (!profile?.school_id) return <div>Acceso denegado</div>;
 
+  // Fetch menus and pre_orders separately to avoid nested RLS issues
   const { data: menus } = await supabase
     .from('daily_menus')
     .select(`
       id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name,
-      products ( name ),
-      pre_orders ( id, status )
+      products ( name )
     `)
     .eq('school_id', profile.school_id)
     .order('date', { ascending: true });
 
-  // Agrupar por fecha
+  // Fetch paid pre_orders for this school's menus separately
+  const menuIds = (menus || []).map(m => m.id);
+  const { data: paidOrders } = menuIds.length > 0
+    ? await supabase
+        .from('pre_orders')
+        .select('id, daily_menu_id, status')
+        .in('daily_menu_id', menuIds)
+        .eq('status', 'paid')
+    : { data: [] };
+
+  // Group by date
   const groupedTasks: Record<string, any[]> = {};
   menus?.forEach(menu => {
-    const paidOrders = (menu.pre_orders as any[]).filter(o => o.status === 'paid');
-
-    if (paidOrders.length > 0) {
-       if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
-       groupedTasks[menu.date].push({
-         menuId: menu.id,
-         name: menu.products ? (menu.products as any).name : (menu.main_course_name ? `${menu.soup_name ? menu.soup_name + ', ' : ''}${menu.main_course_name}` : 'Menú del Día'),
-         count: paidOrders.length
-       });
+    const count = (paidOrders || []).filter(o => o.daily_menu_id === menu.id).length;
+    if (count > 0) {
+      if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
+      groupedTasks[menu.date].push({
+        menuId: menu.id,
+        name: menu.products ? (menu.products as any).name : (menu.main_course_name ? `${menu.soup_name ? menu.soup_name + ', ' : ''}${menu.main_course_name}` : 'Menú del Día'),
+        count
+      });
     }
   });
 

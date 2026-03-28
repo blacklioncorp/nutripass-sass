@@ -21,6 +21,16 @@ export default async function PreordersRoute() {
     const { createAdminClient } = await import('@/utils/supabase/server');
     const adminClient = await createAdminClient();
 
+    // Ensure profile exists for this user (required for FK constraint on parent_id)
+    await adminClient.from('profiles').upsert(
+      { id: user.id, role: 'parent' },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+    await adminClient.from('parents').upsert(
+      { id: user.id, email: user.email },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+
     const { data: linkedByEmail } = await adminClient
       .from('consumers')
       .select('*, wallets(*)')
