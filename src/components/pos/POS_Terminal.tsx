@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { processPosSale } from '@/app/(pos)/actions';
+import { getStudentStatusByNFC, processSmartCheckout } from '@/app/(pos)/actions';
+import { Check, X, AlertTriangle, CreditCard, ShoppingBag, User } from 'lucide-react';
 
 export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   const [cart, setCart] = useState<any[]>([]);
@@ -10,6 +11,10 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Smart POS states
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [selectedPreOrderIds, setSelectedPreOrderIds] = useState<string[]>([]);
   
   const nfcInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,17 +43,20 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
 
   const handleNfcSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nfcInput || cart.length === 0) return;
+    if (!nfcInput) return;
     
     setIsProcessing(true);
     setErrorMsg('');
     
     try {
-      const resp = await processPosSale(nfcInput, cart, cartTotal);
+      const resp = await getStudentStatusByNFC(nfcInput);
       if (resp.error) throw new Error(resp.error);
       
-      setCheckoutResult(resp.result);
-      setCart([]); // Clear cart on success
+      setStudentInfo(resp.consumer);
+      // Auto-select all today's pre-orders
+      setSelectedPreOrderIds(resp.todayPreOrders?.map((po: any) => po.id) || []);
+      // Pre-orders list for the UI
+      (resp.consumer as any).todayPreOrders = resp.todayPreOrders;
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -57,10 +65,42 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     }
   };
 
+  const handleSmartCheckout = async () => {
+    if (!studentInfo) return;
+    setIsProcessing(true);
+    setErrorMsg('');
+
+    try {
+      const resp = await processSmartCheckout(
+        studentInfo.id,
+        selectedPreOrderIds,
+        cart,
+        cartTotal
+      );
+      if (resp.error) throw new Error(resp.error);
+      
+      setCheckoutResult(resp.result);
+      setCart([]);
+      setStudentInfo(null);
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const resetCheckout = () => {
     setIsCheckoutOpen(false);
     setCheckoutResult(null);
     setErrorMsg('');
+    setStudentInfo(null);
+    setSelectedPreOrderIds([]);
+  };
+
+  const togglePreOrder = (id: string) => {
+    setSelectedPreOrderIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   };
 
   return (
@@ -186,16 +226,109 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
             ) : errorMsg ? (
               <div className="text-center py-6">
                 <div className="h-20 w-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="text-4xl">✕</span>
+                  <X className="h-10 w-10" />
                 </div>
                 <h2 className="text-xl font-black text-slate-900 mb-2">Error en Transacción</h2>
                 <p className="text-red-600 font-bold bg-red-50 p-4 rounded-xl border border-red-200 mb-6">{errorMsg}</p>
-                <button onClick={() => { setErrorMsg(''); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2">
+                <button onClick={() => { setErrorMsg(''); setStudentInfo(null); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2">
                   INTENTAR DE NUEVO
                 </button>
                 <button onClick={resetCheckout} className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition">
                   CANCELAR
                 </button>
+              </div>
+            ) : studentInfo ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                    <User className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 leading-none">{studentInfo.first_name} {studentInfo.last_name}</h3>
+                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">{studentInfo.type}</p>
+                    {studentInfo.allergies?.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1 text-red-500 font-black text-[10px] animate-pulse">
+                        <AlertTriangle className="h-3 w-3" /> ALERGIAS: {studentInfo.allergies.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Saldos de Billeteras */}
+                <div className="grid grid-cols-2 gap-3">
+                  {studentInfo.wallets?.map((w: any) => (
+                    <div key={w.type} className="bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{w.type}</p>
+                      <p className={`font-black text-lg ${w.balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${w.balance.toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pre-órdenes de Hoy */}
+                {studentInfo.todayPreOrders?.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600">
+                      <ShoppingBag className="h-4 w-4" />
+                      <span className="text-xs font-black uppercase tracking-widest">Pre-órdenes para Hoy</span>
+                    </div>
+                    <div className="space-y-2">
+                      {studentInfo.todayPreOrders.map((po: any) => (
+                        <label 
+                          key={po.id} 
+                          className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                            selectedPreOrderIds.includes(po.id) 
+                              ? 'border-emerald-500 bg-emerald-50' 
+                              : 'border-slate-100 bg-white opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="checkbox" 
+                              className="hidden" 
+                              checked={selectedPreOrderIds.includes(po.id)}
+                              onChange={() => togglePreOrder(po.id)}
+                            />
+                            <div className={`h-5 w-5 rounded-md flex items-center justify-center border-2 ${
+                              selectedPreOrderIds.includes(po.id) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200'
+                            }`}>
+                              {selectedPreOrderIds.includes(po.id) && <Check className="h-3 w-3" />}
+                            </div>
+                            <span className="text-sm font-bold text-slate-700">{po.name}</span>
+                          </div>
+                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">PAGADO</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Checkout Button */}
+                <div className="pt-4 border-t border-slate-100">
+                   {cart.length > 0 && (
+                     <div className="mb-4 bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center text-blue-700">
+                        <span className="text-xs font-black uppercase tracking-widest">Cobro Extra (Hoy)</span>
+                        <span className="font-black">${cartTotal.toFixed(2)}</span>
+                     </div>
+                   )}
+                   <button 
+                     onClick={handleSmartCheckout}
+                     disabled={isProcessing || (cart.length === 0 && selectedPreOrderIds.length === 0)}
+                     className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                   >
+                     {isProcessing ? 'Procesando...' : (
+                       <>
+                         <CreditCard className="h-5 w-5" />
+                         FINALIZAR CHECKOUT
+                       </>
+                     )}
+                   </button>
+                   <button 
+                     onClick={() => setStudentInfo(null)}
+                     className="w-full text-sm text-slate-400 font-bold py-3 mt-2 hover:text-slate-600"
+                   >
+                     Cancelar y re-escanear
+                   </button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8">

@@ -23,7 +23,10 @@ export default async function KitchenReportPage() {
   const { data: paidOrders } = menuIds.length > 0
     ? await supabase
         .from('pre_orders')
-        .select('id, daily_menu_id, status')
+        .select(`
+          id, daily_menu_id, status,
+          consumers ( first_name, last_name, allergies )
+        `)
         .in('daily_menu_id', menuIds)
         .eq('status', 'paid')
     : { data: [] };
@@ -31,13 +34,18 @@ export default async function KitchenReportPage() {
   // Group by date
   const groupedTasks: Record<string, any[]> = {};
   menus?.forEach(menu => {
-    const count = (paidOrders || []).filter(o => o.daily_menu_id === menu.id).length;
+    const ordersForMenu = (paidOrders || []).filter(o => o.daily_menu_id === menu.id);
+    const count = ordersForMenu.length;
     if (count > 0) {
       if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
       groupedTasks[menu.date].push({
         menuId: menu.id,
         name: menu.products ? (menu.products as any).name : (menu.main_course_name ? `${menu.soup_name ? menu.soup_name + ', ' : ''}${menu.main_course_name}` : 'Menú del Día'),
-        count
+        count,
+        students: ordersForMenu.map(o => ({
+          name: `${(o.consumers as any).first_name} ${(o.consumers as any).last_name}`,
+          allergies: (o.consumers as any).allergies || []
+        }))
       });
     }
   });
@@ -62,11 +70,27 @@ export default async function KitchenReportPage() {
               <div className="space-y-4 flex-1">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-700">{item.name}</span>
-                      <span className="text-primary font-black text-lg">
-                        {item.count} <span className="text-xs font-medium opacity-80">pzs</span>
-                      </span>
+                    <div className="flex flex-col gap-2">
+                      <div>
+                        <span className="font-bold text-slate-700">{item.name}</span>
+                        <span className="ml-2 text-primary font-black text-lg">
+                          {item.count} <span className="text-xs font-medium opacity-80">pzs</span>
+                        </span>
+                      </div>
+                      
+                      {/* Lista de Alumnos y Alergias */}
+                      <div className="bg-white/50 rounded-lg p-2 space-y-1 mt-1 border border-slate-100">
+                        {item.students.map((student: any, sIdx: number) => (
+                          <div key={sIdx} className="text-[11px]">
+                            <span className="font-bold text-slate-600">• {student.name}</span>
+                            {student.allergies.length > 0 && (
+                              <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full font-black animate-pulse">
+                                ⚠️ {student.allergies.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <form action={async () => {
                       'use server';

@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Control Inventario', href: '/school/inventory', icon: '📊' },
   { label: 'Planificador Menú', href: '/school/menu', icon: '🍽️' },
   { label: 'Reporte Cocina', href: '/school/kitchen', icon: '🧑‍🍳' },
+  { label: 'Checklist Cafetería', href: '/school/checklist', icon: '📋' },
   { label: 'Caja POS (Cafetería)', href: '/point-of-sale', icon: '💳' },
   { label: 'Personalización', href: '/school/settings', icon: '🎨' },
 ];

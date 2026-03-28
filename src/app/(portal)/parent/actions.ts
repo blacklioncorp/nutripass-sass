@@ -110,6 +110,7 @@ type CartItemPayload = {
   date: string;
   walletType: 'comedor' | 'snack';
   sourceType: 'daily_menu' | 'product';
+  nutriPoints?: number;
 };
 
 export async function createPreOrderTransaction(
@@ -127,7 +128,7 @@ export async function createPreOrderTransaction(
   // 2. Verify the consumer belongs to this parent
   const { data: consumer, error: consumerErr } = await supabase
     .from('consumers')
-    .select('id, parent_id, wallets(id, type, balance, max_overdraft)')
+    .select('id, parent_id, earned_nutri_points, wallets(id, type, balance, max_overdraft)')
     .eq('id', consumerId)
     .eq('parent_id', user.id)
     .single();
@@ -152,6 +153,7 @@ export async function createPreOrderTransaction(
 
   const comedorTotal = comedorItems.reduce((sum, i) => sum + i.price, 0);
   const snackTotal = snackItems.reduce((sum, i) => sum + i.price, 0);
+  const totalPoints = cartItems.reduce((sum, i) => sum + (i.nutriPoints ?? 0), 0);
 
   // 4. Validate balances (including overdraft allowance)
   if (comedorTotal > 0) {
@@ -204,8 +206,31 @@ export async function createPreOrderTransaction(
             consumer_id: consumerId,
             daily_menu_id: item.id,
             status: 'paid',
+            order_date: item.date, // Store the intended consumption date
           }))
         ))]
+      : []),
+
+    // Insert pre_order records for snack items (tracking what student gets what product)
+    ...(snackItems.length > 0
+      ? [run(supabase.from('pre_orders').insert(
+          snackItems.map(item => ({
+            consumer_id: consumerId,
+            product_id: item.id,
+            status: 'paid',
+            order_date: item.date,
+          }))
+        ))]
+      : []),
+
+    // Decrement stock for snack products
+    ...(snackItems.length > 0
+      ? snackItems.map(item => 
+          run(adminClient.rpc('decrement_product_stock', { 
+            p_product_id: item.id, 
+            p_quantity: 1 
+          }))
+        )
       : []),
 
 
@@ -214,7 +239,7 @@ export async function createPreOrderTransaction(
       ? [run(adminClient.from('transactions').insert(
           comedorItems.map(item => ({
             wallet_id: comedorWallet!.id,
-            amount: item.price,
+            amount: Math.abs(item.price), // Amount should be positive, 'type' handles the sign
             type: 'debit',
             description: `Pre-orden: ${item.name} (${item.date})`,
             metadata: {
@@ -229,12 +254,12 @@ export async function createPreOrderTransaction(
         ))]
       : []),
 
-    // Insert transaction records for snack items (serve as snack pre-orders)
+    // Insert transaction records for snack items
     ...(snackItems.length > 0 && snackWallet
       ? [run(adminClient.from('transactions').insert(
           snackItems.map(item => ({
             wallet_id: snackWallet!.id,
-            amount: item.price,
+            amount: Math.abs(item.price), // Amount should be positive, 'type' handles the sign
             type: 'debit',
             description: `Pre-orden: ${item.name} (${item.date})`,
             metadata: {
@@ -247,6 +272,14 @@ export async function createPreOrderTransaction(
             },
           }))
         ))]
+      : []),
+
+    // Add Nutri-points to consumer
+    ...(totalPoints > 0
+      ? [run(adminClient
+          .from('consumers')
+          .update({ earned_nutri_points: Number((consumer as any).earned_nutri_points ?? 0) + totalPoints })
+          .eq('id', consumerId))]
       : []),
   ];
 

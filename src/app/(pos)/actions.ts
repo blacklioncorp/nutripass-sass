@@ -3,13 +3,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function processPosSale(nfcUid: string, items: any[], total: number) {
+export async function getStudentStatusByNFC(nfcUid: string) {
   const supabase = await createClient();
 
-  // ── Validar consumer y parent_id ANTES de llamar al RPC ──────────────────
   const { data: consumer, error: consumerErr } = await supabase
     .from('consumers')
-    .select('id, parent_id, type, is_active')
+    .select('id, first_name, last_name, allergies, type, school_id, wallets(type, balance)')
     .or(`nfc_tag_uid.eq.${nfcUid},identifier.eq.${nfcUid}`)
     .eq('is_active', true)
     .single();
@@ -18,28 +17,53 @@ export async function processPosSale(nfcUid: string, items: any[], total: number
     return { error: 'Consumidor no encontrado o inactivo.' };
   }
 
-  // Solo los alumnos tipo 'student' requieren un padre asignado para poder cobrar
-  if (consumer.type === 'student' && !consumer.parent_id) {
-    return {
-      error:
-        'Error: El alumno no tiene un padre asignado. No se puede proceder con la venta. Contacta al administrador escolar.',
-    };
-  }
+  // Fetch today's pre-orders
+  const today = new Date().toISOString().split('T')[0];
+  const { data: preOrders } = await supabase
+    .from('pre_orders')
+    .select(`
+      id, 
+      status, 
+      order_date,
+      daily_menus ( main_course_name ),
+      products ( name )
+    `)
+    .eq('consumer_id', (consumer as any).id)
+    .eq('order_date', today)
+    .eq('status', 'paid');
 
-  // Calcular la recompensa total de Nutri-Puntos de los items del carrito
-  const nutriPointsEarned = items.reduce(
+  return { 
+    success: true, 
+    consumer, 
+    todayPreOrders: (preOrders || []).map(po => ({
+      id: po.id,
+      name: (po.products as any)?.name || (po.daily_menus as any)?.main_course_name || 'Menú del Día'
+    }))
+  };
+}
+
+export async function processSmartCheckout(
+  consumerId: string, 
+  preOrderIds: string[], 
+  newItems: any[], 
+  total: number
+) {
+  const supabase = await createClient();
+
+  const nutriPointsEarned = newItems.reduce(
     (acc, item) => acc + ((item.nutri_points_reward || 0) * item.quantity),
     0
   );
 
-  // Transformar items de carrito a payload para el RPC
-  const payloadItems = items.map(item => ({
+  const payloadItems = newItems.map(item => ({
     product_id: item.id,
     quantity: item.quantity,
+    price: item.base_price
   }));
 
-  const { data, error } = await supabase.rpc('process_pos_sale', {
-    p_nfc_uid: nfcUid,
+  const { data, error } = await supabase.rpc('smart_pos_checkout', {
+    p_consumer_id: consumerId,
+    p_pre_order_ids: preOrderIds,
     p_cart_total: total,
     p_nutri_points_earned: nutriPointsEarned,
     p_items: payloadItems,
@@ -49,7 +73,9 @@ export async function processPosSale(nfcUid: string, items: any[], total: number
     return { error: error.message };
   }
 
-  // Si la compra es exitosa, refrescar inventario y datos
   revalidatePath('/point-of-sale');
+  revalidatePath('/school/kitchen');
+  revalidatePath('/school/checklist');
+  
   return { success: true, result: data };
 }

@@ -22,6 +22,7 @@ type CartItem = {
   image_url?: string;
   category?: string;
   cartKey: string;        // unique: `combo-${menuId}` or `snack-${productId}-${date}`
+  nutriPoints?: number;
 };
 
 type DailyMenu = {
@@ -34,7 +35,14 @@ type DailyMenu = {
   side_dish_name?: string;
   dessert_name?: string;
   drink_name?: string;
-  products?: { id: string; name?: string; description?: string; base_price?: number; image_url?: string };
+  products?: { 
+    id: string; 
+    name?: string; 
+    description?: string; 
+    base_price?: number; 
+    image_url?: string;
+    nutri_points_reward?: number;
+  };
 };
 
 type Product = {
@@ -223,6 +231,7 @@ export default function PreordersClient({
       sourceType: 'daily_menu',
       image_url: menu.products?.image_url,
       cartKey,
+      nutriPoints: menu.products?.nutri_points_reward ?? 0,
     }]);
   }, [cart]);
 
@@ -239,6 +248,7 @@ export default function PreordersClient({
         image_url: product.image_url,
         category: product.category,
         cartKey,
+        nutriPoints: product.nutri_points_reward ?? 0,
       }]);
     }
     setSnackDateTarget(null);
@@ -269,6 +279,7 @@ export default function PreordersClient({
             date: i.date,
             walletType: i.walletType,
             sourceType: i.sourceType,
+            nutriPoints: i.nutriPoints,
           }))
         );
         setCheckoutStatus('success');
@@ -584,14 +595,24 @@ export default function PreordersClient({
                       <span className="font-black text-[#004B87] text-base">
                         ${parseFloat(String(product.base_price)).toFixed(2)}
                       </span>
-                      <button
-                        onClick={() => !isOutOfStock && setSnackDateTarget(product)}
-                        disabled={isOutOfStock}
-                        className="bg-amber-500 hover:bg-amber-600 disabled:bg-slate-100 disabled:text-slate-300 text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-colors active:scale-95"
-                      >
-                        <Plus className="h-3 w-3" />
-                        Añadir
-                      </button>
+                      {cart.some(i => i.id === product.id) ? (
+                        <button
+                          onClick={() => setSnackDateTarget(product)}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                        >
+                          <Check className="h-3 w-3" />
+                          En Carrito
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => !isOutOfStock && setSnackDateTarget(product)}
+                          disabled={isOutOfStock}
+                          className="bg-amber-500 hover:bg-amber-600 border-b-2 border-amber-700 disabled:bg-slate-100 disabled:text-slate-300 disabled:border-none text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Añadir
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -608,6 +629,7 @@ export default function PreordersClient({
           weekDays={weekDays}
           existingCartKeys={cart.map(i => i.cartKey)}
           onAdd={addSnackToCart}
+          onRemove={removeFromCart}
           onClose={() => setSnackDateTarget(null)}
         />
       )}
@@ -686,12 +708,14 @@ function SnackDateModal({
   weekDays,
   existingCartKeys,
   onAdd,
+  onRemove,
   onClose,
 }: {
   product: Product;
   weekDays: Date[];
   existingCartKeys: string[];
   onAdd: (product: Product, date: string) => void;
+  onRemove: (cartKey: string) => void;
   onClose: () => void;
 }) {
   const today = new Date();
@@ -744,19 +768,26 @@ function SnackDateModal({
               return (
                 <button
                   key={dateStr}
-                  onClick={() => !isPast && !alreadyInCart && onAdd(product, dateStr)}
-                  disabled={isPast || alreadyInCart}
+                  onClick={() => {
+                    if (alreadyInCart) onRemove(cartKey);
+                    else if (!isPast) onAdd(product, dateStr);
+                  }}
+                  disabled={isPast && !alreadyInCart}
                   className={`flex flex-col items-center p-2.5 rounded-2xl border-2 transition-all duration-150 ${
                     alreadyInCart
-                      ? 'border-emerald-400 bg-emerald-50 cursor-default'
+                      ? 'border-emerald-400 bg-emerald-50 hover:border-red-400 hover:bg-red-50 text-emerald-500 hover:text-red-500 cursor-pointer'
                       : isPast
                       ? 'border-[#e8f0f7] bg-[#f8fafd] opacity-40 cursor-not-allowed'
-                      : 'border-[#e8f0f7] hover:border-amber-400 hover:bg-amber-50 active:scale-95 cursor-pointer'
+                      : 'border-[#e8f0f7] hover:border-amber-400 hover:bg-amber-50 active:scale-95 cursor-pointer text-[#004B87]'
                   }`}
                 >
-                  <span className="text-[10px] font-black text-[#7CB9E8] uppercase">{DAY_NAMES[i]}</span>
-                  <span className="font-black text-[#004B87] text-xl leading-none mt-0.5">{day.getDate()}</span>
-                  {alreadyInCart && <Check className="h-3 w-3 text-emerald-500 mt-1" />}
+                  <span className="text-[10px] font-black uppercase">{DAY_NAMES[i]}</span>
+                  <span className="font-black text-xl leading-none mt-0.5">{day.getDate()}</span>
+                  {alreadyInCart ? (
+                    <Check className="h-3 w-3 mt-1" />
+                  ) : (
+                    <Plus className="h-2 w-2 mt-1 opacity-20" />
+                  )}
                 </button>
               );
             })}

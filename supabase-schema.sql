@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS products (
   stock_quantity INTEGER DEFAULT 0,
   nutri_points_reward INTEGER DEFAULT 0,
   ingredients TEXT[],
+  allergens TEXT[],
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -163,8 +164,10 @@ CREATE TABLE IF NOT EXISTS daily_menus (
 CREATE TABLE IF NOT EXISTS pre_orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   consumer_id UUID REFERENCES consumers(id) NOT NULL,
-  daily_menu_id UUID REFERENCES daily_menus(id) NOT NULL,
+  daily_menu_id UUID REFERENCES daily_menus(id), -- Nullable if it's a snack
+  product_id UUID REFERENCES products(id),    -- For snacks and drinks
   status TEXT CHECK (status IN ('paid', 'consumed', 'cancelled')) DEFAULT 'paid',
+  order_date DATE, -- Specific date for snacks delivery
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -206,8 +209,9 @@ CREATE POLICY "School isolation for consumers" ON consumers FOR ALL USING (
 
 -- Products
 DROP POLICY IF EXISTS "School isolation for products" ON products;
-CREATE POLICY "School isolation for products" ON products FOR ALL USING (
-  school_id = (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+CREATE POLICY "School isolation for products" ON products FOR SELECT USING (
+  school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
+  school_id IN (SELECT school_id FROM consumers WHERE parent_id = auth.uid())
 );
 
 -- Wallets
@@ -230,7 +234,8 @@ CREATE POLICY "School Admins can update wallets" ON wallets FOR UPDATE USING (
 -- Daily Menus
 DROP POLICY IF EXISTS "School isolation for daily menus" ON daily_menus;
 CREATE POLICY "School isolation for daily menus" ON daily_menus FOR ALL USING (
-  school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid())
+  school_id IN (SELECT school_id FROM profiles WHERE profiles.id = auth.uid()) OR
+  school_id IN (SELECT school_id FROM consumers WHERE parent_id = auth.uid())
 );
 
 -- Pre Orders
@@ -320,13 +325,100 @@ BEGIN
   UPDATE consumers 
   SET earned_nutri_points = earned_nutri_points + p_nutri_points_earned
   WHERE id = v_consumer.id;
-
+  
   RETURN jsonb_build_object(
     'success', true,
     'new_balance', v_new_balance,
     'consumer_name', v_consumer.first_name,
     'overdraft_triggered', v_new_balance < 0
   );
+END;
+$$;
+
+-- ATOMIC SMART POS CHECKOUT (Mixed: Fulfill Pre-orders + Charge Extras)
+CREATE OR REPLACE FUNCTION smart_pos_checkout(
+  p_consumer_id UUID,
+  p_pre_order_ids UUID[],
+  p_cart_total DECIMAL,
+  p_nutri_points_earned INTEGER,
+  p_items JSONB -- [{product_id, quantity, price}]
+) RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_school_id UUID;
+  v_wallet RECORD;
+  v_final_total DECIMAL;
+  v_new_balance DECIMAL;
+  v_consumer_name TEXT;
+  i INTEGER;
+BEGIN
+  -- 1. Get Consumer Info
+  SELECT school_id, first_name INTO v_school_id, v_consumer_name FROM consumers WHERE id = p_consumer_id;
+  
+  -- 2. Fulfill Pre-orders (Status = consumed)
+  IF array_length(p_pre_order_ids, 1) > 0 THEN
+    UPDATE pre_orders 
+    SET status = 'consumed'
+    WHERE id = ANY(p_pre_order_ids) AND consumer_id = p_consumer_id;
+  END IF;
+
+  -- 3. Process New Extra Items (Charge to Wallet)
+  IF p_cart_total > 0 THEN
+    -- Find Snack Wallet
+    SELECT * INTO v_wallet FROM wallets WHERE consumer_id = p_consumer_id AND type = 'snack' LIMIT 1;
+    IF NOT FOUND THEN 
+      SELECT * INTO v_wallet FROM wallets WHERE consumer_id = p_consumer_id LIMIT 1;
+    END IF;
+
+    v_new_balance := v_wallet.balance - p_cart_total;
+    IF (v_wallet.balance + v_wallet.max_overdraft) < p_cart_total THEN
+      RAISE EXCEPTION 'Insufficient Funds for new items.';
+    END IF;
+
+    UPDATE wallets SET balance = v_new_balance, updated_at = NOW() WHERE id = v_wallet.id;
+
+    INSERT INTO transactions (wallet_id, amount, type, description, metadata)
+    VALUES (v_wallet.id, p_cart_total, 'debit', 'POS Extra Purchase', p_items);
+
+    -- Deduct Stock
+    IF jsonb_array_length(p_items) > 0 THEN
+      FOR i IN 0 .. jsonb_array_length(p_items) - 1
+      LOOP
+        UPDATE products 
+        SET stock_quantity = GREATEST(0, stock_quantity - (p_items->i->>'quantity')::INTEGER)
+        WHERE id = (p_items->i->>'product_id')::UUID;
+      END LOOP;
+    END IF;
+  ELSE
+    -- No new items, just return current balance of primary wallet
+    SELECT balance INTO v_new_balance FROM wallets WHERE consumer_id = p_consumer_id LIMIT 1;
+  END IF;
+
+  -- 4. Add Nutripoints
+  UPDATE consumers 
+  SET earned_nutri_points = earned_nutri_points + p_nutri_points_earned
+  WHERE id = p_consumer_id;
+  
+  RETURN jsonb_build_object(
+    'success', true,
+    'new_balance', COALESCE(v_new_balance, 0),
+    'consumer_name', v_consumer_name
+  );
+END;
+$$;
+
+-- Inventory management helper
+CREATE OR REPLACE FUNCTION decrement_product_stock(p_product_id UUID, p_quantity INTEGER)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE products
+  SET stock_quantity = GREATEST(0, stock_quantity - p_quantity)
+  WHERE id = p_product_id;
 END;
 $$;
 
@@ -374,13 +466,24 @@ CREATE POLICY "School Admins can delete assets"
 -- Trigger to call Deno Edge Function on Purchase
 CREATE OR REPLACE FUNCTION notify_transaction()
 RETURNS trigger AS $$
+DECLARE
+  v_origin TEXT;
 BEGIN
-  -- Requires pg_net extension to be enabled in Supabase
-  PERFORM net.http_post(
-    url := 'https://' || current_setting('request.headers')::json->>'origin' || '/functions/v1/send-purchase-alert',
-    headers := '{"Content-Type": "application/json"}',
-    body := json_build_object('transaction', row_to_json(NEW))
-  );
+  -- Safe way to get origin from headers, handle cases where they are missing (e.g. Server Actions)
+  BEGIN
+    v_origin := current_setting('request.headers')::json->>'origin';
+  EXCEPTION WHEN others THEN
+    v_origin := NULL;
+  END;
+
+  IF v_origin IS NOT NULL THEN
+    -- Requires pg_net extension to be enabled in Supabase
+    PERFORM net.http_post(
+      url := 'https://' || v_origin || '/functions/v1/send-purchase-alert',
+      headers := '{"Content-Type": "application/json"}',
+      body := json_build_object('transaction', row_to_json(NEW))
+    );
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
