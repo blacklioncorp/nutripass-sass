@@ -21,7 +21,8 @@ export default function WeeklyPreOrder({ consumer, dailyMenus, existingPreorders
 
   const totalToPay = selectedMenus.reduce((acc, menuId) => {
     const menu = dailyMenus.find(m => m.id === menuId);
-    return acc + (menu ? parseFloat(menu.products.base_price) : 0);
+    const price = menu?.products?.base_price ?? menu?.combo_price ?? 70;
+    return acc + (menu ? parseFloat(String(price)) : 0);
   }, 0);
 
   const handleCheckout = async () => {
@@ -86,18 +87,20 @@ export default function WeeklyPreOrder({ consumer, dailyMenus, existingPreorders
               <p className="font-bold text-slate-400 text-sm mb-2">{new Date(menu.date).toLocaleDateString('es-ES', { weekday: 'long' })}</p>
               
               <div className="h-24 bg-slate-100 rounded-2xl mb-4 overflow-hidden border border-slate-200">
-                {menu.products.image_url ? 
+                {menu.products && menu.products.image_url ? 
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={menu.products.image_url} alt="" className="w-full h-full object-cover" /> :
                   <div className="w-full h-full flex items-center justify-center text-4xl">🍲</div>
                 }
               </div>
 
-              <h3 className="font-black text-slate-900 text-lg leading-tight mb-1">{menu.products.name}</h3>
-              <p className="text-slate-500 text-sm mb-4 line-clamp-2">{menu.products.description || 'Delicioso platillo del día preparado en cocina.'}</p>
+              <h3 className="font-black text-slate-900 text-lg leading-tight mb-1">{menu.products?.name || 'Menú del Día'}</h3>
+              <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+                {menu.main_course_name ? `${menu.soup_name ? menu.soup_name + ', ' : ''}${menu.main_course_name}` : (menu.products?.description || 'Delicioso platillo del día preparado en cocina.')}
+              </p>
               
               <div className="flex justify-between items-end mt-auto">
-                <span className="font-black text-slate-900 text-xl">${parseFloat(menu.products.base_price).toFixed(2)}</span>
+                <span className="font-black text-slate-900 text-xl">${parseFloat(String(menu.products?.base_price ?? menu.combo_price ?? 70)).toFixed(2)}</span>
               </div>
             </div>
           );

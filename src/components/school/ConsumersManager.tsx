@@ -80,8 +80,7 @@ export default function ConsumersManager({ initialConsumers }: { initialConsumer
                   </td>
                 </tr>
               ) : displayList.map(c => {
-                const walletComedor = c.wallets?.find((w: any) => w.type === 'comedor');
-                const balance = parseFloat(walletComedor?.balance || 0);
+                const balance = c.wallets?.reduce((sum: number, w: any) => sum + parseFloat(w.balance || 0), 0) || 0;
                 const isActive = (c.status || 'active') === 'active';
 
                 return (

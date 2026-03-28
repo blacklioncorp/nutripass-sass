@@ -11,7 +11,7 @@ export default async function KitchenReportPage() {
   const { data: menus } = await supabase
     .from('daily_menus')
     .select(`
-      id, date,
+      id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name,
       products ( name ),
       pre_orders ( id, status )
     `)
@@ -27,7 +27,7 @@ export default async function KitchenReportPage() {
        if (!groupedTasks[menu.date]) groupedTasks[menu.date] = [];
        groupedTasks[menu.date].push({
          menuId: menu.id,
-         name: (menu.products as any).name,
+         name: menu.products ? (menu.products as any).name : (menu.main_course_name ? `${menu.soup_name ? menu.soup_name + ', ' : ''}${menu.main_course_name}` : 'Menú del Día'),
          count: paidOrders.length
        });
     }
