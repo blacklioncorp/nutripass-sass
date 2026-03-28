@@ -56,6 +56,33 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Trigger to automatically create profile for new auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, role)
+  VALUES (new.id, 'parent')
+  ON CONFLICT (id) DO NOTHING;
+  
+  -- Optionally pre-create parent record if email is present
+  IF new.email IS NOT NULL THEN
+    INSERT INTO public.parents (id, email, full_name)
+    VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
 -- Consumers (Unified table for Students and Staff)
 CREATE TABLE IF NOT EXISTS consumers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
