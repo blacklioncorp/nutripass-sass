@@ -63,7 +63,7 @@ export default async function PreordersRoute() {
   const { createAdminClient } = await import('@/utils/supabase/server');
   const adminClient = await createAdminClient();
 
-  // 2. Concurrent fetches: daily menus + snack/bebida products + existing preorders
+  // 2. Concurrent fetches: daily menus + snack/bebida products + existing pre_orders
   const results = await Promise.all([
     supabase
       .from('daily_menus')
@@ -84,7 +84,7 @@ export default async function PreordersRoute() {
       .order('name'),
 
     supabase
-      .from('preorders')
+      .from('pre_orders')
       .select('id, daily_menu_id, product_id, consumer_id, status')
       .in('consumer_id', consumerIds)
       .eq('status', 'paid'),

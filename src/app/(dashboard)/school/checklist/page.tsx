@@ -8,9 +8,9 @@ export default async function ChecklistPage() {
 
   if (!profile?.school_id) return <div>Acceso denegado</div>;
 
-  // Fetch preorders that are snacks (product_id is NOT NULL)
+  // Fetch pre_orders that are snacks (product_id is NOT NULL)
   const { data: snackOrders } = await supabase
-    .from('preorders')
+    .from('pre_orders')
     .select(`
       id, order_date, status,
       products ( name, category ),
@@ -82,7 +82,7 @@ export default async function ChecklistPage() {
                       'use server';
                       const { createClient: createAdmin } = await import('@/utils/supabase/server');
                       const supabaseAdmin = await createAdmin();
-                      await supabaseAdmin.from('preorders').update({ status: 'consumed' }).eq('id', order.id);
+                      await supabaseAdmin.from('pre_orders').update({ status: 'consumed' }).eq('id', order.id);
                     }}>
                       <button type="submit" className="w-full h-10 bg-slate-100 text-slate-400 font-black rounded-xl hover:bg-green-500 hover:text-white transition-all flex items-center justify-center gap-2 text-sm group">
                         <CheckCircle2 className="h-4 w-4 opacity-30 group-hover:opacity-100" />

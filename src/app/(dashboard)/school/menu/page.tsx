@@ -40,7 +40,7 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
       .lte('date', fridayIso),
     
     supabase
-      .from('preorders')
+      .from('pre_orders')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'paid')
       .or(`order_date.gte.${mondayIso},order_date.lte.${fridayIso}`) // This is bit tricky with OR, better logic below
@@ -49,7 +49,7 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
   // Refined count logic: preorders for the menus of this week OR specific items for this week
   const menuIds = (dbMenus || []).map(m => m.id);
   const { count: realCount } = await supabase
-    .from('preorders')
+    .from('pre_orders')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'paid')
     .or(`daily_menu_id.in.(${menuIds.join(',')}),and(order_date.gte.${mondayIso},order_date.lte.${fridayIso})`);

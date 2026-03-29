@@ -16,9 +16,9 @@ export default async function KitchenReportPage() {
     );
   }
 
-  // Fetch all paid preorders for this school
+  // Fetch all paid pre_orders for this school
   const { data: orders, error } = await supabase
-    .from('preorders')
+    .from('pre_orders')
     .select(`
       id, 
       status, 
