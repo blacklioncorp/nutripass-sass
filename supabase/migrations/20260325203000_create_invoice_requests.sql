@@ -16,16 +16,19 @@ CREATE TABLE IF NOT EXISTS invoice_requests (
 ALTER TABLE invoice_requests ENABLE ROW LEVEL SECURITY;
 
 -- Allow parents to insert their own requests
+DROP POLICY IF EXISTS "Parents can insert their own invoice requests" ON invoice_requests;
 CREATE POLICY "Parents can insert their own invoice requests" 
 ON invoice_requests FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
 -- Allow parents to view their own requests
+DROP POLICY IF EXISTS "Parents can view their own invoice requests" ON invoice_requests;
 CREATE POLICY "Parents can view their own invoice requests" 
 ON invoice_requests FOR SELECT 
 USING (auth.uid() = user_id);
 
 -- Allow school admins to view requests (this might need refinement based on school_id)
+DROP POLICY IF EXISTS "Admins can view all invoice requests" ON invoice_requests;
 CREATE POLICY "Admins can view all invoice requests" 
 ON invoice_requests FOR SELECT 
 USING (
