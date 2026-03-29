@@ -201,7 +201,7 @@ export async function createPreOrderTransaction(
 
     // Insert pre_order records for comedor daily_menu items
     ...(comedorItems.length > 0
-      ? [run(supabase.from('pre_orders').upsert(
+      ? [run(adminClient.from('pre_orders').upsert(
           comedorItems.map(item => ({
             consumer_id: consumerId,
             daily_menu_id: item.id,
@@ -213,7 +213,7 @@ export async function createPreOrderTransaction(
 
     // Insert pre_order records for snack items (tracking what student gets what product)
     ...(snackItems.length > 0
-      ? [run(supabase.from('pre_orders').insert(
+      ? [run(adminClient.from('pre_orders').insert(
           snackItems.map(item => ({
             consumer_id: consumerId,
             product_id: item.id,
