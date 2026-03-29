@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 
 export async function createConsumer(prevState: any, formData: FormData) {
   const firstName = formData.get('firstName') as string;
@@ -13,17 +14,14 @@ export async function createConsumer(prevState: any, formData: FormData) {
   
   const supabase = await createClient();
 
-  // First, we need the school_id of the current admin
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
-
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
-  if (!profile?.school_id) return { error: 'Escuela no asignada' };
+  // Fix: rely on effective school ID for impersonation support
+  const schoolId = await getEffectiveSchoolId();
+  if (!schoolId) return { error: 'Escuela no asignada' };
 
   const { data: consumer, error } = await supabase
     .from('consumers')
     .insert({
-      school_id: profile.school_id,
+      school_id: schoolId,
       first_name: firstName,
       last_name: lastName,
       identifier,
@@ -62,16 +60,8 @@ export async function updateConsumer(prevState: any, formData: FormData) {
   
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No authenticated' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('school_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile) return { error: 'Profile not found' };
+  const schoolId = await getEffectiveSchoolId();
+  if (!schoolId) return { error: 'Profile not found' };
 
   const { data: consumer, error } = await supabase
     .from('consumers')
@@ -84,7 +74,7 @@ export async function updateConsumer(prevState: any, formData: FormData) {
       parent_email: type === 'student' ? parentEmail : null,
     })
     .eq('id', consumerId)
-    .eq('school_id', profile.school_id)
+    .eq('school_id', schoolId)
     .select()
     .single();
 
