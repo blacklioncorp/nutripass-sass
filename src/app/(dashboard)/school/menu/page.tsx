@@ -33,12 +33,31 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
 
-  const { data: dbMenus } = await supabase
-    .from('daily_menus')
-    .select('id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name, combo_price')
-    .eq('school_id', profile.school_id)
-    .gte('date', monday.toISOString().split('T')[0])
-    .lte('date', friday.toISOString().split('T')[0]);
+  const mondayIso = monday.toISOString().split('T')[0];
+  const fridayIso = friday.toISOString().split('T')[0];
+
+  const [ { data: dbMenus }, { count: preOrdersCount } ] = await Promise.all([
+    supabase
+      .from('daily_menus')
+      .select('id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name, combo_price')
+      .eq('school_id', profile.school_id)
+      .gte('date', mondayIso)
+      .lte('date', fridayIso),
+    
+    supabase
+      .from('pre_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'paid')
+      .or(`order_date.gte.${mondayIso},order_date.lte.${fridayIso}`) // This is bit tricky with OR, better logic below
+  ]);
+
+  // Refined count logic: preorders for the menus of this week OR specific items for this week
+  const menuIds = (dbMenus || []).map(m => m.id);
+  const { count: realCount } = await supabase
+    .from('pre_orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'paid')
+    .or(`daily_menu_id.in.(${menuIds.join(',')}),and(order_date.gte.${mondayIso},order_date.lte.${fridayIso})`);
 
   // Use DB data or empty array
   const initialMenus: DailyMenu[] = (dbMenus as DailyMenu[]) || [];
@@ -70,7 +89,7 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
           <div className="w-px h-8 bg-[#e8f0f7]" />
           <div className="text-center">
             <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Pre-órdenes</p>
-            <p className="text-[#004B87] font-black text-xl">—</p>
+            <p className="text-[#004B87] font-black text-xl">{realCount ?? 0}</p>
           </div>
         </div>
       </div>

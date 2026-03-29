@@ -142,7 +142,7 @@ export default function PreordersClient({
   );
   const [weekOffset, setWeekOffset] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'snack' | 'bebida'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'snack' | 'bebida' | 'comedor'>('all');
   const [snackDateTarget, setSnackDateTarget] = useState<Product | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -500,18 +500,18 @@ export default function PreordersClient({
           </div>
 
           {/* Category filter pills */}
-          <div className="flex bg-white rounded-full p-1 border border-[#e8f0f7] shadow-sm gap-1">
-            {(['all', 'snack', 'bebida'] as const).map(cat => (
+          <div className="flex bg-white rounded-full p-1 border border-[#e8f0f7] shadow-sm gap-1 overflow-x-auto no-scrollbar max-w-full">
+            {(['all', 'snack', 'bebida', 'comedor'] as const).map(cat => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all duration-200 ${
+                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all duration-200 whitespace-nowrap ${
                   categoryFilter === cat
                     ? 'bg-amber-500 text-white shadow'
                     : 'text-[#8aa8cc] hover:text-[#004B87]'
                 }`}
               >
-                {cat === 'all' ? 'Todos' : cat === 'snack' ? '🥨 Snacks' : '🥤 Bebidas'}
+                {cat === 'all' ? 'Todos' : cat === 'snack' ? '🥨 Snacks' : cat === 'bebida' ? '🥤 Bebidas' : '🍲 Comedor'}
               </button>
             ))}
           </div>
@@ -596,13 +596,25 @@ export default function PreordersClient({
                         ${parseFloat(String(product.base_price)).toFixed(2)}
                       </span>
                       {cart.some(i => i.id === product.id) ? (
-                        <button
-                          onClick={() => setSnackDateTarget(product)}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95 shadow-sm"
-                        >
-                          <Check className="h-3 w-3" />
-                          En Carrito
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setSnackDateTarget(product)}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black px-2 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                          >
+                            <Check className="h-3 w-3" />
+                            {cart.filter(i => i.id === product.id).length} en Carrito
+                          </button>
+                          <button
+                            onClick={() => {
+                              const itemToRemove = cart.find(i => i.id === product.id);
+                              if (itemToRemove) removeFromCart(itemToRemove.cartKey);
+                            }}
+                            className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white p-1.5 rounded-xl transition-colors"
+                            title="Quitar uno"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => !isOutOfStock && setSnackDateTarget(product)}
@@ -922,8 +934,8 @@ function CheckoutModal({
                       <p className="text-[11px] text-[#8aa8cc]">
                         {formatDateLong(item.date)}
                         {' · '}
-                        <span className={`font-bold uppercase ${item.walletType === 'comedor' ? 'text-[#7CB9E8]' : 'text-amber-500'}`}>
-                          {item.walletType}
+                        <span className={`font-black uppercase ${item.walletType === 'comedor' ? 'text-[#7CB9E8]' : 'text-amber-500'}`}>
+                          {item.sourceType === 'daily_menu' ? 'COMEDOR' : (item.category ?? 'PRODUCTO')}
                         </span>
                       </p>
                     </div>

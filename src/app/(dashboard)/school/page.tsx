@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import SendReminderButton from '@/components/school/SendReminderButton';
 
 export default async function SchoolDashboardPage() {
   const supabase = await createClient();
@@ -11,7 +12,7 @@ export default async function SchoolDashboardPage() {
     .eq('id', user?.id)
     .single();
 
-  const schoolId = profile?.school_id;
+  const schoolId = profile?.school_id || '';
 
   // ── Real DB queries, all scoped to this school ────────────────────────────
   const [
@@ -23,23 +24,24 @@ export default async function SchoolDashboardPage() {
     supabase
       .from('consumers')
       .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId ?? '')
+      .eq('school_id', schoolId)
       .eq('type', 'student'),
     supabase
       .from('consumers')
       .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId ?? '')
+      .eq('school_id', schoolId)
       .eq('type', 'staff'),
     supabase
       .from('transactions')
       .select('amount')
+      .eq('school_id', schoolId) // Added school_id filter
       .gte('created_at', new Date().toISOString().split('T')[0])
       .order('created_at', { ascending: false })
       .limit(200),
     supabase
       .from('daily_menus')
       .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId ?? '')
+      .eq('school_id', schoolId)
       .eq('date', new Date().toISOString().split('T')[0]),
   ]);
 
@@ -66,9 +68,7 @@ export default async function SchoolDashboardPage() {
           <p className="text-[#8aa8cc] font-bold text-xs uppercase tracking-widest mb-1">DASHBOARD</p>
           <h1 className="text-4xl font-black text-[#1a3a5c] tracking-tight">Dashboard de Escuela</h1>
         </div>
-        <button className="bg-[#f4c430] hover:bg-[#e6b310] text-[#1a3a5c] font-black px-6 py-3 rounded-xl shadow transition active:scale-95 flex items-center gap-2 text-sm">
-          <span>⚡</span> ENVIAR RECORDATORIO MATA-MERMAS
-        </button>
+        <SendReminderButton schoolId={schoolId} />
       </div>
 
       {/* KPIs */}

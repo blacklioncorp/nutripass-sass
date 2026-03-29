@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, Copy, UtensilsCrossed, Beef, Carrot,
   IceCream, GlassWater, Plus, Pencil, Trash2, RefreshCcw
 } from 'lucide-react';
-import { upsertDailyMenu, clearDailyMenu } from '@/app/(dashboard)/school/menuActions';
+import { upsertDailyMenu, clearDailyMenu, copyPreviousWeek } from '@/app/(dashboard)/school/menuActions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type DailyMenu = {
@@ -292,6 +292,20 @@ export default function WeeklyMenuGrid({ schoolId, initialMenus, currentDateStr 
   const editingMenu = editingDate ? menus[editingDate] : undefined;
   const editingDayLabel = editingDate ? DAY_LABELS[weekDates.findIndex(d => toISODate(d) === editingDate)] : '';
 
+  const [isCopying, setIsCopying] = useState(false);
+
+  const handleCopyWeek = async () => {
+    if (!confirm('¿Deseas copiar el menú de la semana anterior a esta semana?')) return;
+    setIsCopying(true);
+    try {
+      await copyPreviousWeek(schoolId, toISODate(weekDates[0]));
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   return (
     <div>
       {/* Week Navigator */}
@@ -308,8 +322,13 @@ export default function WeeklyMenuGrid({ schoolId, initialMenus, currentDateStr 
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <button className="flex items-center gap-2 bg-white border border-[#e8f0f7] text-[#7CB9E8] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#f0f5fb] transition shadow-sm">
-          <Copy className="h-4 w-4" /> Copiar semana anterior
+        <button 
+          onClick={handleCopyWeek}
+          disabled={isCopying}
+          className="flex items-center gap-2 bg-white border border-[#e8f0f7] text-[#7CB9E8] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#f0f5fb] transition shadow-sm disabled:opacity-50"
+        >
+          {isCopying ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+          Copiar semana anterior
         </button>
       </div>
 

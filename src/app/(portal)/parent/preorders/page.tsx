@@ -64,13 +64,13 @@ export default async function PreordersRoute() {
   const adminClient = await createAdminClient();
 
   // 2. Concurrent fetches: daily menus + snack/bebida products + existing pre_orders
-  const [{ data: dailyMenus }, { data: products }, { data: existingPreorders }] = await Promise.all([
+  const results = await Promise.all([
     supabase
       .from('daily_menus')
       .select(`
         id, date, product_id, school_id,
         combo_price, soup_name, main_course_name, side_dish_name, dessert_name, drink_name,
-        products ( id, name, description, base_price, image_url )
+        products ( id, name, description, base_price, image_url, nutri_points_reward )
       `)
       .in('school_id', schoolIds)
       .order('date', { ascending: true }),
@@ -79,16 +79,20 @@ export default async function PreordersRoute() {
       .from('products')
       .select('id, school_id, name, description, base_price, category, image_url, is_available, stock_quantity, nutri_points_reward')
       .in('school_id', schoolIds)
-      .in('category', ['snack', 'bebida'])
+      .in('category', ['snack', 'bebida', 'comedor'])
       .eq('is_available', true)
       .order('name'),
 
     supabase
       .from('pre_orders')
-      .select('daily_menu_id, consumer_id')
-      .in('consumer_id', consumerIds),
+      .select('id, daily_menu_id, product_id, consumer_id, status')
+      .in('consumer_id', consumerIds)
+      .eq('status', 'paid'),
   ]);
 
+  const dailyMenus = results[0].data || [];
+  const products = results[1].data || [];
+  const existingPreorders = results[2].data || [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-40 animate-in fade-in duration-500">
@@ -99,9 +103,9 @@ export default async function PreordersRoute() {
 
       <PreordersClient
         initialConsumers={consumers}
-        dailyMenus={dailyMenus || []}
-        existingPreorders={existingPreorders || []}
-        products={products || []}
+        dailyMenus={dailyMenus}
+        existingPreorders={existingPreorders}
+        products={products}
       />
     </div>
   );
