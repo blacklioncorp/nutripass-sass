@@ -8,13 +8,40 @@ export default async function ChecklistPage() {
 
   if (!profile?.school_id) return <div>Acceso denegado</div>;
 
-  // Fetch pre_orders that are snacks (product_id is NOT NULL)
-  const { data: snackOrders } = await supabase
+  // Use adminClient to bypass RLS - filter by school consumers manually
+  const { createAdminClient } = await import('@/utils/supabase/server');
+  const adminClient = await createAdminClient();
+
+  // Get all consumer IDs for this school
+  const { data: schoolConsumers } = await adminClient
+    .from('consumers')
+    .select('id')
+    .eq('school_id', profile.school_id);
+
+  const consumerIds = (schoolConsumers || []).map(c => c.id);
+
+  if (consumerIds.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Checklist de Cafetería</h1>
+          <p className="text-slate-500 mt-2">Seguimiento de entrega de snacks y bebidas pre-pagados.</p>
+        </div>
+        <div className="text-center p-12 bg-white rounded-3xl border border-slate-100 border-dashed">
+          <div className="text-6xl mb-4">🥨</div>
+          <h3 className="text-xl text-slate-500 font-bold">No hay snacks pendientes por entregar.</h3>
+        </div>
+      </div>
+    );
+  }
+  // Fetch pre_orders that are snacks (product_id is NOT NULL) for this school's consumers
+  const { data: snackOrders } = await adminClient
     .from('pre_orders')
     .select(`
       id, order_date, status, product_id,
       consumers ( first_name, last_name, allergies )
     `)
+    .in('consumer_id', consumerIds)
     .not('product_id', 'is', null)
     .eq('status', 'paid')
     .order('order_date', { ascending: true });

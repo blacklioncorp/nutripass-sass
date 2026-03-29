@@ -69,8 +69,7 @@ export default async function PreordersRoute() {
       .from('daily_menus')
       .select(`
         id, date, product_id, school_id,
-        combo_price, soup_name, main_course_name, side_dish_name, dessert_name, drink_name,
-        products ( id, name, description, base_price, image_url, nutri_points_reward )
+        combo_price, soup_name, main_course_name, side_dish_name, dessert_name, drink_name
       `)
       .in('school_id', schoolIds)
       .order('date', { ascending: true }),

@@ -31,28 +31,40 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
   const mondayIso = monday.toISOString().split('T')[0];
   const fridayIso = friday.toISOString().split('T')[0];
 
-  const [ { data: dbMenus }, { count: preOrdersCount } ] = await Promise.all([
+  const { createAdminClient } = await import('@/utils/supabase/server');
+  const adminClient = await createAdminClient();
+
+  const [ { data: dbMenus } ] = await Promise.all([
     supabase
       .from('daily_menus')
       .select('id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name, combo_price')
       .eq('school_id', schoolId)
       .gte('date', mondayIso)
       .lte('date', fridayIso),
-    
-    supabase
+  ]);
+
+  // Count pre_orders for this week - either linked to a menu of this week or with order_date in this range
+  const menuIds = (dbMenus || []).map(m => m.id);
+  
+  let realCount = 0;
+  if (menuIds.length > 0) {
+    const { count: byMenu } = await adminClient
       .from('pre_orders')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'paid')
-      .or(`order_date.gte.${mondayIso},order_date.lte.${fridayIso}`) // This is bit tricky with OR, better logic below
-  ]);
+      .in('daily_menu_id', menuIds);
+    realCount += byMenu ?? 0;
+  }
 
-  // Refined count logic: preorders for the menus of this week OR specific items for this week
-  const menuIds = (dbMenus || []).map(m => m.id);
-  const { count: realCount } = await supabase
+  // Also count snack orders by order_date in this week
+  const { count: byDate } = await adminClient
     .from('pre_orders')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'paid')
-    .or(`daily_menu_id.in.(${menuIds.join(',')}),and(order_date.gte.${mondayIso},order_date.lte.${fridayIso})`);
+    .not('product_id', 'is', null)
+    .gte('order_date', mondayIso)
+    .lte('order_date', fridayIso);
+  realCount += byDate ?? 0;
 
   // Use DB data or empty array
   const initialMenus: DailyMenu[] = (dbMenus as DailyMenu[]) || [];
