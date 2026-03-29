@@ -20,7 +20,7 @@ export async function getStudentStatusByNFC(nfcUid: string) {
   // Fetch today's pre-orders
   const today = new Date().toISOString().split('T')[0];
   const { data: preOrders } = await supabase
-    .from('pre_orders')
+    .from('preorders')
     .select(`
       id, 
       status, 

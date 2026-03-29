@@ -4,9 +4,11 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Instantiate only when used, to avoid throwing on module load if key is missing
+let openai: OpenAI | null = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function upsertProduct(prevState: any, formData: FormData) {
   const supabase = await createClient();
@@ -28,28 +30,30 @@ export async function upsertProduct(prevState: any, formData: FormData) {
 
   // ── AI ALLERGEN DETECTION ──────────────────────────────────────────────
   let detectedAllergens: string[] = [];
-  try {
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Eres un nutricionista experto. Analiza el nombre y la descripción de este producto escolar. Identifica si contiene alguno de estos alérgenos comunes: lácteos, cacahuate, nuez, gluten, soya, huevo, mariscos. Devuelve ÚNICAMENTE un arreglo JSON puro de strings en minúsculas con los alérgenos detectados (ej. [\"lácteos\", \"nuez\"]). Si no detectas ninguno o es ambiguo, devuelve []. No uses formato markdown, solo el JSON puro."
-        },
-        {
-          role: "user",
-          content: `Producto: ${name}\nDescripción: ${description || 'Sin descripción'}`
-        }
-      ],
-      temperature: 0,
-    });
+  if (openai) {
+    try {
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Eres un nutricionista experto. Analiza el nombre y la descripción de este producto escolar. Identifica si contiene alguno de estos alérgenos comunes: lácteos, cacahuate, nuez, gluten, soya, huevo, mariscos. Devuelve ÚNICAMENTE un arreglo JSON puro de strings en minúsculas con los alérgenos detectados (ej. [\"lácteos\", \"nuez\"]). Si no detectas ninguno o es ambiguo, devuelve []. No uses formato markdown, solo el JSON puro."
+          },
+          {
+            role: "user",
+            content: `Producto: ${name}\nDescripción: ${description || 'Sin descripción'}`
+          }
+        ],
+        temperature: 0,
+      });
 
-    const content = aiResponse.choices[0].message?.content || "[]";
-    detectedAllergens = JSON.parse(content.trim());
-    if (!Array.isArray(detectedAllergens)) detectedAllergens = [];
-  } catch (error) {
-    console.error("OpenAI Allergen detection error:", error);
-    detectedAllergens = []; // Fallback safely
+      const content = aiResponse.choices[0].message?.content || "[]";
+      detectedAllergens = JSON.parse(content.trim());
+      if (!Array.isArray(detectedAllergens)) detectedAllergens = [];
+    } catch (error) {
+      console.error("OpenAI Allergen detection error:", error);
+      detectedAllergens = []; // Fallback safely
+    }
   }
   // ───────────────────────────────────────────────────────────────────────
 

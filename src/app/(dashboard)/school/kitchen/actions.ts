@@ -8,7 +8,7 @@ export async function markMenuAsPrepared(menuId: string) {
   
   // Actualizar todas las pre-órdenes pagadas de este menú a consumidas
   const { error } = await supabase
-    .from('pre_orders')
+    .from('preorders')
     .update({ status: 'consumed' })
     .eq('daily_menu_id', menuId)
     .eq('status', 'paid');

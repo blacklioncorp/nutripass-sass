@@ -24,7 +24,7 @@ export async function sendMataMermasReminder(schoolId: string) {
   // 3. Find students WHO ALREADY HAVE a pre-order for tomorrow
   const studentIds = students.map(s => s.id);
   const { data: preOrdersTomorrow } = await supabase
-    .from('pre_orders')
+    .from('preorders')
     .select('consumer_id')
     .eq('status', 'paid')
     .or(`order_date.eq.${tomorrowIso}`);
