@@ -78,7 +78,7 @@ export async function processPreorderCheckout(
   }));
 
   const { error: poError } = await supabase
-    .from('preorders')
+    .from('pre_orders')
     .upsert(preorders, { onConflict: 'consumer_id,daily_menu_id' });
 
   if (poError) throw new Error(poError.message);

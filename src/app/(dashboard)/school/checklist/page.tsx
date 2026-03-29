@@ -12,17 +12,33 @@ export default async function ChecklistPage() {
   const { data: snackOrders } = await supabase
     .from('pre_orders')
     .select(`
-      id, order_date, status,
-      products ( name, category ),
+      id, order_date, status, product_id,
       consumers ( first_name, last_name, allergies )
     `)
     .not('product_id', 'is', null)
     .eq('status', 'paid')
     .order('order_date', { ascending: true });
 
+  // Fetch products separately (no FK defined in schema between pre_orders and products)
+  const productIds = [...new Set((snackOrders || []).map(o => (o as any).product_id).filter(Boolean))];
+  const productsMap: Record<string, { name: string; category: string }> = {};
+  if (productIds.length > 0) {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, category')
+      .in('id', productIds as string[]);
+    (products || []).forEach(p => { productsMap[p.id] = p; });
+  }
+
+  // Enrich orders with product data
+  const enrichedOrders = (snackOrders || []).map(order => ({
+    ...order,
+    product: productsMap[(order as any).product_id] || null,
+  }));
+
   // Group by date
   const groupedDates: Record<string, any[]> = {};
-  snackOrders?.forEach(order => {
+  enrichedOrders.forEach(order => {
     if (!groupedDates[order.order_date!]) groupedDates[order.order_date!] = [];
     groupedDates[order.order_date!].push(order);
   });
@@ -61,13 +77,13 @@ export default async function ChecklistPage() {
                         </span>
                       </div>
                       <div className="bg-amber-100 px-2 py-1 rounded-lg text-[10px] font-black text-amber-700 uppercase">
-                        {(order.products as any).category}
+                        {order.product?.category ?? ''}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                       <Package className="h-4 w-4 text-slate-400" />
-                      <span className="font-black text-slate-700 text-sm">{(order.products as any).name}</span>
+                      <span className="font-black text-slate-700 text-sm">{order.product?.name ?? 'Producto'}</span>
                     </div>
 
                     {(order.consumers as any).allergies?.length > 0 && (

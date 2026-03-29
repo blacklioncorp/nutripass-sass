@@ -16,7 +16,7 @@ export default async function KitchenReportPage() {
     );
   }
 
-  // Fetch all paid pre_orders for this school
+  // Step 1: Fetch orders with daily_menus and consumers (these FKs exist)
   const { data: orders, error } = await supabase
     .from('pre_orders')
     .select(`
@@ -24,15 +24,26 @@ export default async function KitchenReportPage() {
       status, 
       order_date,
       daily_menu_id,
-      daily_menus ( id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name ),
       product_id,
-      products ( id, name, category ),
+      daily_menus ( id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name ),
       consumers ( first_name, last_name, allergies )
     `)
     .eq('status', 'paid')
     .order('created_at', { ascending: true });
 
   if (error) return <div>Error: {error.message}</div>;
+
+  // Step 2: Collect unique product_ids and fetch them separately (no FK in schema)
+  const productIds = [...new Set((orders || []).map(o => o.product_id).filter(Boolean))];
+  const productsMap: Record<string, { name: string; category: string }> = {};
+
+  if (productIds.length > 0) {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, category')
+      .in('id', productIds as string[]);
+    (products || []).forEach(p => { productsMap[p.id] = p; });
+  }
 
   // Group by date and then by student
   const groupedTasks: Record<string, any[]> = {};
@@ -53,9 +64,9 @@ export default async function KitchenReportPage() {
     if (order.daily_menus) {
         itemName = (order.daily_menus as any).main_course_name ? `COMBO: ${(order.daily_menus as any).main_course_name}` : 'Combo Comedor';
         category = 'comedor';
-    } else if (order.products) {
-        itemName = (order.products as any).name;
-        category = (order.products as any).category;
+    } else if (order.product_id && productsMap[order.product_id]) {
+        itemName = productsMap[order.product_id].name;
+        category = productsMap[order.product_id].category;
     }
 
     groupedTasks[date].push({
