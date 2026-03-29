@@ -1,18 +1,19 @@
 import { createClient } from '@/utils/supabase/server';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import SendReminderButton from '@/components/school/SendReminderButton';
 
 export default async function SchoolDashboardPage() {
   const supabase = await createClient();
+  const schoolId = await getEffectiveSchoolId();
 
-  // ── Get logged-in admin's school_id ──────────────────────────────────────
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('school_id, full_name')
-    .eq('id', user?.id)
-    .single();
-
-  const schoolId = profile?.school_id || '';
+  if (!schoolId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <p className="text-2xl font-black text-[#1a3a5c] mb-2">Acceso Denegado</p>
+        <p className="text-[#8aa8cc]">No tienes una escuela asignada o tu sesión de administrador ha expirado.</p>
+      </div>
+    );
+  }
 
   // ── Real DB queries, all scoped to this school ────────────────────────────
   const [

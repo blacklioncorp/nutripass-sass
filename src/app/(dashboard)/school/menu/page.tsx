@@ -1,18 +1,13 @@
 import { createClient } from '@/utils/supabase/server';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import WeeklyMenuGrid from '@/components/school/WeeklyMenuGrid';
 import type { DailyMenu } from '@/components/school/WeeklyMenuGrid';
 
 export default async function MenuRoute(props: { searchParams?: Promise<{ date?: string }> }) {
   const supabase = await createClient();
+  const schoolId = await getEffectiveSchoolId();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('school_id')
-    .eq('id', user?.id)
-    .single();
-
-  if (!profile?.school_id) {
+  if (!schoolId) {
     return (
       <div className="bg-white rounded-2xl p-16 text-center border border-red-100">
         <p className="text-red-400 font-bold">Acceso denegado — perfil sin escuela asignada.</p>

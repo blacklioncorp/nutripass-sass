@@ -1,13 +1,20 @@
 import { createClient } from '@/utils/supabase/server';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import { markMenuAsPrepared } from './actions';
 import { Utensils, Coffee, AlertCircle, User, CheckCircle2 } from 'lucide-react';
 
 export default async function KitchenReportPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user?.id).maybeSingle();
+  const schoolId = await getEffectiveSchoolId();
 
-  if (!profile?.school_id) return <div>Acceso denegado</div>;
+  if (!schoolId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <p className="text-2xl font-black text-[#1a3a5c] mb-2">Acceso Denegado</p>
+        <p className="text-[#8aa8cc]">No tienes una escuela asignada o tu sesión de administrador ha expirado.</p>
+      </div>
+    );
+  }
 
   // Fetch all paid pre_orders for this school
   const { data: orders, error } = await supabase

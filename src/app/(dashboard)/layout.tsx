@@ -51,10 +51,14 @@ export default async function DashboardLayout({
   }
 
   const isMaster = role === 'superadmin';
-  const schoolName = school?.name || 'Escuela';
+  const cookieStore = await cookies();
+  const impersonatedId = cookieStore.get('impersonated_school_id')?.value;
+  const showSchoolLayout = (!isMaster) || (isMaster && !!impersonatedId);
+
+  const schoolName = school?.name || (isMaster ? 'Panel Maestro' : 'Escuela');
   const schoolInitials = schoolName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
 
-  if (isMaster) {
+  if (isMaster && !impersonatedId) {
     return (
       <div className="min-h-screen bg-[#f0f5fb] flex flex-col md:flex-row">
         <MasterSidebar />
