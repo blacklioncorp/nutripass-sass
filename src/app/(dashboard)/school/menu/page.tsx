@@ -35,7 +35,7 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
     supabase
       .from('daily_menus')
       .select('id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name, combo_price')
-      .eq('school_id', profile.school_id)
+      .eq('school_id', schoolId)
       .gte('date', mondayIso)
       .lte('date', fridayIso),
     
@@ -91,7 +91,7 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
 
       {/* Weekly Grid */}
       <WeeklyMenuGrid
-        schoolId={profile.school_id}
+        schoolId={schoolId}
         initialMenus={initialMenus}
         currentDateStr={currentDateStr}
       />
