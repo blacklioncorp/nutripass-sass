@@ -116,14 +116,14 @@ type CartItemPayload = {
 export async function createPreOrderTransaction(
   consumerId: string,
   cartItems: CartItemPayload[]
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { createAdminClient } = await import('@/utils/supabase/server');
   const adminClient = await createAdminClient();
 
   // 1. Validate session
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autenticado. Por favor inicia sesión.');
+  if (!user) return { success: false, error: 'No autenticado. Por favor inicia sesión.' };
 
   // 2. Verify the consumer belongs to this parent
   const { data: consumer, error: consumerErr } = await supabase
@@ -134,7 +134,7 @@ export async function createPreOrderTransaction(
     .single();
 
   if (consumerErr || !consumer) {
-    throw new Error('Alumno no encontrado o sin permisos para esta cuenta.');
+    return { success: false, error: 'Alumno no encontrado o sin permisos para esta cuenta.' };
   }
 
   const wallets = (consumer as any).wallets as Array<{
@@ -157,26 +157,26 @@ export async function createPreOrderTransaction(
 
   // 4. Validate balances (including overdraft allowance)
   if (comedorTotal > 0) {
-    if (!comedorWallet) throw new Error('No tienes una Billetera Comedor configurada. Contacta a la escuela.');
+    if (!comedorWallet) return { success: false, error: 'No tienes una Billetera Comedor configurada. Contacta a la escuela.' };
     const effectiveLimit = Number(comedorWallet.balance) + Number(comedorWallet.max_overdraft ?? 0);
     if (comedorTotal > effectiveLimit) {
-      throw new Error(
+      return { success: false, error:
         `Saldo insuficiente en billetera Comedor. Saldo actual: $${Number(comedorWallet.balance).toFixed(2)}`
-      );
+      };
     }
   }
 
   if (snackTotal > 0) {
-    if (!snackWallet) throw new Error('No tienes una Billetera Snack configurada. Contacta a la escuela.');
+    if (!snackWallet) return { success: false, error: 'No tienes una Billetera Snack configurada. Contacta a la escuela.' };
     const effectiveLimit = Number(snackWallet.balance) + Number(snackWallet.max_overdraft ?? 0);
     if (snackTotal > effectiveLimit) {
-      throw new Error(
+      return { success: false, error:
         `Saldo insuficiente en billetera Snack. Saldo actual: $${Number(snackWallet.balance).toFixed(2)}`
-      );
+      };
     }
   }
 
-  if (cartItems.length === 0) throw new Error('El carrito está vacío.');
+  if (cartItems.length === 0) return { success: false, error: 'El carrito está vacío.' };
 
   // Helper: explicit async wrapper so TypeScript is happy with Supabase builders
   const run = async (q: PromiseLike<any>) => q;
@@ -290,11 +290,11 @@ export async function createPreOrderTransaction(
     
     if (failed) {
       console.error('[createPreOrderTransaction] Database returned error:', JSON.stringify(failed.error, null, 2));
-      throw new Error(`Error de base de datos: ${failed.error.message || 'Error desconocido'}`);
+      return { success: false, error: `Error de base de datos: ${failed.error.message || 'Error desconocido'}` };
     }
   } catch (err: any) {
     console.error('[createPreOrderTransaction] Unhandled exception:', err);
-    throw new Error(err.message || 'Error crítico al procesar la pre-venta.');
+    return { success: false, error: err.message || 'Error crítico al procesar la pre-venta.' };
   }
 
   revalidatePath('/parent/menu');

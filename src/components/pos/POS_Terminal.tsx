@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { getStudentStatusByNFC, processSmartCheckout } from '@/app/(pos)/actions';
+import { validateCartAllergens } from '@/app/actions/allergen';
 import { Check, X, AlertTriangle, CreditCard, ShoppingBag, User } from 'lucide-react';
 
 export default function POS_Terminal({ catalog }: { catalog: any[] }) {
@@ -11,6 +12,11 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // AI Validation States
+  const [isValidatingAllergens, setIsValidatingAllergens] = useState(false);
+  const [allergenWarnings, setAllergenWarnings] = useState<string[]>([]);
+  const [isWarningOpen, setIsWarningOpen] = useState(false);
   
   // Smart POS states
   const [studentInfo, setStudentInfo] = useState<any>(null);
@@ -65,10 +71,27 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     }
   };
 
-  const handleSmartCheckout = async () => {
+  const handleSmartCheckout = async (force: boolean = false) => {
     if (!studentInfo) return;
     setIsProcessing(true);
     setErrorMsg('');
+
+    // AI Check
+    if (cart.length > 0 && !force) {
+      setIsValidatingAllergens(true);
+      const aiResult = await validateCartAllergens(
+        studentInfo.id, 
+        cart.map(i => ({ id: i.id, name: i.name, description: i.description }))
+      );
+      setIsValidatingAllergens(false);
+      
+      if (!aiResult.safe && aiResult.warnings.length > 0) {
+         setAllergenWarnings(aiResult.warnings);
+         setIsWarningOpen(true);
+         setIsProcessing(false);
+         return; 
+      }
+    }
 
     try {
       const resp = await processSmartCheckout(
@@ -95,6 +118,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     setErrorMsg('');
     setStudentInfo(null);
     setSelectedPreOrderIds([]);
+    setIsWarningOpen(false);
   };
 
   const togglePreOrder = (id: string) => {
@@ -311,11 +335,11 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                      </div>
                    )}
                    <button 
-                     onClick={handleSmartCheckout}
-                     disabled={isProcessing || (cart.length === 0 && selectedPreOrderIds.length === 0)}
+                     onClick={() => handleSmartCheckout(false)}
+                     disabled={isProcessing || isValidatingAllergens || (cart.length === 0 && selectedPreOrderIds.length === 0)}
                      className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
                    >
-                     {isProcessing ? 'Procesando...' : (
+                     {isValidatingAllergens ? 'IA Analizando Alergias...' : isProcessing ? 'Procesando...' : (
                        <>
                          <CreditCard className="h-5 w-5" />
                          FINALIZAR CHECKOUT
@@ -362,6 +386,52 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
           </div>
         </div>
       )}
+
+      {/* IA ALLERGEN WARNING MODAL */}
+      {isWarningOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsWarningOpen(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200 border border-red-100 flex flex-col gap-6">
+            <div className="text-center">
+              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <AlertTriangle className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">¡Alto! Riesgo Médico</h2>
+              <p className="text-slate-500 font-medium text-sm">
+                La IA ha detectado posibles alérgenos en el carrito del alumno <span className="font-black text-red-500">{studentInfo?.first_name}</span>.
+              </p>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2 max-h-48 overflow-y-auto">
+              <p className="text-[10px] font-black uppercase tracking-widest text-red-800">Causa del Bloqueo:</p>
+              <ul className="list-disc list-inside text-red-700 text-xs font-bold space-y-2">
+                {allergenWarnings.map((w, idx) => (
+                  <li key={idx} className="leading-snug">{w}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setIsWarningOpen(false);
+                  handleSmartCheckout(true);
+                }}
+                className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 font-black py-4 rounded-xl shadow-sm transition-all text-sm"
+              >
+                VENDER BAJO RIESGO
+              </button>
+              <button
+                onClick={() => setIsWarningOpen(false)}
+                className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg text-sm"
+              >
+                EDITAR CARRITO SEGÚN IA
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

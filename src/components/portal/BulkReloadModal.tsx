@@ -158,7 +158,7 @@ export default function BulkReloadModal({
   }
 
   return (
-    <div className="bg-white p-8 rounded-3xl max-w-2xl mx-auto w-full">
+    <div className="bg-white p-6 sm:p-8 pb-32 sm:pb-8 rounded-3xl max-w-2xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="h-12 w-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">

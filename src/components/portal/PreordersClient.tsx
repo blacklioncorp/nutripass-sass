@@ -9,6 +9,7 @@ import {
   Loader2, Wallet,
 } from 'lucide-react';
 import { createPreOrderTransaction } from '@/app/(portal)/parent/actions';
+import { validateCartAllergens } from '@/app/actions/allergen';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,11 @@ export default function PreordersClient({
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [checkoutError, setCheckoutError] = useState('');
 
+  // IA Allergen Validation States
+  const [isValidatingAllergens, setIsValidatingAllergens] = useState(false);
+  const [allergenWarnings, setAllergenWarnings] = useState<string[]>([]);
+  const [isWarningOpen, setIsWarningOpen] = useState(false);
+
   // Active consumer
   const activeConsumer = useMemo<Consumer | undefined>(
     () => (initialConsumers as Consumer[]).find(c => c.id === activeStudentId) ?? (initialConsumers[0] as Consumer),
@@ -260,17 +266,36 @@ export default function PreordersClient({
 
   // ── Checkout ──
 
-  const handleOpenCheckout = () => {
+  const handleOpenCheckout = async () => {
+    if (!activeConsumer) return;
     setCheckoutError('');
     setCheckoutStatus('idle');
-    setIsCheckoutOpen(true);
+
+    setIsValidatingAllergens(true);
+    const aiResult = await validateCartAllergens(
+      activeConsumer.id,
+      cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: (products as Product[]).find(p => p.id === item.id)?.description,
+        sourceType: item.sourceType
+      }))
+    );
+    setIsValidatingAllergens(false);
+
+    if (!aiResult.safe && aiResult.warnings.length > 0) {
+      setAllergenWarnings(aiResult.warnings);
+      setIsWarningOpen(true);
+    } else {
+      setIsCheckoutOpen(true);
+    }
   };
 
   const handleConfirmCheckout = () => {
     if (!activeConsumer) return;
     startTransition(async () => {
       try {
-        await createPreOrderTransaction(
+        const result = await createPreOrderTransaction(
           activeConsumer.id,
           cart.map(i => ({
             id: i.id,
@@ -282,6 +307,11 @@ export default function PreordersClient({
             nutriPoints: i.nutriPoints,
           }))
         );
+
+        if (result && result.error) {
+          throw new Error(result.error);
+        }
+
         setCheckoutStatus('success');
         setCart([]);
       } catch (e: any) {
@@ -648,7 +678,7 @@ export default function PreordersClient({
 
       {/* ── Floating Cart Bar ── */}
       {cart.length > 0 && !isCheckoutOpen && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-[100px] md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 duration-300">
           <div className="bg-[#004B87] text-white rounded-full shadow-2xl shadow-blue-900/30 flex items-center gap-3 pl-5 pr-2 py-2 border border-white/10 backdrop-blur-sm">
             <div className="relative">
               <ShoppingCart className="h-5 w-5 text-white" />
@@ -680,10 +710,63 @@ export default function PreordersClient({
 
             <button
               onClick={handleOpenCheckout}
-              className="bg-[#F4C430] hover:bg-amber-400 text-[#004B87] font-black text-sm px-5 py-2.5 rounded-full transition-all active:scale-95 ml-1 whitespace-nowrap"
+              disabled={isValidatingAllergens}
+              className="bg-[#F4C430] hover:bg-amber-400 disabled:opacity-50 text-[#004B87] font-black text-sm px-5 py-2.5 rounded-full transition-all active:scale-95 ml-1 whitespace-nowrap flex items-center gap-2"
             >
-              Confirmar · ${cartTotal.toFixed(2)} →
+              {isValidatingAllergens ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analizando...
+                </>
+              ) : (
+                <>Confirmar · ${cartTotal.toFixed(2)} →</>
+              )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Allergen Warning Modal ── */}
+      {isWarningOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#004B87]/50 backdrop-blur-sm" onClick={() => setIsWarningOpen(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-lg w-full animate-in zoom-in-95 duration-200 border border-red-100 flex flex-col gap-6">
+            <div className="text-center">
+              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">¡Alerta Nutricional!</h2>
+              <p className="text-slate-500 font-medium">
+                La Inteligencia Artificial de NutriPass detectó que los productos en tu carrito podrían poner en riesgo a <span className="font-black text-rose-500">{activeConsumer.first_name}</span>.
+              </p>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-widest text-rose-800">Riesgos Identificados (IA)</p>
+              <ul className="list-disc list-inside space-y-2 text-rose-700 text-sm font-bold">
+                {allergenWarnings.map((w, idx) => (
+                  <li key={idx} className="leading-snug">{w}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setIsWarningOpen(false);
+                  setIsCheckoutOpen(true);
+                }}
+                className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-lg py-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-3"
+              >
+                IGNORAR ALERTA Y PAGAR
+              </button>
+              <button
+                onClick={() => setIsWarningOpen(false)}
+                className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg"
+              >
+                MODIFICAR CARRITO (Recomendado)
+              </button>
+            </div>
           </div>
         </div>
       )}
