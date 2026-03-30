@@ -452,44 +452,44 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
       <div className="flex flex-col gap-6 pb-6 border-b border-[#e8f0f7]">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-[32px] border border-[#e8f0f7] shadow-sm w-full">
           <div>
-            <h1 className="text-4xl font-black text-[#004B87] tracking-tighter flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-[#004B87] tracking-tighter flex items-center flex-wrap gap-3">
               ¡Hola, Fam. {lastName}! 👋
               <button 
                 onClick={() => setShowSettings(true)}
-                className="h-10 w-10 bg-[#f0f5fb] rounded-full flex items-center justify-center text-[#7CB9E8] hover:bg-[#e8f0f7] hover:text-[#004B87] transition active:scale-95 shadow-sm"
+                className="h-11 w-11 bg-[#f0f5fb] rounded-full flex items-center justify-center text-[#7CB9E8] hover:bg-[#e8f0f7] hover:text-[#004B87] transition active:scale-95 shadow-sm"
                 title="Configuración de Perfil"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-5 w-5" />
               </button>
             </h1>
-            <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
+            <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[9px] sm:text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
           </div>
 
           <button 
             onClick={() => setIsBulkReloadOpen(true)}
-            className="group bg-[#004B87] hover:bg-[#003a6b] text-white px-8 py-4 rounded-2xl flex items-center gap-3 transition shadow-xl shadow-blue-100 active:scale-95"
+            className="w-full md:w-auto group bg-[#004B87] hover:bg-[#003a6b] text-white px-8 py-5 rounded-2xl flex items-center justify-center md:justify-start gap-4 transition shadow-xl shadow-blue-100 active:scale-95 min-h-[64px]"
           >
-            <div className="h-8 w-8 bg-blue-400/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-              <RefreshCcw className="h-4 w-4 text-white" />
+            <div className="h-9 w-9 bg-blue-400/30 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
+              <RefreshCcw className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase text-blue-200 tracking-widest leading-none mb-1">nuevo</p>
-              <p className="font-black text-sm">Recarga Múltiple</p>
+              <p className="text-[10px] font-black uppercase text-blue-200 tracking-widest leading-none mb-1.5">nuevo</p>
+              <p className="font-black text-sm sm:text-base">Recarga Múltiple</p>
             </div>
           </button>
         </div>
 
         {/* Student Selector Pills */}
         {consumers.length > 1 && (
-          <div className="flex bg-white rounded-full p-1 shadow-sm border border-[#e8f0f7] flex-wrap gap-1 w-fit">
+          <div className="flex bg-white rounded-3xl md:rounded-full p-1.5 shadow-sm border border-[#e8f0f7] flex-wrap gap-2 w-full md:w-fit">
             {consumers.map(c => (
               <button
                 key={c.id}
                 onClick={() => setActiveStudentId(c.id)}
-                className={`px-5 py-2 rounded-full font-bold text-sm transition-all duration-300 ${
+                className={`flex-1 md:flex-none px-6 py-3 rounded-2xl md:rounded-full font-black text-xs sm:text-sm transition-all duration-300 min-h-[44px] ${
                   activeStudentId === c.id
-                    ? 'bg-[#7CB9E8] text-white shadow'
-                    : 'text-[#8aa8cc] hover:text-[#004B87]'
+                    ? 'bg-[#7CB9E8] text-white shadow-md scale-[1.02]'
+                    : 'text-[#8aa8cc] hover:text-[#004B87] hover:bg-slate-50'
                 }`}
               >
                 {c.first_name} {c.last_name}
