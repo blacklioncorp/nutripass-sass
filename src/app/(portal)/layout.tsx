@@ -1,20 +1,50 @@
 import { Calendar, Users, Bell, Settings, Utensils } from 'lucide-react';
 import BottomNav from '@/components/portal/BottomNav';
+import { createClient } from '@/utils/supabase/server';
 
-export default function PortalLayout({
+export default async function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  let schoolBranding = null;
+  if (user) {
+    // Fetch the school data of the first linked child
+    const { data: consumer } = await supabase
+      .from('consumers')
+      .select('schools(name, logo_url, primary_color)')
+      .eq('parent_id', user.id)
+      .limit(1)
+      .single();
+      
+    if (consumer && consumer.schools) {
+      schoolBranding = consumer.schools as any;
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-blue-50 p-4 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 text-[#3b82f6] h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border border-blue-200">
-              <Utensils className="h-5 w-5" />
+            {schoolBranding?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={schoolBranding.logo_url} alt="Logo de la Escuela" className="h-10 w-auto object-contain drop-shadow-sm" />
+            ) : (
+              <div className="bg-blue-100 text-[#3b82f6] h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border border-blue-200">
+                <Utensils className="h-5 w-5" />
+              </div>
+            )}
+            <div>
+               {schoolBranding?.name ? (
+                 <h2 className="text-[#004B87] text-lg font-black tracking-tight leading-none">Cafetería <br/><span className="text-slate-500 font-medium text-sm">{schoolBranding.name}</span></h2>
+               ) : (
+                 <h2 className="text-[#004B87] text-xl font-black tracking-tight">NutriPass <span className="text-slate-400 font-medium">Padres</span></h2>
+               )}
             </div>
-            <h2 className="text-[#004B87] text-xl font-black tracking-tight">NutriPass <span className="text-slate-400 font-medium">Padres</span></h2>
           </div>
           <div className="hidden md:flex gap-10 items-center text-[#004B87] font-black text-sm uppercase tracking-widest">
             <a href="/parent/preorders" className="hover:text-[#3b82f6] transition-all flex items-center gap-2.5 group">
@@ -41,7 +71,7 @@ export default function PortalLayout({
           </div>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-10 max-w-6xl mx-auto w-full pt-8 pb-32 md:pb-10">
+      <main className="flex-1 p-4 md:p-10 max-w-6xl mx-auto w-full pt-8 pb-48 md:pb-10">
         {children}
       </main>
 

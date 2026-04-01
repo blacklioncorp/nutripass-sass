@@ -43,7 +43,14 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
       .lte('date', fridayIso),
   ]);
 
-  // Count pre_orders for this week - either linked to a menu of this week or with order_date in this range
+  // Get all consumer IDs for this school to properly scope pre-order counts
+  const { data: schoolConsumers } = await adminClient
+    .from('consumers')
+    .select('id')
+    .eq('school_id', schoolId);
+  const consumerIds = (schoolConsumers || []).map(c => c.id);
+
+  // Count pre_orders for this week scoped to this school's consumers
   const menuIds = (dbMenus || []).map(m => m.id);
   
   let realCount = 0;
@@ -56,18 +63,28 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
     realCount += byMenu ?? 0;
   }
 
-  // Also count snack orders by order_date in this week
-  const { count: byDate } = await adminClient
-    .from('pre_orders')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'paid')
-    .not('product_id', 'is', null)
-    .gte('order_date', mondayIso)
-    .lte('order_date', fridayIso);
-  realCount += byDate ?? 0;
+  // Count snack orders: use created_at range since order_date is NULL for snacks created before the migration
+  if (consumerIds.length > 0) {
+    const weekStartISO = mondayIso + 'T00:00:00.000Z';
+    const weekEndISO = fridayIso + 'T23:59:59.999Z';
+    const { count: byDate } = await adminClient
+      .from('pre_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'paid')
+      .not('product_id', 'is', null)
+      .in('consumer_id', consumerIds)
+      .or(`order_date.gte.${mondayIso},and(order_date.is.null,created_at.gte.${weekStartISO})`)
+      .lte('created_at', weekEndISO);
+    realCount += byDate ?? 0;
+  }
 
   // Use DB data or empty array
   const initialMenus: DailyMenu[] = (dbMenus as DailyMenu[]) || [];
+
+  // Get average combo price from this week's menus (fallback to 70)
+  const avgComboPrice = dbMenus && dbMenus.length > 0
+    ? (dbMenus as any[]).reduce((sum, m) => sum + Number(m.combo_price ?? 70), 0) / dbMenus.length
+    : 70;
 
   return (
     <div className="space-y-8">
@@ -91,12 +108,12 @@ export default async function MenuRoute(props: { searchParams?: Promise<{ date?:
         <div className="bg-white border border-[#e8f0f7] rounded-2xl px-6 py-4 shadow-sm flex items-center gap-5 text-sm">
           <div className="text-center">
             <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Precio Combo</p>
-            <p className="text-[#004B87] font-black text-xl">$70.00</p>
+            <p className="text-[#004B87] font-black text-xl">${avgComboPrice.toFixed(2)}</p>
           </div>
           <div className="w-px h-8 bg-[#e8f0f7]" />
           <div className="text-center">
             <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Pre-órdenes</p>
-            <p className="text-[#004B87] font-black text-xl">{realCount ?? 0}</p>
+            <p className="text-[#004B87] font-black text-xl">{realCount}</p>
           </div>
         </div>
       </div>

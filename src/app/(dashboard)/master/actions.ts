@@ -17,6 +17,7 @@ export async function createSchoolWithAdmin(prevState: any, formData: FormData) 
   const adminName = formData.get('adminName') as string;
   const adminEmail = formData.get('adminEmail') as string;
   const adminPassword = formData.get('adminPassword') as string;
+  const commissionPercentage = parseFloat(formData.get('commissionPercentage') as string) || 5.0;
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { error: 'Falta configurar SUPABASE_SERVICE_ROLE_KEY en las variables de entorno.' };
@@ -26,7 +27,13 @@ export async function createSchoolWithAdmin(prevState: any, formData: FormData) 
     // 1. Create School
     const { data: school, error: schoolErr } = await supabaseAdmin
       .from('schools')
-      .insert({ name: schoolName, subdomain, primary_color: '#7CB9E8', secondary_color: '#004B87' })
+      .insert({ 
+        name: schoolName, 
+        subdomain, 
+        primary_color: '#7CB9E8', 
+        secondary_color: '#004B87',
+        commission_percentage: commissionPercentage
+      })
       .select()
       .single();
 
@@ -92,4 +99,14 @@ export async function stopImpersonation() {
   const cookieStore = await cookies();
   cookieStore.delete('impersonated_school_id');
   redirect('/master');
+}
+export async function updateSchoolCommission(schoolId: string, newPercentage: number) {
+  const { error } = await supabaseAdmin
+    .from('schools')
+    .update({ commission_percentage: newPercentage })
+    .eq('id', schoolId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/master');
+  return { success: true };
 }

@@ -24,6 +24,8 @@ type CartItem = {
   category?: string;
   cartKey: string;        // unique: `combo-${menuId}` or `snack-${productId}-${date}`
   nutriPoints?: number;
+  specialInstructions?: string;
+  hasAllergyOverride?: boolean;
 };
 
 type DailyMenu = {
@@ -81,7 +83,7 @@ const DAY_NAMES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE'];
 const CATEGORY_EMOJIS: Record<string, string> = {
   snack: '🥨',
   bebida: '🥤',
-  comedor: '🍲',
+  comedor: '🍲', // Technically Desayuno now
 };
 
 function getWeekRange(baseDate: Date) {
@@ -154,12 +156,16 @@ export default function PreordersClient({
   const [isValidatingAllergens, setIsValidatingAllergens] = useState(false);
   const [allergenWarnings, setAllergenWarnings] = useState<string[]>([]);
   const [isWarningOpen, setIsWarningOpen] = useState(false);
+  const [isAllergyOverrideMode, setIsAllergyOverrideMode] = useState(false);
 
   // Active consumer
   const activeConsumer = useMemo<Consumer | undefined>(
     () => (initialConsumers as Consumer[]).find(c => c.id === activeStudentId) ?? (initialConsumers[0] as Consumer),
     [initialConsumers, activeStudentId]
   );
+  
+  // School White-labeling Color
+  const schoolPrimaryColor = (activeConsumer as any)?.schools?.primary_color || '#10b981';
 
   // Week window
   const { monday, friday } = useMemo(() => {
@@ -230,7 +236,7 @@ export default function PreordersClient({
     const dayName = d.toLocaleDateString('es-MX', { weekday: 'short' });
     setCart(prev => [...prev, {
       id: menu.id,
-      name: menu.main_course_name ? `Combo ${dayName}` : 'Menú del Día',
+      name: menu.main_course_name ? `Desayuno ${dayName}` : 'Menú del Día',
       price,
       date: menu.date,
       walletType: 'comedor',
@@ -305,6 +311,8 @@ export default function PreordersClient({
             walletType: i.walletType,
             sourceType: i.sourceType,
             nutriPoints: i.nutriPoints,
+            specialInstructions: i.specialInstructions,
+            hasAllergyOverride: i.hasAllergyOverride,
           }))
         );
 
@@ -399,7 +407,7 @@ export default function PreordersClient({
             <Utensils className="h-5 w-5 text-[#004B87]" />
           </div>
           <div>
-            <h2 className="font-black text-[#004B87] text-xl leading-tight">Combos Nutricionales del Día</h2>
+            <h2 className="font-black text-[#004B87] text-xl leading-tight">Desayunos Nutricionales del Día</h2>
             <p className="text-[#7CB9E8] text-sm font-medium">Débito de Billetera <span className="font-black">Comedor</span></p>
           </div>
         </div>
@@ -422,14 +430,14 @@ export default function PreordersClient({
             return (
               <div
                 key={dateStr}
-                className={`relative rounded-3xl border-2 overflow-hidden transition-all duration-300 flex flex-col ${
+                className={`relative rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col shadow-sm hover:shadow-md ${
                   isAlreadyPaid
-                    ? 'border-emerald-400 bg-emerald-50 opacity-85'
+                    ? 'border-emerald-200 bg-emerald-50/50 opacity-85'
                     : isInCart
-                    ? 'border-[#004B87] bg-[#004B87]/5 shadow-lg -translate-y-1'
+                    ? 'border-[#004B87] bg-[#004B87]/5 shadow-md -translate-y-1'
                     : menu
-                    ? 'border-[#e8f0f7] bg-white hover:border-[#7CB9E8] hover:shadow'
-                    : 'border-dashed border-[#e8f0f7] bg-[#fafbfd]'
+                    ? 'border-slate-100 bg-white hover:border-slate-200'
+                    : 'border-dashed border-slate-200 bg-slate-50'
                 }`}
               >
                 {/* Day header */}
@@ -541,7 +549,7 @@ export default function PreordersClient({
                     : 'text-[#8aa8cc] hover:text-[#004B87]'
                 }`}
               >
-                {cat === 'all' ? 'Todos' : cat === 'snack' ? '🥨 Snacks' : cat === 'bebida' ? '🥤 Bebidas' : '🍲 Comedor'}
+                {cat === 'all' ? 'Todos' : cat === 'snack' ? '🥨 Snacks' : cat === 'bebida' ? '🥤 Bebidas' : '🍲 Desayuno'}
               </button>
             ))}
           </div>
@@ -570,7 +578,7 @@ export default function PreordersClient({
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-3xl border border-[#e8f0f7] shadow-sm hover:shadow-md hover:border-amber-300 transition-all duration-200 overflow-hidden flex flex-col group"
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-300 overflow-hidden flex flex-col group"
                 >
                   {/* Product image */}
                   <div className="h-28 bg-[#f0f5fb] relative overflow-hidden flex-shrink-0">
@@ -603,7 +611,7 @@ export default function PreordersClient({
 
                     {/* Category badge */}
                     <div className="absolute bottom-2 left-2 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      {product.category}
+                      {product.category === 'comedor' ? 'desayuno' : product.category}
                     </div>
                   </div>
 
@@ -649,7 +657,8 @@ export default function PreordersClient({
                         <button
                           onClick={() => !isOutOfStock && setSnackDateTarget(product)}
                           disabled={isOutOfStock}
-                          className="bg-amber-500 hover:bg-amber-600 border-b-2 border-amber-700 disabled:bg-slate-100 disabled:text-slate-300 disabled:border-none text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95"
+                          style={{ backgroundColor: isOutOfStock ? undefined : schoolPrimaryColor }}
+                          className="disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-300 shadow hover:opacity-90 text-white text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 transition-opacity active:scale-95"
                         >
                           <Plus className="h-3 w-3" />
                           Añadir
@@ -678,8 +687,8 @@ export default function PreordersClient({
 
       {/* ── Floating Cart Bar ── */}
       {cart.length > 0 && !isCheckoutOpen && (
-        <div className="fixed bottom-[100px] md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-[#004B87] text-white rounded-full shadow-2xl shadow-blue-900/30 flex items-center gap-3 pl-5 pr-2 py-2 border border-white/10 backdrop-blur-sm">
+        <div className="fixed bottom-32 md:bottom-6 left-1/2 -translate-x-1/2 z-[90] animate-in slide-in-from-bottom-4 duration-300 w-full max-w-[95%] sm:max-w-max">
+          <div className="bg-[#004B87] text-white rounded-full shadow-2xl shadow-blue-900/40 flex items-center justify-between sm:justify-center gap-3 pl-5 pr-2 py-2 border border-white/10 backdrop-blur-sm mx-auto">
             <div className="relative">
               <ShoppingCart className="h-5 w-5 text-white" />
               <span className="absolute -top-2 -right-2 bg-amber-400 text-[#004B87] text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">
@@ -711,7 +720,8 @@ export default function PreordersClient({
             <button
               onClick={handleOpenCheckout}
               disabled={isValidatingAllergens}
-              className="bg-[#F4C430] hover:bg-amber-400 disabled:opacity-50 text-[#004B87] font-black text-sm px-5 py-2.5 rounded-full transition-all active:scale-95 ml-1 whitespace-nowrap flex items-center gap-2"
+              style={{ backgroundColor: isValidatingAllergens ? undefined : schoolPrimaryColor }}
+              className="disabled:opacity-50 disabled:bg-slate-300 hover:opacity-90 shadow-lg text-white font-black text-sm px-5 py-2.5 rounded-full transition-opacity active:scale-95 ml-1 whitespace-nowrap flex items-center gap-2"
             >
               {isValidatingAllergens ? (
                 <>
@@ -741,32 +751,78 @@ export default function PreordersClient({
               </p>
             </div>
 
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
-              <p className="text-xs font-black uppercase tracking-widest text-rose-800">Riesgos Identificados (IA)</p>
-              <ul className="list-disc list-inside space-y-2 text-rose-700 text-sm font-bold">
-                {allergenWarnings.map((w, idx) => (
-                  <li key={idx} className="leading-snug">{w}</li>
-                ))}
-              </ul>
-            </div>
+            {isAllergyOverrideMode ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-4 space-y-3">
+                <p className="text-sm font-black uppercase tracking-widest text-[#004B87]">Términos de Excepción</p>
+                <p className="text-[#004B87] text-sm font-medium">
+                  Has decidido solicitar los productos omitiendo el ingrediente o alérgeno detectado.
+                </p>
+                <div className="flex items-start gap-3 mt-4">
+                  <input type="checkbox" id="liability" className="mt-1 h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" required />
+                  <label htmlFor="liability" className="text-sm font-bold text-amber-900 leading-snug">
+                    "Asumo la responsabilidad de solicitar la preparación especial de este producto para {activeConsumer.first_name}."
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-black uppercase tracking-widest text-rose-800">Riesgos Identificados (IA)</p>
+                <ul className="list-disc list-inside space-y-2 text-rose-700 text-sm font-bold">
+                  {allergenWarnings.map((w, idx) => (
+                    <li key={idx} className="leading-snug">{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setIsWarningOpen(false);
-                  setIsCheckoutOpen(true);
-                }}
-                className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-lg py-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-3"
-              >
-                IGNORAR ALERTA Y PAGAR
-              </button>
-              <button
-                onClick={() => setIsWarningOpen(false)}
-                className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg"
-              >
-                MODIFICAR CARRITO (Recomendado)
-              </button>
-            </div>
+            {isAllergyOverrideMode ? (
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    const cb = document.getElementById('liability') as HTMLInputElement;
+                    if (!cb.checked) return alert("Debes aceptar la responsabilidad para continuar.");
+                    
+                    // Modificar el carrito para inyectar las notas
+                    setCart(prev => prev.map(item => ({
+                      ...item,
+                      hasAllergyOverride: true,
+                      specialInstructions: "⚠️ PREPARAR SIN: Alérgenos marcados (Alerta Omitida por el Padre)"
+                    })));
+
+                    setIsWarningOpen(false);
+                    setIsAllergyOverrideMode(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="w-full bg-[#004B87] hover:bg-[#003865] text-white font-black text-lg py-4 rounded-xl shadow-lg transition-all"
+                >
+                  Confirmar y Continuar al Carrito
+                </button>
+                <button
+                  onClick={() => setIsAllergyOverrideMode(false)}
+                  className="w-full text-[#8aa8cc] font-bold py-3 hover:text-[#004B87] transition"
+                >
+                  Volver a Alertas
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setIsWarningOpen(false);
+                    setCart([]); // Clear cart to simulate cancelling entirely
+                  }}
+                  className="w-full border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-3"
+                >
+                  ❌ Cancelar Producto
+                </button>
+                <button
+                  onClick={() => setIsAllergyOverrideMode(true)}
+                  className="w-full bg-rose-500 text-white font-black py-4 rounded-xl hover:bg-rose-600 transition shadow-lg flex items-center justify-center gap-2"
+                >
+                  ⚠️ Solicitar SIN Alérgenos
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -781,6 +837,7 @@ export default function PreordersClient({
           comedorBalance={parseFloat(String(comedorWallet?.balance ?? 0))}
           snackBalance={parseFloat(String(snackWallet?.balance ?? 0))}
           consumerName={activeConsumer.first_name}
+          schoolLogoUrl={(activeConsumer as any).schools?.logo_url}
           isProcessing={isPending}
           status={checkoutStatus}
           errorMessage={checkoutError}
@@ -906,6 +963,7 @@ function CheckoutModal({
   comedorBalance,
   snackBalance,
   consumerName,
+  schoolLogoUrl,
   isProcessing,
   status,
   errorMessage,
@@ -919,6 +977,7 @@ function CheckoutModal({
   comedorBalance: number;
   snackBalance: number;
   consumerName: string;
+  schoolLogoUrl?: string;
   isProcessing: boolean;
   status: 'idle' | 'success' | 'error';
   errorMessage: string;
@@ -940,10 +999,17 @@ function CheckoutModal({
         {/* ── Success State ── */}
         {status === 'success' && (
           <div className="p-10 text-center">
-            <div className="h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-emerald-100 ring-offset-4">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
-            </div>
-            <h2 className="text-3xl font-black text-[#004B87] mb-2">¡Pre-venta Confirmada!</h2>
+            {schoolLogoUrl ? (
+              <div className="h-24 flex items-center justify-center mx-auto mb-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={schoolLogoUrl} alt="Colegio" className="h-24 w-auto object-contain drop-shadow-sm" />
+              </div>
+            ) : (
+              <div className="h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-emerald-100 ring-offset-4">
+                <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+              </div>
+            )}
+            <h2 className="text-3xl font-black text-[#004B87] mb-2">¡Recibo Digital!</h2>
             <p className="text-[#7CB9E8] font-medium mb-8">
               Los alimentos de <span className="font-black text-[#004B87]">{consumerName}</span> están reservados y los saldos fueron debitados.
             </p>
@@ -1018,9 +1084,14 @@ function CheckoutModal({
                         {formatDateLong(item.date)}
                         {' · '}
                         <span className={`font-black uppercase ${item.walletType === 'comedor' ? 'text-[#7CB9E8]' : 'text-amber-500'}`}>
-                          {item.sourceType === 'daily_menu' ? 'COMEDOR' : (item.category ?? 'PRODUCTO')}
+                          {item.sourceType === 'daily_menu' || item.category === 'comedor' ? 'DESAYUNO' : (item.category ?? 'PRODUCTO')}
                         </span>
                       </p>
+                      {item.specialInstructions && (
+                        <p className="text-[10px] text-rose-500 font-bold leading-tight mt-1 bg-rose-50 px-2 py-0.5 rounded-md inline-block">
+                          {item.specialInstructions}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <span className="font-black text-[#004B87] text-sm flex-shrink-0 ml-3">
@@ -1097,7 +1168,8 @@ function CheckoutModal({
               <button
                 onClick={onConfirm}
                 disabled={!canProceed}
-                className="w-full bg-[#004B87] hover:bg-[#003a6b] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 active:scale-95"
+                style={{ backgroundColor: canProceed ? (schoolLogoUrl ? '#004B87' : '#10b981') : undefined }}
+                className="w-full disabled:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
               >
                 {isProcessing ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Procesando...</>

@@ -21,8 +21,9 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   const base_price = parseFloat(formData.get('basePrice') as string);
   const stock_quantity = parseInt(formData.get('stockQuantity') as string) || 0;
   const nutri_points_reward = parseInt(formData.get('nutriPoints') as string) || 0;
+  const image_url = formData.get('imageUrl') as string;
 
-  const showsStock = category === 'snack' || category === 'bebida';
+  const showsStock = true; // All categories now have stock management
 
   // ── AI ALLERGEN DETECTION ──────────────────────────────────────────────
   let detectedAllergens: string[] = [];
@@ -54,7 +55,7 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   }
   // ───────────────────────────────────────────────────────────────────────
 
-  const payload = {
+  const payload: any = {
     school_id: profile.school_id,
     name,
     description,
@@ -65,6 +66,10 @@ export async function upsertProduct(prevState: any, formData: FormData) {
     allergens: detectedAllergens,
     is_available: true
   };
+
+  if (image_url) {
+    payload.image_url = image_url;
+  }
 
   // Use adminClient so school_admin RLS doesn't block insert on products
   const { createAdminClient } = await import('@/utils/supabase/server');

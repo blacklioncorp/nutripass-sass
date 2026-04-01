@@ -12,7 +12,7 @@ export default async function PreordersRoute() {
   // 1. Get ALL linked consumers
   let { data: consumers } = await supabase
     .from('consumers')
-    .select('*, wallets(*)')
+    .select('*, wallets(*), schools(name, logo_url, primary_color)')
     .eq('parent_id', user.id)
     .order('first_name');
 

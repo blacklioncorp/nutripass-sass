@@ -3,6 +3,8 @@
 import { useActionState, useState, useEffect } from 'react';
 import { upsertProduct } from '@/app/(dashboard)/school/productActions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import UnsplashSelector from './UnsplashSelector';
+import { X, Package } from 'lucide-react';
 
 export default function ProductFormModal({ product }: { product?: any }) {
   const [open, setOpen] = useState(false);
@@ -10,6 +12,8 @@ export default function ProductFormModal({ product }: { product?: any }) {
   
   // Reactivity for category
   const [category, setCategory] = useState(product?.category || 'comedor');
+  // State for image
+  const [imageUrl, setImageUrl] = useState(product?.image_url || '');
 
   useEffect(() => {
     if (state?.success) {
@@ -17,7 +21,7 @@ export default function ProductFormModal({ product }: { product?: any }) {
     }
   }, [state]);
 
-  const showsStock = category === 'snack' || category === 'bebida';
+  const showsStock = true; // category === 'snack' || category === 'bebida';
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -70,10 +74,36 @@ export default function ProductFormModal({ product }: { product?: any }) {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-lg bg-white"
               >
-                <option value="comedor">Comedor (Preparado)</option>
+                <option value="comedor">Desayuno (Preparado)</option>
                 <option value="snack">Snack (Empaquetado)</option>
                 <option value="bebida">Bebida</option>
               </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Foto del Producto (Unsplash)</label>
+            <input type="hidden" name="imageUrl" value={imageUrl} />
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              {imageUrl ? (
+                <div className="h-24 w-full sm:w-36 relative rounded-lg overflow-hidden border-2 border-[#f4c430] shrink-0 shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setImageUrl('')} className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-500 text-white p-1 rounded-full text-xs flex items-center justify-center transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-24 w-full sm:w-36 rounded-lg bg-white border border-dashed border-slate-300 flex items-center justify-center shrink-0">
+                  <Package className="h-8 w-8 text-slate-300" />
+                </div>
+              )}
+              
+              <div className="flex-1 w-full">
+                <UnsplashSelector onSelect={(url) => setImageUrl(url)} />
+                <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-wide leading-tight">Busca y selecciona una foto profesional libre de derechos para hacer tu producto más atractivo en el portal.</p>
+              </div>
             </div>
           </div>
 

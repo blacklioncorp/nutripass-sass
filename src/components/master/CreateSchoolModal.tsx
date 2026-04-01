@@ -49,6 +49,19 @@ export default function CreateSchoolModal() {
               <span className="bg-slate-100 p-2 border border-l-0 rounded-r-lg text-slate-500">.nutripass.com</span>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Comisión Negociada (%)</label>
+            <input 
+              type="number"
+              name="commissionPercentage" 
+              required 
+              defaultValue="5.0"
+              step="0.1"
+              min="0"
+              max="100"
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
 
           <div className="pt-4 border-t">
             <h3 className="font-bold text-slate-900 mb-2">Administrador Principal</h3>

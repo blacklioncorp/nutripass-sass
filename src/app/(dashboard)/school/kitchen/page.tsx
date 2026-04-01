@@ -16,18 +16,40 @@ export default async function KitchenReportPage() {
     );
   }
 
-  // Step 1: Fetch orders with daily_menus and consumers (these FKs exist)
-  const { data: orders, error } = await supabase
+  // Use adminClient to bypass RLS properly
+  const { createAdminClient } = await import('@/utils/supabase/server');
+  const adminClient = await createAdminClient();
+
+  // Step 0: Get all consumer IDs for this school to scope results
+  const { data: schoolConsumers } = await adminClient
+    .from('consumers')
+    .select('id')
+    .eq('school_id', schoolId);
+  const consumerIds = (schoolConsumers || []).map((c: any) => c.id);
+
+  if (consumerIds.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <p className="text-2xl font-black text-[#1a3a5c] mb-2">Sin Alumnos</p>
+        <p className="text-[#8aa8cc]">Registra alumnos primero para ver órdenes de cocina.</p>
+      </div>
+    );
+  }
+
+  // Step 1: Fetch orders for THIS school's consumers only
+  const { data: orders, error } = await adminClient
     .from('pre_orders')
     .select(`
       id, 
       status, 
       order_date,
+      created_at,
       daily_menu_id,
       product_id,
       daily_menus ( id, date, soup_name, main_course_name, side_dish_name, dessert_name, drink_name ),
       consumers ( first_name, last_name, allergies )
     `)
+    .in('consumer_id', consumerIds)
     .eq('status', 'paid')
     .order('created_at', { ascending: true });
 
@@ -50,8 +72,12 @@ export default async function KitchenReportPage() {
 
   orders?.forEach(order => {
     // Determine the date for this item
-    const date = order.order_date || (order.daily_menus as any)?.date;
-    if (!date) return;
+    // Fallback chain: order_date → daily_menus.date → created_at (handles NULL order_date for snacks)
+    const rawDate = (order as any).order_date
+      || (order.daily_menus as any)?.date
+      || (order as any).created_at?.split('T')[0];
+    if (!rawDate) return;
+    const date = rawDate;
 
     if (!groupedTasks[date]) groupedTasks[date] = [];
     

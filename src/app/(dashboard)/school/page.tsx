@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import SendReminderButton from '@/components/school/SendReminderButton';
+import { createAdminClient } from '@/utils/supabase/server';
 
 export default async function SchoolDashboardPage() {
   const supabase = await createClient();
@@ -16,6 +17,27 @@ export default async function SchoolDashboardPage() {
   }
 
   // ── Real DB queries, all scoped to this school ────────────────────────────
+  const adminClient = await createAdminClient();
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  // Step 1: Get all consumer IDs for this school (students + staff)
+  const { data: schoolConsumers } = await adminClient
+    .from('consumers')
+    .select('id')
+    .eq('school_id', schoolId);
+
+  const consumerIds = schoolConsumers?.map(c => c.id) ?? [];
+
+  // Step 2: Get all wallet IDs for those consumers (pre-order txns only have wallet_id)
+  const { data: schoolWallets } = consumerIds.length > 0
+    ? await adminClient
+        .from('wallets')
+        .select('id')
+        .in('consumer_id', consumerIds)
+    : { data: [] };
+
+  const walletIds = schoolWallets?.map(w => w.id) ?? [];
+
   const [
     { count: studentsCount },
     { count: staffCount },
@@ -32,21 +54,29 @@ export default async function SchoolDashboardPage() {
       .select('*', { count: 'exact', head: true })
       .eq('school_id', schoolId)
       .eq('type', 'staff'),
-    supabase
-      .from('transactions')
-      .select('amount')
-      .eq('school_id', schoolId) // Added school_id filter
-      .gte('created_at', new Date().toISOString().split('T')[0])
-      .order('created_at', { ascending: false })
-      .limit(200),
-    supabase
-      .from('daily_menus')
-      .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId)
-      .eq('date', new Date().toISOString().split('T')[0]),
+    // Fetch today's debit transactions via wallet_ids (covers pre-orders + POS)
+    walletIds.length > 0
+      ? adminClient
+          .from('transactions')
+          .select('amount')
+          .in('wallet_id', walletIds)
+          .eq('type', 'debit')
+          .gte('created_at', todayIso)
+          .order('created_at', { ascending: false })
+          .limit(500)
+      : Promise.resolve({ data: [] }),
+    // Count pre_orders with today's order_date for this school
+    consumerIds.length > 0
+      ? adminClient
+          .from('pre_orders')
+          .select('*', { count: 'exact', head: true })
+          .in('consumer_id', consumerIds)
+          .eq('order_date', todayIso)
+          .eq('status', 'paid')
+      : Promise.resolve({ count: 0 }),
   ]);
 
-  const todaySales = todayTxs?.reduce((sum, t) => sum + (t.amount || 0), 0) ?? 0;
+  const todaySales = todayTxs?.reduce((sum, t) => sum + (Math.abs(t.amount) || 0), 0) ?? 0;
 
   const kpis = [
     { label: 'ESTUDIANTES', value: studentsCount ?? 0, icon: '👤' },

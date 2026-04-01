@@ -3,30 +3,33 @@
   "middleware": {
     "/": {
       "files": [
-        "server/edge-runtime-webpack.js",
-        "server/src/middleware.js"
+        "server/edge/chunks/Documents_NUTRIPASS_nutripass-sass_43c4b9df._.js",
+        "server/edge/chunks/24453_@supabase_auth-js_dist_module_ce719de8._.js",
+        "server/edge/chunks/24453_bcde7519._.js",
+        "server/edge/chunks/[root-of-the-server]__3778a2fa._.js",
+        "server/edge/chunks/turbopack-Documents_NUTRIPASS_nutripass-sass_edge-wrapper_407570a3.js"
       ],
-      "name": "src/middleware",
+      "name": "middleware",
       "page": "/",
       "matchers": [
         {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json)?[\\/#\\?]?$",
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\\\.json)?[\\/#\\?]?$",
           "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
         }
       ],
       "wasm": [],
       "assets": [],
       "env": {
-        "__NEXT_BUILD_ID": "g3rWhUGjr88EwsrEar2_8",
+        "__NEXT_BUILD_ID": "development",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "2IqVxM34AjOOXcMcuLtUmpCWvKWEUiUqRVnmlfB1LMo=",
-        "__NEXT_PREVIEW_MODE_ID": "4b2b6f18d02d2cc977840faf567364a3",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "9a8dfc692d18a3b9f51bbd2e3854bdc3e52035e4e9c58b3fc1fc74c5665296ed",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "15aeab36ac2466247e1e22c66d92b1c9d2a6d9d252f14f4dd538efa871742b9a"
+        "__NEXT_PREVIEW_MODE_ID": "2da5aa315e28ea82725458b28543b960",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "af27c1229ab2073243ce368bf27f77baeedfd9d63899548f396aac5923227890",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "19552c93c765ecf616f78dc62314502540122fefe752e9512e0cac8a359d597c"
       }
     }
   },
-  "functions": {},
   "sortedMiddleware": [
     "/"
-  ]
+  ],
+  "functions": {}
 }
