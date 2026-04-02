@@ -5,13 +5,29 @@ import { revalidatePath } from 'next/cache';
 
 export async function updateAllergies(consumerId: string, allergies: string[]) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { error } = await supabase
+  if (!user) throw new Error('No autenticado. Por favor inicia sesión.');
+
+  // 1. Verify the consumer belongs to this parent
+  const { data: consumer, error: fetchErr } = await supabase
+    .from('consumers')
+    .select('id')
+    .eq('id', consumerId)
+    .eq('parent_id', user.id)
+    .single();
+
+  if (fetchErr || !consumer) {
+    throw new Error('Alumno no encontrado o sin permisos para esta cuenta.');
+  }
+
+  // 2. Perform strictly isolated update
+  const { error: updateErr } = await supabase
     .from('consumers')
     .update({ allergies })
     .eq('id', consumerId);
 
-  if (error) throw new Error(error.message);
+  if (updateErr) throw new Error(updateErr.message);
 
   revalidatePath('/parent');
 }

@@ -531,7 +531,7 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
           {/* Right: Nutri-Puntos + Salud */}
           <div className="space-y-5">
             <NutriPuntosCard consumer={activeConsumer} />
-            <AllergyCard consumer={activeConsumer} />
+            <AllergyCard key={activeConsumer.id} consumer={activeConsumer} />
 
             {/* How it works */}
             <div className="bg-[#f0f5fb] rounded-2xl p-6 border border-[#e8f0f7]">

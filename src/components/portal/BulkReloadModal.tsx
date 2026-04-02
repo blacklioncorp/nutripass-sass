@@ -248,19 +248,19 @@ export default function BulkReloadModal({
               <span>${fee.toFixed(2)}</span>
             </div>
             <div className="h-px bg-slate-800" />
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-center sm:text-left">
-                <p className="text-xs font-bold text-primary uppercase tracking-widest text-center sm:text-left">total a pagar</p>
-                <p className="text-4xl font-black">${total.toFixed(2)}</p>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+              <div className="text-center sm:text-left w-full sm:w-auto">
+                <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em]">total a pagar</p>
+                <p className="text-4xl font-black tabular-nums">${total.toFixed(2)}</p>
               </div>
               <button
                 onClick={handleStartReload}
                 disabled={isGettingIntent || allocations.length === 0}
-                className="w-full sm:w-auto bg-primary hover:bg-blue-600 text-white font-black px-8 py-5 rounded-2xl transition disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2 min-h-[56px]"
+                className="w-full sm:w-auto bg-primary hover:bg-blue-600 active:bg-blue-700 text-white font-black px-10 py-5 rounded-2xl transition disabled:opacity-50 active:scale-95 flex items-center justify-center gap-3 min-h-[64px] shadow-lg shadow-blue-500/20"
               >
                 {isGettingIntent
-                  ? <RefreshCcw className="h-5 w-5 animate-spin" />
-                  : <><CreditCard className="h-5 w-5" /> Ir a Pagar</>}
+                  ? <RefreshCcw className="h-6 w-6 animate-spin" />
+                  : <><CreditCard className="h-6 w-6" /> <span className="uppercase tracking-widest text-xs">Pagar ahora</span></>}
               </button>
             </div>
           </div>

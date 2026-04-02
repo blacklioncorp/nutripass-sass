@@ -21,7 +21,7 @@ export default function BottomNav() {
     },
     {
       label: 'Notificaciones',
-      href: '#notifications',
+      href: '/parent/notificaciones',
       icon: Bell,
       hasBadge: true,
     },

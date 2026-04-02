@@ -71,7 +71,7 @@ export default async function PortalLayout({
           </div>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-10 max-w-6xl mx-auto w-full pt-8 pb-48 md:pb-10">
+      <main className="flex-1 p-4 md:p-10 max-w-6xl mx-auto w-full pt-8 pb-44 md:pb-10">
         {children}
       </main>
 

@@ -32,7 +32,7 @@ export default function MasterSidebar() {
           const isActive = pathname === item.href || (item.href !== '/master' && pathname.startsWith(item.href));
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm group ${
                 isActive
