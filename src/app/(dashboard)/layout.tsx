@@ -71,7 +71,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#f0f5fb] flex flex-col md:flex-row">
-      <SchoolSidebar schoolName={schoolName} />
+      <SchoolSidebar schoolName={schoolName} role={role} />
       <div className="flex-1 flex flex-col">
         <header className="bg-white border-b border-[#e8f0f7] px-8 py-4 flex justify-between items-center sticky top-0 z-40">
           <div>

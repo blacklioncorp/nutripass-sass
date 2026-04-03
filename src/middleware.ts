@@ -3,7 +3,12 @@ import { updateSession } from '@/utils/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
   // Manejo de la sesión de Supabase y redirecciones de seguridad
-  return await updateSession(request)
+  const response = await updateSession(request)
+  
+  // Inject the current pathname into headers so Server Components can read it
+  response.headers.set('x-pathname', request.nextUrl.pathname)
+  
+  return response
 }
 
 export const config = {

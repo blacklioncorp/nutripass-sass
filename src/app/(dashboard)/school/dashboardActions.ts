@@ -1,9 +1,30 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+async function ensureAdmin() {
+  const supabase = await createClient();
+  const supabaseAdmin = await createAdminClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('No autenticado');
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'superadmin')) {
+    throw new Error('403 Unauthorized: Se requieren permisos de administrador');
+  }
+  
+  return { user, profile };
+}
+
 export async function sendMataMermasReminder(schoolId: string) {
+  await ensureAdmin();
   const supabase = await createClient();
 
   // 1. Get all students of this school

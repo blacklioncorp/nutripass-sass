@@ -127,6 +127,8 @@ type CartItemPayload = {
   walletType: 'comedor' | 'snack';
   sourceType: 'daily_menu' | 'product';
   nutriPoints?: number;
+  specialInstructions?: string;
+  hasAllergyOverride?: boolean;
 };
 
 export async function createPreOrderTransaction(
@@ -223,6 +225,8 @@ export async function createPreOrderTransaction(
             daily_menu_id: item.id,
             status: 'paid',
             order_date: item.date, // Store the intended consumption date
+            special_instructions: item.specialInstructions,
+            has_allergy_override: item.hasAllergyOverride,
           }))
         ))]
       : []),
@@ -235,6 +239,8 @@ export async function createPreOrderTransaction(
             product_id: item.id,
             status: 'paid',
             order_date: item.date,
+            special_instructions: item.specialInstructions,
+            has_allergy_override: item.hasAllergyOverride,
           }))
         ))]
       : []),

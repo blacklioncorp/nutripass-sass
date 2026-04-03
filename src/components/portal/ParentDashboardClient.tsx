@@ -155,6 +155,7 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
   const [input, setInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const handleAdd = () => {
     const trimmed = input.trim().toUpperCase();
@@ -169,6 +170,10 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
   };
 
   const handleSave = async () => {
+    if (!disclaimerAccepted) {
+      setError('Debes aceptar el descargo de responsabilidad médico para poder registrar a tu hijo.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -185,6 +190,8 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
   const handleCancel = () => {
     setAllergies(consumer.allergies || []);
     setInput('');
+    setDisclaimerAccepted(false);
+    setError('');
     setEditing(false);
   };
 
@@ -268,6 +275,26 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
               >
                 + Añadir
               </button>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="flex items-start gap-3 mt-4 mb-2 bg-[#f8fafd] p-4 rounded-xl border border-[#e8f0f7]">
+              <input 
+                type="checkbox" 
+                id={`disclaimer-${consumer.id}`}
+                checked={disclaimerAccepted}
+                onChange={(e) => {
+                  setDisclaimerAccepted(e.target.checked);
+                  if (e.target.checked && error === 'Debes aceptar el descargo de responsabilidad médico para poder registrar a tu hijo.') {
+                    setError('');
+                  }
+                }}
+                className="mt-1 flex-shrink-0 w-4 h-4 text-[#004B87] rounded focus:ring-[#7CB9E8] border-gray-300" 
+                required
+              />
+              <label htmlFor={`disclaimer-${consumer.id}`} className="text-sm text-gray-600 font-medium leading-snug">
+                Entiendo y acepto que NutriPass es exclusivamente una plataforma tecnológica de intermediación. Libero a NutriPass de cualquier responsabilidad médica, reacción alérgica o incidencia derivada de la preparación, manejo y consumo de los alimentos por parte de la cafetería escolar.
+              </label>
             </div>
 
             {/* Error */}

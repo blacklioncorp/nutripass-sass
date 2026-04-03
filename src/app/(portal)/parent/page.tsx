@@ -18,6 +18,7 @@ export type Transaction = {
   description: string;
   wallet_type?: string;
   created_at: string;
+  stripe_payment_intent_id?: string;
 };
 
 export type Consumer = {
@@ -130,7 +131,7 @@ export default async function ParentPortal() {
   const userEmail = user!.email ?? '';
   const needsOnboarding = !profile?.full_name;
 
-  // Fetch last 10 transactions for ALL children found
+  // Fetch last 20 transactions for ALL children found (fetching more to allow for grouping room)
   let transactions: Transaction[] = [];
   if (consumers && consumers.length > 0) {
     const walletIds = consumers.flatMap(c => c.wallets.map(w => w.id));
@@ -144,22 +145,50 @@ export default async function ParentPortal() {
           type, 
           description, 
           created_at,
+          stripe_payment_intent_id,
           wallets ( consumer_id, type )
         `)
         .in('wallet_id', walletIds)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
       
       if (txData) {
-        transactions = txData.map((tx: any) => ({
-          id: tx.id,
-          consumer_id: tx.wallets?.consumer_id,
-          amount: tx.type === 'debit' ? -Math.abs(tx.amount) : Math.abs(tx.amount),
-          transaction_type: tx.type,
-          description: tx.description || 'Transacción',
-          wallet_type: tx.wallets?.type,
-          created_at: tx.created_at
-        }));
+        // ─── Grouping Logic ───
+        // We group by stripe_payment_intent_id + consumer_id to unify 
+        // multi-wallet recharges (Comedor/Snacks) for the same student.
+        const txMap = new Map();
+        
+        txData.forEach((tx: any) => {
+          const cid = tx.wallets?.consumer_id;
+          // Only group credits with a stripe intent ID
+          const isStripeCredit = tx.type === 'credit' && tx.stripe_payment_intent_id;
+          const key = isStripeCredit ? `grouped-${tx.stripe_payment_intent_id}-${cid}` : tx.id;
+          
+          if (!txMap.has(key)) {
+            txMap.set(key, {
+              id: tx.id,
+              consumer_id: cid,
+              amount: 0,
+              transaction_type: tx.type,
+              description: tx.description || 'Transacción',
+              wallet_type: tx.wallets?.type,
+              created_at: tx.created_at,
+              stripe_payment_intent_id: tx.stripe_payment_intent_id
+            });
+          }
+          
+          const entry = txMap.get(key);
+          const val = tx.type === 'debit' ? -Math.abs(tx.amount) : Math.abs(tx.amount);
+          entry.amount += val;
+
+          // If grouping multiple wallets, update label
+          if (isStripeCredit && entry.wallet_type !== tx.wallets?.type) {
+             entry.wallet_type = 'Múltiple';
+             entry.description = 'Recarga Múltiple (Stripe)';
+          }
+        });
+
+        transactions = Array.from(txMap.values());
       }
     }
   }

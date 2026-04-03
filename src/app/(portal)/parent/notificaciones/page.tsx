@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
-import { Bell, Receipt, Clock, CheckCircle2, FileText, ChevronRight } from 'lucide-react';
+import { Bell, Receipt } from 'lucide-react';
+import ReceiptConsolidatedCard from '@/components/portal/ReceiptConsolidatedCard';
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -15,29 +16,56 @@ export default async function NotificationsPage() {
 
   const consumerIds = consumers?.map(c => c.id) || [];
 
-  // 2. Fetch transactions of type 'credit' (recharges)
+  // 2. Fetch transactions of type 'credit' (recharges) with joined info
+  // We use the exact join path found in the dashboard: wallets(type, consumers(first_name, last_name))
   const { data: transactions } = await supabase
     .from('transactions')
-    .select('*')
+    .select(`
+      *,
+      wallets (
+        type,
+        consumers (
+          first_name,
+          last_name
+        )
+      )
+    `)
     .in('consumer_id', consumerIds)
     .eq('transaction_type', 'credit')
     .order('created_at', { ascending: false });
 
-  // 3. Group by stripe_payment_intent_id to consolidate multi-student recharges
+  // 3. Group by stripe_payment_intent_id to consolidate multi-wallet recharges
   const receiptsMap = new Map();
 
   transactions?.forEach(tx => {
     const key = tx.stripe_payment_intent_id || `manual-${tx.id}`;
+    
+    // Extract info from joined data
+    const walletType = tx.wallets?.type || 'comedor';
+    const studentName = tx.wallets?.consumers 
+      ? `${tx.wallets.consumers.first_name} ${tx.wallets.consumers.last_name}`.trim()
+      : 'Estudiante';
+
     if (!receiptsMap.has(key)) {
       receiptsMap.set(key, {
         intentId: tx.stripe_payment_intent_id,
         amount: 0,
         createdAt: tx.created_at,
         description: tx.description || 'Recarga de Saldo',
-        status: 'success'
+        status: 'success',
+        representativeTransactionId: tx.id,
+        details: []
       });
     }
-    receiptsMap.get(key).amount += tx.amount;
+    
+    const entry = receiptsMap.get(key);
+    entry.amount += tx.amount;
+    entry.details.push({
+      id: tx.id,
+      student: studentName,
+      walletType: walletType,
+      amount: tx.amount
+    });
   });
 
   const receipts = Array.from(receiptsMap.values());
@@ -65,7 +93,7 @@ export default async function NotificationsPage() {
           </div>
         ) : (
           receipts.map((receipt, idx) => (
-            <ReceiptCard key={idx} receipt={receipt} />
+            <ReceiptConsolidatedCard key={idx} receipt={receipt} />
           ))
         )}
       </div>
@@ -73,66 +101,6 @@ export default async function NotificationsPage() {
       {/* Footer Info */}
       <div className="pt-8 text-center">
         <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.3em]">NutriPass Receipts Ecosystem</p>
-      </div>
-    </div>
-  );
-}
-
-function ReceiptCard({ receipt }: { receipt: any }) {
-  const date = new Date(receipt.createdAt);
-  const formattedDate = date.toLocaleDateString('es-MX', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  });
-  const formattedTime = date.toLocaleTimeString('es-MX', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-
-  return (
-    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group active:scale-[0.98] relative overflow-hidden">
-      {/* Visual Accent */}
-      <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-        <Receipt className="h-24 w-24 rotate-12" />
-      </div>
-
-      <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shadow-md shadow-emerald-200/20 border border-emerald-100 flex-shrink-0">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-black text-[#004B87] text-lg leading-tight uppercase tracking-tight">Recarga Exitosa</p>
-            <div className="flex items-center gap-2 text-slate-400 mt-1.5">
-              <Clock className="h-3 w-3" />
-              <p className="text-[10px] font-bold uppercase tracking-widest">{formattedDate}, {formattedTime}</p>
-            </div>
-          </div>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-3xl font-black text-[#004B87] tabular-nums tracking-tighter">${receipt.amount.toFixed(2)}</p>
-          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 inline-block mt-1">Confirmado</span>
-        </div>
-      </div>
-
-      <div className="h-px bg-slate-50 w-full mb-6" />
-
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-5">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="h-8 w-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100">
-            <FileText className="h-4 w-4" />
-          </div>
-          <p className="text-[10px] font-bold text-slate-400 truncate max-w-[200px] uppercase tracking-wider">REF: {receipt.intentId?.slice(-12) || 'NP-INTERNAL'}</p>
-        </div>
-        
-        <button 
-          disabled 
-          className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3.5 bg-slate-50/50 rounded-xl text-slate-300 font-black text-[10px] uppercase tracking-widest border border-slate-100 cursor-not-allowed group-hover:bg-white transition-all"
-        >
-          🔜 Solicitar Factura
-          <ChevronRight className="h-3 w-3" />
-        </button>
       </div>
     </div>
   );
