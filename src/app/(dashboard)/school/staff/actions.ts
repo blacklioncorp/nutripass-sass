@@ -17,7 +17,7 @@ async function ensureAdmin() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'superadmin')) {
+  if (!profile || (profile.role !== 'school_admin' && profile.role !== 'superadmin')) {
     throw new Error('403 Unauthorized: Se requieren permisos de administrador');
   }
 }
@@ -31,7 +31,7 @@ export async function createSchoolStaff(formData: FormData) {
 
     const email = formData.get('email') as string;
     const fullName = formData.get('full_name') as string;
-    const role = formData.get('role') as 'staff' | 'admin';
+    const role = formData.get('role') as 'staff' | 'school_admin';
     const password = Math.random().toString(36).slice(-12); // Temp password
 
     const supabaseAdmin = await createAdminClient();

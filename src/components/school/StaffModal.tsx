@@ -111,7 +111,7 @@ export default function StaffModal({ isOpen, onClose }: { isOpen: boolean; onClo
                   className="w-full bg-[#f8fafc] border-2 border-transparent focus:border-[#7CB9E8] focus:bg-white rounded-2xl px-6 py-4 text-sm font-bold text-[#1a3a5c] transition-all outline-none appearance-none cursor-pointer"
                 >
                   <option value="staff">Staff (Cocina / Caja)</option>
-                  <option value="admin">Administrador (Gestión total)</option>
+                  <option value="school_admin">Administrador (Gestión total)</option>
                 </select>
               </div>
 

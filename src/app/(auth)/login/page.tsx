@@ -31,9 +31,8 @@ export default function LoginPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={tenant.logo_url} alt={tenant.name} className="h-16 object-contain mb-6 drop-shadow-sm" />
           ) : (
-            <div className={`h-20 w-20 rounded-[2rem] flex items-center justify-center text-white text-3xl mb-6 font-black shadow-lg shadow-primary/20 rotate-3 ${isSignUp ? 'bg-emerald-500 shadow-emerald-200' : 'bg-primary'}`}>
-              {tenant?.name?.charAt(0) || 'NP'}
-            </div>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" alt="NutriPass" className="w-40 h-auto object-contain mb-6 drop-shadow-sm" />
           )}
           <h2 className="text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">
             {isSignUp ? 'Crea tu cuenta familiar 👨‍👩‍👧‍👦' : '¡Hola de nuevo! 👋'}

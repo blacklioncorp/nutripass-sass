@@ -61,7 +61,7 @@ export default async function SchoolStaffPage() {
                 </div>
                 <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/10 text-center">
                     <p className="text-white text-2xl font-black leading-none">
-                        {staff?.filter(s => s.role === 'admin').length || 0}
+                        {staff?.filter(s => s.role === 'school_admin').length || 0}
                     </p>
                     <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest mt-1">Admins</p>
                 </div>

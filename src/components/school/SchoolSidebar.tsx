@@ -15,7 +15,15 @@ const navItems = [
   { label: 'Personalización', href: '/school/settings', icon: '🎨' },
 ];
 
-export default function SchoolSidebar({ schoolName, role }: { schoolName?: string; role?: string }) {
+export default function SchoolSidebar({ 
+  schoolName, 
+  role,
+  schoolLogo = 'https://ui-avatars.com/api/?name=Colegio+Americano&background=0D8ABC&color=fff&rounded=true' // Default fallback
+}: { 
+  schoolName?: string; 
+  role?: string;
+  schoolLogo?: string;
+}) {
   const pathname = usePathname();
   const isStaff = role === 'staff';
 
@@ -29,18 +37,36 @@ export default function SchoolSidebar({ schoolName, role }: { schoolName?: strin
 
   return (
     <aside className="w-full md:w-60 bg-white border-r border-[#e8f0f7] flex-shrink-0 flex flex-col min-h-screen">
-      {/* Logo */}
-      <div className="p-6 border-b border-[#e8f0f7]">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#e8f0f7] text-[#2b5fa6] h-10 w-10 rounded-xl flex items-center justify-center text-xl font-black shadow-sm">
-            N
-          </div>
-          <div>
-            <h2 className="text-[#2b5fa6] text-lg font-black tracking-tight leading-none">NutriPass</h2>
-            <p className="text-[#8aa8cc] text-[10px] font-bold uppercase tracking-widest mt-0.5">
-              {isStaff ? 'Panel Operativo' : 'Panel Administrador'}
-            </p>
-          </div>
+      {/* Co-Branding Header (Alianza) */}
+      <div className="p-5 border-b border-[#e8f0f7] bg-slate-900">
+        {/* Contenedor Unificado (Badge Claro) */}
+        <div className="bg-[#F8FAF6] rounded-2xl p-3 flex items-center justify-center gap-4 shadow-sm border border-slate-200/50">
+          
+          {/* Izquierda: La Institución (Colegio) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={schoolLogo} 
+            alt={schoolName || "Colegio Americano"} 
+            className="h-10 w-auto object-contain drop-shadow-sm rounded-full" 
+          />
+
+          {/* Centro: Separador Sutil */}
+          <div className="border-l border-slate-300 h-8 opacity-60"></div>
+
+          {/* Derecha: La Plataforma (NutriPass) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" 
+            alt="NutriPass" 
+            className="h-6 w-auto object-contain drop-shadow-sm opacity-90" 
+          />
+        </div>
+
+        {/* Contexto Inferior */}
+        <div className="text-center mt-3">
+          <p className="text-white/80 text-[10px] font-semibold tracking-wider uppercase">
+            Plataforma de Nutrición Escolar
+          </p>
         </div>
       </div>
 

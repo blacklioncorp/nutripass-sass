@@ -54,12 +54,12 @@ export default function StaffList({ staff }: { staff: any[] }) {
                 </td>
                 <td className="px-8 py-6 whitespace-nowrap">
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    member.role === 'admin' 
+                    member.role === 'school_admin' 
                     ? 'bg-blue-50 text-blue-600 border border-blue-100' 
                     : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                   }`}>
-                    {member.role === 'admin' ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                    {member.role === 'admin' ? 'Administrador' : 'Staff Operativo'}
+                    {member.role === 'school_admin' ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                    {member.role === 'school_admin' ? 'Administrador' : 'Staff Operativo'}
                   </div>
                 </td>
                 <td className="px-8 py-6 whitespace-nowrap">
