@@ -89,45 +89,47 @@ export default async function KitchenReportPage() {
     (products || []).forEach(p => { productsMap[p.id] = p; });
   }
 
-  // Group by date and then by student
-  const groupedTasks: Record<string, any[]> = {};
+  // Group by date and then by dish name
+  const aggregatedProduction: Record<string, Record<string, any>> = {};
 
   orders?.forEach(order => {
-    // Determine the date for this item
     const rawDate = (order as any).order_date
       || (order.daily_menus as any)?.date
       || (order as any).created_at?.split('T')[0];
     if (!rawDate) return;
     const date = rawDate;
 
-    if (!groupedTasks[date]) groupedTasks[date] = [];
+    if (!aggregatedProduction[date]) aggregatedProduction[date] = {};
     
-    const studentName = `${(order.consumers as any).first_name} ${(order.consumers as any).last_name}`;
-    const allergies = (order.consumers as any).allergies || [];
-    
-    let itemName = 'Desconocido';
+    let itemName = 'DESCONOCIDO';
     let category = 'snack';
 
     if (order.daily_menus) {
-        itemName = (order.daily_menus as any).main_course_name ? `COMBO: ${(order.daily_menus as any).main_course_name}` : 'Combo Comedor';
+        itemName = (order.daily_menus as any).main_course_name ? `COMBO: ${(order.daily_menus as any).main_course_name.toUpperCase()}` : 'COMBO COMEDOR';
         category = 'comedor';
     } else if (order.product_id && productsMap[order.product_id]) {
-        itemName = productsMap[order.product_id].name;
+        itemName = productsMap[order.product_id].name.toUpperCase();
         category = productsMap[order.product_id].category;
     }
 
-    groupedTasks[date].push({
-        id: order.id,
-        itemName,
-        category,
-        studentName,
-        allergies,
-        specialInstructions: order.special_instructions,
-        hasAllergyOverride: order.has_allergy_override
-    });
+    if (!aggregatedProduction[date][itemName]) {
+        aggregatedProduction[date][itemName] = {
+            itemName,
+            category,
+            totalQuantity: 0,
+            hasSpecialOrAllergy: false,
+        };
+    }
+
+    aggregatedProduction[date][itemName].totalQuantity += 1;
+    
+    const allergies = (order.consumers as any).allergies || [];
+    if (order.has_allergy_override || order.special_instructions || allergies.length > 0) {
+        aggregatedProduction[date][itemName].hasSpecialOrAllergy = true;
+    }
   });
 
-  const sortedDates = Object.keys(groupedTasks).sort();
+  const sortedDates = Object.keys(aggregatedProduction).sort();
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-20">
@@ -136,7 +138,7 @@ export default async function KitchenReportPage() {
           <h1 className="text-4xl font-black text-[#1a3a5c] tracking-tight">Reporte de Cocina</h1>
           <p className="text-slate-500 mt-2 font-medium flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Producción basada en pre-órdenes pagadas activas.
+            Producción base agregada (iPad View).
           </p>
         </div>
         <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
@@ -145,138 +147,75 @@ export default async function KitchenReportPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {sortedDates.map((date) => (
-          <div key={date} className="flex flex-col h-full bg-slate-50/50 rounded-[2.5rem] p-4 border border-slate-200 shadow-inner">
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex-1">
-                <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-5">
-                    <h2 className="text-2xl font-black text-[#1a3a5c] capitalize">
-                        {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </h2>
-                    <span className="bg-[#1a3a5c] text-white px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">
-                        {groupedTasks[date].length} Órdenes
-                    </span>
-                </div>
+      <div className="space-y-12">
+        {sortedDates.map((date) => {
+          const dishes = Object.values(aggregatedProduction[date]);
+          // Sort dishes by quantity descending to show biggest batches first
+          dishes.sort((a, b) => b.totalQuantity - a.totalQuantity);
+          
+          return (
+            <div key={date} className="flex flex-col bg-slate-50/50 rounded-[2.5rem] p-6 md:p-8 border border-slate-200 shadow-inner">
+              <div className="flex items-center justify-between mb-8 border-b border-slate-200 pb-4">
+                  <h2 className="text-3xl font-black text-[#1a3a5c] capitalize">
+                      {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </h2>
+                  <span className="bg-[#1a3a5c] text-white px-5 py-2 rounded-full text-sm font-black tracking-widest uppercase shadow-md">
+                      {dishes.length} Platillos Distintos
+                  </span>
+              </div>
 
-                <div className="space-y-4">
-                    {groupedTasks[date].map((item, idx) => {
-                        const hasAllergyAlert = item.hasAllergyOverride || item.specialInstructions || (item.allergies && item.allergies.length > 0);
+              {/* Grid de 3 columnas máximo con gap amplio */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                  {dishes.map((dish, idx) => (
+                    <div 
+                      key={idx} 
+                      className={cn(
+                        "relative bg-white rounded-[2rem] border-2 p-8 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center",
+                        dish.hasSpecialOrAllergy ? "border-amber-400 ring-4 ring-amber-100 shadow-amber-100" : "border-[#e8f0f7]"
+                      )}
+                    >
+                        {dish.hasSpecialOrAllergy && (
+                            <div className="absolute top-4 right-4 text-amber-500 animate-pulse bg-amber-50 p-2 rounded-full">
+                                <AlertCircle className="h-6 w-6" />
+                            </div>
+                        )}
                         
-                        return (
-                          <div 
-                            key={idx} 
-                            className={cn(
-                              "group relative flex flex-col md:flex-row items-start gap-4 p-6 rounded-[2rem] border-2 transition-all duration-300 shadow-sm",
-                              hasAllergyAlert 
-                                ? "bg-red-50 border-red-500 ring-2 ring-red-500/10 shadow-red-100" 
-                                : "bg-white border-[#e8f0f7] hover:border-[#3b82f6] hover:shadow-xl"
-                            )}
-                          >
-                              {/* Left Icon Section */}
-                              <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm ${
-                                  hasAllergyAlert ? 'bg-red-600 text-white animate-pulse' :
-                                  item.category === 'comedor' ? 'bg-orange-100 text-orange-600' : 
-                                  item.category === 'bebida' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
-                              }`}>
-                                  {hasAllergyAlert ? <AlertCircle className="h-9 w-9" /> : 
-                                   item.category === 'comedor' ? <Utensils className="h-8 w-8" /> : <Coffee className="h-8 w-8" />}
-                              </div>
- 
-                              {/* Content Section */}
-                              <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-3 flex-wrap">
-                                      <h3 className={cn(
-                                          "text-2xl font-black transition-colors leading-none",
-                                          hasAllergyAlert ? "text-red-700" : "text-[#1a3a5c] group-hover:text-[#3b82f6]"
-                                      )}>
-                                          {item.itemName}
-                                      </h3>
-                                      <span className={cn(
-                                          "text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-[0.1em] shadow-sm",
-                                          hasAllergyAlert ? "bg-red-200 text-red-800" :
-                                          item.category === 'comedor' ? "bg-orange-50 text-orange-600 border border-orange-100" : 
-                                          item.category === 'bebida' ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-amber-50 text-amber-600 border border-amber-100"
-                                      )}>
-                                          {item.category}
-                                      </span>
-                                  </div>
- 
-                                  <div className="mt-3 flex items-center gap-3">
-                                      <div className={cn(
-                                          "flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-colors",
-                                          hasAllergyAlert ? "bg-white border-red-200 text-red-900" : "bg-slate-50 border-slate-100 text-slate-600"
-                                      )}>
-                                          <User className={cn("h-4 w-4", hasAllergyAlert ? "text-red-500" : "text-slate-400")} />
-                                          <span className="text-sm font-black uppercase tracking-tight">
-                                            {item.studentName}
-                                          </span>
-                                      </div>
-                                  </div>
- 
-                                  {/* CRITICAL SAFETY BANNER */}
-                                  {hasAllergyAlert && (
-                                    <div className="mt-6 p-5 bg-white border-4 border-red-500 rounded-[1.8rem] shadow-lg shadow-red-200/50 animate-in zoom-in-95 duration-500">
-                                      <div className="flex items-center gap-2 mb-3 border-b border-red-100 pb-2">
-                                        <div className="h-6 w-6 bg-red-600 rounded-lg flex items-center justify-center">
-                                          <AlertCircle className="h-4 w-4 text-white" />
-                                        </div>
-                                        <p className="text-[11px] font-black text-red-600 uppercase tracking-[0.2em] italic">Seguridad Alimentaria • Alto Riesgo</p>
-                                      </div>
-                                      
-                                      <div className="space-y-2">
-                                        {item.allergies.length > 0 && (
-                                          <div className="flex items-baseline gap-2">
-                                            <span className="text-xs font-black text-red-500 uppercase tracking-widest shrink-0">Alergia:</span>
-                                            <span className="text-xl font-black text-red-700 uppercase italic">
-                                              {item.allergies.join(', ')}
-                                            </span>
-                                          </div>
-                                        )}
-                                        
-                                        {item.specialInstructions && (
-                                          <div className="flex flex-col gap-1.5 mt-2 bg-red-50 p-4 rounded-2xl border-2 border-red-100">
-                                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Ficha de Acción:</p>
-                                            <p className="text-lg font-black text-red-800 leading-tight flex items-start gap-2">
-                                              <span className="mt-1">⚠️</span>
-                                              <span>ACCIÓN: {item.specialInstructions.toUpperCase()}</span>
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                              </div>
- 
-                              {/* Action Button */}
-                              <form action={async () => {
-                                  'use server';
-                                  await markMenuAsPrepared(item.id);
-                              }} className="self-center">
-                                  <button type="submit" className={cn(
-                                    "group/btn h-16 w-16 border-4 rounded-3xl transition-all duration-300 flex items-center justify-center shadow-xl active:scale-90",
-                                    hasAllergyAlert 
-                                      ? "bg-red-600 border-red-700 text-white hover:bg-red-700 shadow-red-200" 
-                                      : "bg-white border-slate-100 text-slate-200 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 shadow-slate-100"
-                                  )}>
-                                      <CheckCircle2 className={cn(
-                                        "h-8 w-8 transition-transform group-hover/btn:scale-125",
-                                        hasAllergyAlert ? "text-white" : "text-slate-200 group-hover/btn:text-white"
-                                      )} />
-                                  </button>
-                                  <p className={cn(
-                                    "text-[9px] font-black text-center mt-2 uppercase tracking-widest",
-                                    hasAllergyAlert ? "text-red-600" : "text-slate-300"
-                                  )}>
-                                    Listo
-                                  </p>
-                              </form>
-                          </div>
-                        );
-                    })}
-                </div>
+                        {/* Cantidad (La Estrella) */}
+                        <div className="flex items-baseline justify-center mb-2">
+                            <span className="text-green-600 font-extrabold text-7xl md:text-8xl tracking-tight leading-none">
+                                {dish.totalQuantity}
+                            </span>
+                            <span className="text-green-500/60 font-black text-3xl ml-1">x</span>
+                        </div>
+                        
+                        {/* Separador sutil */}
+                        <div className="w-16 h-1.5 bg-slate-100 rounded-full my-4"></div>
+
+                        {/* Platillo (Completo, SIN TRUNCAR) */}
+                        <h3 className="text-2xl md:text-3xl font-black text-[#1a3a5c] uppercase leading-tight mb-6">
+                            {dish.itemName}
+                        </h3>
+
+                        {/* Información Secundaria */}
+                        <div className="mt-auto pt-4 border-t border-slate-100 w-full flex items-center justify-between">
+                            <span className={cn(
+                                "text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border",
+                                dish.category === 'comedor' ? "bg-orange-50 text-orange-600 border-orange-200" : 
+                                dish.category === 'bebida' ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-amber-50 text-amber-600 border-amber-200"
+                            )}>
+                                {dish.category}
+                            </span>
+                            <span className="text-slate-400 font-bold text-sm">
+                                Pedidos: {dish.totalQuantity}
+                            </span>
+                        </div>
+
+                    </div>
+                  ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {sortedDates.length === 0 && (
           <div className="col-span-full py-20 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center">

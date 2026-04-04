@@ -38,11 +38,11 @@ type DailyMenu = {
   side_dish_name?: string;
   dessert_name?: string;
   drink_name?: string;
-  products?: { 
-    id: string; 
-    name?: string; 
-    description?: string; 
-    base_price?: number; 
+  products?: {
+    id: string;
+    name?: string;
+    description?: string;
+    base_price?: number;
     image_url?: string;
     nutri_points_reward?: number;
   };
@@ -163,7 +163,7 @@ export default function PreordersClient({
     () => (initialConsumers as Consumer[]).find(c => c.id === activeStudentId) ?? (initialConsumers[0] as Consumer),
     [initialConsumers, activeStudentId]
   );
-  
+
   // School White-labeling Color
   const schoolPrimaryColor = (activeConsumer as any)?.schools?.primary_color || '#10b981';
 
@@ -188,7 +188,7 @@ export default function PreordersClient({
   // Filtered products for active consumer's school + category
   const filteredProducts = useMemo<Product[]>(() => {
     if (!activeConsumer) return [];
-    
+
     const filtered = (products as Product[]).filter(
       p => {
         const schoolMatch = String(p.school_id) === String(activeConsumer.school_id);
@@ -351,11 +351,10 @@ export default function PreordersClient({
               <button
                 key={c.id}
                 onClick={() => setActiveStudentId(c.id)}
-                className={`px-5 py-2 rounded-full font-black text-sm transition-all duration-300 ${
-                  activeStudentId === c.id
-                    ? 'bg-[#004B87] text-white shadow-md'
-                    : 'text-[#8aa8cc] hover:text-[#004B87]'
-                }`}
+                className={`px-5 py-2 rounded-full font-black text-sm transition-all duration-300 ${activeStudentId === c.id
+                  ? 'bg-[#004B87] text-white shadow-md'
+                  : 'text-[#8aa8cc] hover:text-[#004B87]'
+                  }`}
               >
                 {c.first_name} {c.last_name}
               </button>
@@ -420,8 +419,8 @@ export default function PreordersClient({
             const isInCart = !!cartKey && cart.some(ci => ci.cartKey === cartKey);
             const isAlreadyPaid = menu
               ? existingPreorders.some(
-                  (po: any) => po.daily_menu_id === menu.id && po.consumer_id === activeConsumer.id
-                )
+                (po: any) => po.daily_menu_id === menu.id && po.consumer_id === activeConsumer.id
+              )
               : false;
             const price = menu
               ? parseFloat(String(menu.products?.base_price ?? menu.combo_price ?? 70))
@@ -430,15 +429,14 @@ export default function PreordersClient({
             return (
               <div
                 key={dateStr}
-                className={`relative rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col shadow-sm hover:shadow-md ${
-                  isAlreadyPaid
-                    ? 'border-emerald-200 bg-emerald-50/50 opacity-85'
-                    : isInCart
+                className={`relative rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col shadow-sm hover:shadow-md ${isAlreadyPaid
+                  ? 'border-emerald-200 bg-emerald-50/50 opacity-85'
+                  : isInCart
                     ? 'border-[#004B87] bg-[#004B87]/5 shadow-md -translate-y-1'
                     : menu
-                    ? 'border-slate-100 bg-white hover:border-slate-200'
-                    : 'border-dashed border-slate-200 bg-slate-50'
-                }`}
+                      ? 'border-slate-100 bg-white hover:border-slate-200'
+                      : 'border-dashed border-slate-200 bg-slate-50'
+                  }`}
               >
                 {/* Day header */}
                 <div className="px-4 pt-4 pb-2">
@@ -543,11 +541,10 @@ export default function PreordersClient({
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all duration-200 whitespace-nowrap ${
-                  categoryFilter === cat
-                    ? 'bg-amber-500 text-white shadow'
-                    : 'text-[#8aa8cc] hover:text-[#004B87]'
-                }`}
+                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all duration-200 whitespace-nowrap ${categoryFilter === cat
+                  ? 'bg-amber-500 text-white shadow'
+                  : 'text-[#8aa8cc] hover:text-[#004B87]'
+                  }`}
               >
                 {cat === 'all' ? 'Todos' : cat === 'snack' ? '🥨 Snacks' : cat === 'bebida' ? '🥤 Bebidas' : '🍲 Desayuno'}
               </button>
@@ -686,7 +683,7 @@ export default function PreordersClient({
       )}
 
       {/* ── Floating Cart Bar ── */}
-      {cart.length > 0 && !isCheckoutOpen && (
+      {cart.length > 0 && !isCheckoutOpen && !isWarningOpen && (
         <div className="fixed bottom-32 md:bottom-6 left-1/2 -translate-x-1/2 z-[90] animate-in slide-in-from-bottom-4 duration-300 w-full max-w-[95%] sm:max-w-max">
           <div className="bg-[#004B87] text-white rounded-full shadow-2xl shadow-blue-900/40 flex items-center justify-between sm:justify-center gap-3 pl-5 pr-2 py-2 border border-white/10 backdrop-blur-sm mx-auto">
             <div className="relative">
@@ -738,11 +735,20 @@ export default function PreordersClient({
 
       {/* ── Allergen Warning Modal ── */}
       {isWarningOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-28 md:pb-4">
           <div className="absolute inset-0 bg-[#004B87]/50 backdrop-blur-sm" onClick={() => setIsWarningOpen(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-lg w-full animate-in zoom-in-95 duration-200 border border-red-100 flex flex-col gap-6">
-            <div className="text-center">
-              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[80vh] animate-in zoom-in-95 duration-200 border border-red-100 flex flex-col outline-none overflow-hidden">
+
+            {/* Encabezado Fijo (Header) */}
+            <div className="flex-shrink-0 p-6 md:p-8 pb-4 text-center relative border-b border-slate-50">
+              <button
+                onClick={() => setIsWarningOpen(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 hover:bg-slate-100 p-2 rounded-full"
+                title="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
                 <AlertCircle className="h-8 w-8" />
               </div>
               <h2 className="text-2xl font-black text-slate-900 mb-2">¡Alerta Nutricional!</h2>
@@ -751,78 +757,86 @@ export default function PreordersClient({
               </p>
             </div>
 
-            {isAllergyOverrideMode ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-4 space-y-3">
-                <p className="text-sm font-black uppercase tracking-widest text-[#004B87]">Términos de Excepción</p>
-                <p className="text-[#004B87] text-sm font-medium">
-                  Has decidido solicitar los productos omitiendo el ingrediente o alérgeno detectado.
-                </p>
-                <div className="flex items-start gap-3 mt-4">
-                  <input type="checkbox" id="liability" className="mt-1 h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" required />
-                  <label htmlFor="liability" className="text-sm font-bold text-amber-900 leading-snug">
-                    "Asumo la responsabilidad de solicitar la preparación especial de este producto para {activeConsumer.first_name}."
-                  </label>
+            {/* Cuerpo Scrolleable (Content) */}
+            <div className="overflow-y-auto flex-grow px-6 md:px-8 py-4 pr-3 custom-scrollbar">
+              {isAllergyOverrideMode ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
+                  <p className="text-sm font-black uppercase tracking-widest text-[#004B87]">Términos de Excepción</p>
+                  <p className="text-[#004B87] text-sm font-medium">
+                    Has decidido solicitar los productos omitiendo el ingrediente o alérgeno detectado.
+                  </p>
+                  <div className="flex items-start gap-3 mt-4">
+                    <input type="checkbox" id="liability" className="mt-1 h-5 w-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500" required />
+                    <label htmlFor="liability" className="text-sm font-bold text-amber-900 leading-snug">
+                      "Asumo la responsabilidad de solicitar la preparación especial de este producto para {activeConsumer.first_name}."
+                    </label>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
-                <p className="text-xs font-black uppercase tracking-widest text-rose-800">Riesgos Identificados (IA)</p>
-                <ul className="list-disc list-inside space-y-2 text-rose-700 text-sm font-bold">
-                  {allergenWarnings.map((w, idx) => (
-                    <li key={idx} className="leading-snug">{w}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              ) : (
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-rose-800">Riesgos Identificados (IA)</p>
+                  <ul className="list-disc list-inside space-y-2 text-rose-700 text-sm font-bold">
+                    {allergenWarnings.map((w, idx) => (
+                      <li key={idx} className="leading-snug">{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
 
-            {isAllergyOverrideMode ? (
-              <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    const cb = document.getElementById('liability') as HTMLInputElement;
-                    if (!cb.checked) return alert("Debes aceptar la responsabilidad para continuar.");
-                    
-                    // Modificar el carrito para inyectar las notas
-                    setCart(prev => prev.map(item => ({
-                      ...item,
-                      hasAllergyOverride: true,
-                      specialInstructions: "⚠️ PREPARAR SIN: Alérgenos marcados (Alerta Omitida por el Padre)"
-                    })));
+            {/* Pie de Página Fijo (Footer) */}
+            <div className="flex-shrink-0 p-5 md:p-8 pt-4 border-t border-slate-200 shadow-inner bg-white z-10 w-full">
+              {isAllergyOverrideMode ? (
+                <div className="flex flex-col gap-3 w-full">
+                  <button
+                    onClick={() => {
+                      const cb = document.getElementById('liability') as HTMLInputElement;
+                      if (!cb?.checked) return alert("Debes aceptar la responsabilidad para continuar.");
 
-                    setIsWarningOpen(false);
-                    setIsAllergyOverrideMode(false);
-                    setIsCheckoutOpen(true);
-                  }}
-                  className="w-full bg-[#004B87] hover:bg-[#003865] text-white font-black text-lg py-4 rounded-xl shadow-lg transition-all"
-                >
-                  Confirmar y Continuar al Carrito
-                </button>
-                <button
-                  onClick={() => setIsAllergyOverrideMode(false)}
-                  className="w-full text-[#8aa8cc] font-bold py-3 hover:text-[#004B87] transition"
-                >
-                  Volver a Alertas
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    setIsWarningOpen(false);
-                    setCart([]); // Clear cart to simulate cancelling entirely
-                  }}
-                  className="w-full border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-3"
-                >
-                  ❌ Cancelar Producto
-                </button>
-                <button
-                  onClick={() => setIsAllergyOverrideMode(true)}
-                  className="w-full bg-rose-500 text-white font-black py-4 rounded-xl hover:bg-rose-600 transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  ⚠️ Solicitar SIN Alérgenos
-                </button>
-              </div>
-            )}
+                      // Modificar el carrito para inyectar las notas
+                      setCart(prev => prev.map(item => ({
+                        ...item,
+                        hasAllergyOverride: true,
+                        specialInstructions: "⚠️ PREPARAR SIN: Alérgenos marcados (Alerta Omitida por el Padre)"
+                      })));
+
+                      setIsWarningOpen(false);
+                      setIsAllergyOverrideMode(false);
+                      setIsCheckoutOpen(true);
+                    }}
+                    style={{ backgroundColor: schoolPrimaryColor }}
+                    className="w-full hover:opacity-90 text-white font-black text-base py-3.5 rounded-xl shadow-md transition-all"
+                  >
+                    Confirmar y Continuar
+                  </button>
+                  <button
+                    onClick={() => setIsAllergyOverrideMode(false)}
+                    className="w-full text-slate-500 font-bold py-2 hover:text-slate-700 transition"
+                  >
+                    Volver a Alertas
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 w-full">
+                  <button
+                    onClick={() => setIsAllergyOverrideMode(true)}
+                    className="w-full bg-emerald-500 text-white font-black text-base py-3.5 rounded-xl hover:bg-emerald-600 transition shadow-md flex items-center justify-center gap-2"
+                  >
+                    ⚠️ Solicitar sin alérgenos
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsWarningOpen(false);
+                      setCart([]); // Clear cart to simulate cancelling entirely
+                    }}
+                    className="w-full border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-black text-base py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    ❌ Cancelar pedido
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}
@@ -925,13 +939,12 @@ function SnackDateModal({
                     else if (!isPast) onAdd(product, dateStr);
                   }}
                   disabled={isPast && !alreadyInCart}
-                  className={`flex flex-col items-center p-2.5 rounded-2xl border-2 transition-all duration-150 ${
-                    alreadyInCart
-                      ? 'border-emerald-400 bg-emerald-50 hover:border-red-400 hover:bg-red-50 text-emerald-500 hover:text-red-500 cursor-pointer'
-                      : isPast
+                  className={`flex flex-col items-center p-2.5 rounded-2xl border-2 transition-all duration-150 ${alreadyInCart
+                    ? 'border-emerald-400 bg-emerald-50 hover:border-red-400 hover:bg-red-50 text-emerald-500 hover:text-red-500 cursor-pointer'
+                    : isPast
                       ? 'border-[#e8f0f7] bg-[#f8fafd] opacity-40 cursor-not-allowed'
                       : 'border-[#e8f0f7] hover:border-amber-400 hover:bg-amber-50 active:scale-95 cursor-pointer text-[#004B87]'
-                  }`}
+                    }`}
                 >
                   <span className="text-[10px] font-black uppercase">{DAY_NAMES[i]}</span>
                   <span className="font-black text-xl leading-none mt-0.5">{day.getDate()}</span>
@@ -1073,9 +1086,8 @@ function CheckoutModal({
                   className="flex items-center justify-between px-6 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${
-                      item.walletType === 'comedor' ? 'bg-[#e8f0f7]' : 'bg-amber-100'
-                    }`}>
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${item.walletType === 'comedor' ? 'bg-[#e8f0f7]' : 'bg-amber-100'
+                      }`}>
                       {item.walletType === 'comedor' ? '🍽️' : CATEGORY_EMOJIS[item.category ?? 'snack'] ?? '🥨'}
                     </div>
                     <div>
@@ -1155,8 +1167,8 @@ function CheckoutModal({
                       {insufficientComedor && insufficientSnack
                         ? 'Comedor y Snack'
                         : insufficientComedor
-                        ? 'Comedor'
-                        : 'Snack'}
+                          ? 'Comedor'
+                          : 'Snack'}
                     </span>. Recarga antes de continuar.
                   </p>
                 </div>
