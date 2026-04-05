@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 
@@ -11,14 +11,14 @@ export async function createConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
-  
-  const supabase = await createClient();
 
-  // Fix: rely on effective school ID for impersonation support
+  // Fix: use admin client to bypass RLS (needed when superadmin is impersonating)
+  const supabaseAdmin = await createAdminClient();
+
   const schoolId = await getEffectiveSchoolId();
   if (!schoolId) return { error: 'Escuela no asignada' };
 
-  const { data: consumer, error } = await supabase
+  const { data: consumer, error } = await supabaseAdmin
     .from('consumers')
     .insert({
       school_id: schoolId,
@@ -36,7 +36,7 @@ export async function createConsumer(prevState: any, formData: FormData) {
   if (error) return { error: error.message };
 
   // Create BOTH wallets (comedor + snack) for this consumer
-  const { error: walletError } = await supabase
+  const { error: walletError } = await supabaseAdmin
     .from('wallets')
     .insert([
       { consumer_id: consumer.id, type: 'comedor', balance: 0.00 },
@@ -57,13 +57,13 @@ export async function updateConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
-  
-  const supabase = await createClient();
+
+  const supabaseAdmin = await createAdminClient();
 
   const schoolId = await getEffectiveSchoolId();
   if (!schoolId) return { error: 'Profile not found' };
 
-  const { data: consumer, error } = await supabase
+  const { data: consumer, error } = await supabaseAdmin
     .from('consumers')
     .update({
       first_name: firstName,

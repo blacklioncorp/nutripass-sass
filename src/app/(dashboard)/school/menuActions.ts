@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export type DailyMenuPayload = {
@@ -14,7 +14,7 @@ export type DailyMenuPayload = {
 };
 
 export async function upsertDailyMenu(schoolId: string, payload: DailyMenuPayload) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
   const { error } = await supabase
     .from('daily_menus')
@@ -41,7 +41,7 @@ export async function upsertDailyMenu(schoolId: string, payload: DailyMenuPayloa
 }
 
 export async function clearDailyMenu(schoolId: string, date: string) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
   const { error } = await supabase
     .from('daily_menus')
@@ -55,7 +55,7 @@ export async function clearDailyMenu(schoolId: string, date: string) {
 
 // Legacy: keep for backward-compatibility
 export async function addMenuItem(school_id: string, date: string, product_id: string) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { error } = await supabase.from('daily_menus').upsert(
     { school_id, date, product_id },
     { onConflict: 'school_id,date' }
@@ -65,15 +65,15 @@ export async function addMenuItem(school_id: string, date: string, product_id: s
 }
 
 export async function removeMenuItem(menu_id: string) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { error } = await supabase.from('daily_menus').delete().eq('id', menu_id);
   if (error) throw new Error(error.message);
   revalidatePath('/school/menu');
 }
 
 export async function copyPreviousWeek(schoolId: string, currentMonday: string) {
-  const supabase = await createClient();
-  
+  const supabase = await createAdminClient();
+
   // Calculate previous week's Monday and Friday
   const currentMon = new Date(currentMonday + 'T12:00:00');
   const prevMon = new Date(currentMon);
@@ -96,7 +96,7 @@ export async function copyPreviousWeek(schoolId: string, currentMonday: string) 
   if (!prevMenus || prevMenus.length === 0) throw new Error('No se encontró un menú en la semana anterior para copiar.');
 
   // Map them to current week dates
-  const newMenus = prevMenus.map(m => {
+  const newMenus = prevMenus.map((m: any) => {
     const d = new Date(m.date + 'T12:00:00');
     d.setDate(d.getDate() + 7);
     return {

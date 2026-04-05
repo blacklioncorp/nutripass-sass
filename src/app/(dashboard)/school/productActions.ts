@@ -1,24 +1,24 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/server';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import { revalidatePath } from 'next/cache';
 import OpenAI from 'openai';
 
 // OpenAI is instantiated lazily inside the action to avoid module-load crashes
 
 export async function upsertProduct(prevState: any, formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
+  const adminClient = await createAdminClient();
 
-  const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
-  if (!profile?.school_id) return { error: 'No autorizado' };
+  const schoolId = await getEffectiveSchoolId();
+  if (!schoolId) return { error: 'No autorizado' };
 
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const category = formData.get('category') as string;
   const base_price = parseFloat(formData.get('basePrice') as string);
+
   const stock_quantity = parseInt(formData.get('stockQuantity') as string) || 0;
   const nutri_points_reward = parseInt(formData.get('nutriPoints') as string) || 0;
   const image_url = formData.get('imageUrl') as string;
@@ -56,7 +56,7 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   // ───────────────────────────────────────────────────────────────────────
 
   const payload: any = {
-    school_id: profile.school_id,
+    school_id: schoolId,
     name,
     description,
     category,
@@ -71,12 +71,8 @@ export async function upsertProduct(prevState: any, formData: FormData) {
     payload.image_url = image_url;
   }
 
-  // Use adminClient so school_admin RLS doesn't block insert on products
-  const { createAdminClient } = await import('@/utils/supabase/server');
-  const adminClient = await createAdminClient();
-
   if (id) {
-    const { error } = await adminClient.from('products').update(payload).eq('id', id).eq('school_id', profile.school_id);
+    const { error } = await adminClient.from('products').update(payload).eq('id', id).eq('school_id', schoolId);
     if (error) return { error: error.message };
   } else {
     const { error } = await adminClient.from('products').insert(payload);

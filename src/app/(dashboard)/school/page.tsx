@@ -1,15 +1,15 @@
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/server';
 import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import SendReminderButton from '@/components/school/SendReminderButton';
-import { createAdminClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 
 import SchoolDashboardBI from '@/components/school/SchoolDashboardBI';
 
 export default async function SchoolDashboardPage() {
-  const supabase = await createClient();
+  const adminClient = await createAdminClient();
   const schoolId = await getEffectiveSchoolId();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Still need the session user for role check — use adminClient directly
+  const { data: { user } } = await adminClient.auth.getUser();
 
   if (!schoolId || !user) {
     return (
@@ -21,8 +21,8 @@ export default async function SchoolDashboardPage() {
   }
 
   // ── Real DB queries, all scoped to this school ────────────────────────────
-  const adminClient = await createAdminClient();
   const todayIso = new Date().toISOString().split('T')[0];
+
 
   // Fetch precise role and school
   const { data: profile } = await adminClient
@@ -69,8 +69,8 @@ export default async function SchoolDashboardPage() {
     { data: topOrdersRaw },
     { data: highRiskOrders },
   ] = await Promise.all([
-    supabase.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'student'),
-    supabase.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'staff'),
+    adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'student'),
+    adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'staff'),
     // Today's Sales
     walletIds.length > 0
       ? adminClient.from('transactions').select('amount').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', todayIso)

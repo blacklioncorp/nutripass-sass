@@ -79,12 +79,12 @@ export default async function ParentPortal() {
     }
   }
 
-  // AUTO-LINKING LOGIC: If no children linked by ID, search by email
-  if (user.email && (!consumers || consumers.length === 0)) {
+  // AUTO-LINKING LOGIC: Search by email for consumers not yet linked by ID
+  if (user.email) {
     const { createAdminClient } = await import('@/utils/supabase/server');
     const adminClient = await createAdminClient();
 
-    const { data: linkedConsumers } = await adminClient
+    const { data: detachedConsumers } = await adminClient
       .from('consumers')
       .select(`
         id, first_name, last_name, identifier, type, school_id,
@@ -94,10 +94,10 @@ export default async function ParentPortal() {
       .eq('parent_email', user.email.toLowerCase())
       .is('parent_id', null);
 
-    if (linkedConsumers && linkedConsumers.length > 0) {
-      console.log(`Auto-linking ${linkedConsumers.length} consumers to parent ${user.email}`);
+    if (detachedConsumers && detachedConsumers.length > 0) {
+      console.log(`Auto-linking ${detachedConsumers.length} consumers to parent ${user.email}`);
       
-      const schoolId = (linkedConsumers[0] as any).school_id;
+      const schoolId = (detachedConsumers[0] as any).school_id;
 
       // Ensure parents record exists and has school_id in profiles
       await Promise.all([
@@ -117,14 +117,15 @@ export default async function ParentPortal() {
       profile = { ...refreshedProfile, school_id: schoolId, role: 'parent' } as UserProfile;
       
       // Update consumers with parent_id using ADMIN client to bypass RLS
-      
-      const consumerIds = linkedConsumers.map(c => c.id);
+      const consumerIds = detachedConsumers.map(c => c.id);
       await adminClient
         .from('consumers')
         .update({ parent_id: user.id })
         .in('id', consumerIds);
 
-      consumers = linkedConsumers as unknown as Consumer[];
+      // Merge results
+      const newConsumers = detachedConsumers as unknown as Consumer[];
+      consumers = consumers ? [...consumers, ...newConsumers] : newConsumers;
     }
   }
 

@@ -51,15 +51,17 @@ export async function validateCartAllergens(
       messages: [
         {
           role: "system",
-          content: `Eres un experto asistente nutricional escolar. El alumno tiene estrictamente las siguientes alergias o restricciones: ${allergiesList}. 
-Revisa la lista de productos que están a punto de comprarle y detecta si EXISTE ALGUN RIESGO o es probable que contengan esos alérgenos.
+          content: `Eres un experto asistente nutricional escolar. El alumno tiene estrictamente las siguientes alergias o restricciones: ${allergiesList}.
+Revisa la lista de productos o menús que están a punto de comprarle y detecta si EXISTE ALGÚN RIESGO o es probable que contengan esos alérgenos.
+Cuando la descripción incluya componentes de un menú del día etiquetados como "Sopa:", "Plato Fuerte:", "Guarnición:", "Postre:" o "Bebida:", analiza CADA componente individualmente.
+Sé estricto: si una pizza, queso, mantequilla, leche, crema, pan o cualquier derivado lácteo aparece en el menú y el alumno tiene alergia a LÁCTEOS, es un riesgo.
 Tu respuesta debe ser estricta y ÚNICAMENTE un JSON puro de este tipo:
 {
   "safe": boolean,
   "warnings": ["Advertencia detallada específica", "Otra advertencia..."]
 }
 Si no hay riesgos evidentes, devuelve { "safe": true, "warnings": [] }.
-Si hay riesgo, devuelve "safe": false y explica por qué en "warnings", indicando qué producto afecta qué alergia.
+Si hay riesgo, devuelve "safe": false y explica por qué en "warnings", indicando qué componente del menú afecta qué alergia.
 NO USES FORMATO MARKDOWN (ni \`\`\`json). SOLO EL OBJETO RAW.`
         },
         {

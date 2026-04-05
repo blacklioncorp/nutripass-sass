@@ -16,6 +16,7 @@ import { validateCartAllergens } from '@/app/actions/allergen';
 type CartItem = {
   id: string;
   name: string;
+  description?: string;   // Rich description for AI allergen analysis
   price: number;
   date: string;           // YYYY-MM-DD
   walletType: 'comedor' | 'snack';
@@ -234,9 +235,20 @@ export default function PreordersClient({
     const price = parseFloat(String(menu.products?.base_price ?? menu.combo_price ?? 70));
     const d = new Date(`${menu.date}T12:00:00`);
     const dayName = d.toLocaleDateString('es-MX', { weekday: 'short' });
+
+    // Enriquecer descripción para validación de alérgenos por IA
+    const detailedDescription = [
+      menu.soup_name && `Sopa: ${menu.soup_name}`,
+      menu.main_course_name && `Plato Fuerte: ${menu.main_course_name}`,
+      menu.side_dish_name && `Guarnición: ${menu.side_dish_name}`,
+      menu.dessert_name && `Postre: ${menu.dessert_name}`,
+      menu.drink_name && `Bebida: ${menu.drink_name}`
+    ].filter(Boolean).join('. ');
+
     setCart(prev => [...prev, {
       id: menu.id,
       name: menu.main_course_name ? `Desayuno ${dayName}` : 'Menú del Día',
+      description: detailedDescription,
       price,
       date: menu.date,
       walletType: 'comedor',
@@ -283,7 +295,10 @@ export default function PreordersClient({
       cart.map(item => ({
         id: item.id,
         name: item.name,
-        description: (products as Product[]).find(p => p.id === item.id)?.description,
+        // For daily_menu items, use the rich description built in addComboToCart.
+        // For snack/product items, fall back to the product catalog description.
+        description: item.description
+          || (products as Product[]).find(p => p.id === item.id)?.description,
         sourceType: item.sourceType
       }))
     );
@@ -463,31 +478,46 @@ export default function PreordersClient({
                     </div>
 
                     {/* Menu details */}
-                    <div className="space-y-0.5 flex-1">
+                    <div className="space-y-1 flex-1 min-h-[80px]">
                       {menu.soup_name && (
-                        <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
-                          🍜 {menu.soup_name}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          <span className="text-[10px] mt-0.5">🍜</span>
+                          <p className="text-[10px] text-[#8aa8cc] font-bold leading-tight line-clamp-2">
+                             {menu.soup_name.replace(/Sopa del D/i, '').trim()}
+                          </p>
+                        </div>
                       )}
                       {menu.main_course_name && (
-                        <p className="text-xs font-black text-[#004B87] leading-tight line-clamp-1">
-                          {menu.main_course_name}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          <span className="text-[10px] mt-0.5">🍲</span>
+                          <p className="text-xs font-black text-[#004B87] leading-tight line-clamp-2">
+                            {menu.main_course_name.replace(/Pizza Margarita/i, 'Pizza Margarita').trim()}
+                          </p>
+                        </div>
                       )}
                       {menu.side_dish_name && (
-                        <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
-                          🥗 {menu.side_dish_name}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          <span className="text-[10px] mt-0.5">🥗</span>
+                          <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
+                            {menu.side_dish_name}
+                          </p>
+                        </div>
                       )}
                       {menu.dessert_name && (
-                        <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
-                          🍮 {menu.dessert_name}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          <span className="text-[10px] mt-0.5">🍮</span>
+                          <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
+                            {menu.dessert_name}
+                          </p>
+                        </div>
                       )}
                       {menu.drink_name && (
-                        <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
-                          🥤 {menu.drink_name}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          <span className="text-[10px] mt-0.5">🥤</span>
+                          <p className="text-[10px] text-[#8aa8cc] font-semibold leading-tight line-clamp-1">
+                            {menu.drink_name}
+                          </p>
+                        </div>
                       )}
                     </div>
 

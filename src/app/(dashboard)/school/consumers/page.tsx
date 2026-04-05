@@ -1,10 +1,16 @@
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/server';
+import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import ConsumersManager from '@/components/school/ConsumersManager';
 
 export default async function ConsumersPage() {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
+  const schoolId = await getEffectiveSchoolId();
 
-  // RLS will automatically filter consumers by the logged-in admin's school_id
+  if (!schoolId) {
+    return <p className="p-8 text-red-600 font-bold">Escuela no asignada.</p>;
+  }
+
+  // Use adminClient + explicit school_id filter so reads work in impersonation mode
   const { data: consumers } = await supabase
     .from('consumers')
     .select(`
@@ -13,6 +19,7 @@ export default async function ConsumersPage() {
         id, type, balance
       )
     `)
+    .eq('school_id', schoolId)
     .order('created_at', { ascending: false });
 
   return (
