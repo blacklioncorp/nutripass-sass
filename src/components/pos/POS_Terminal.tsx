@@ -128,7 +128,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-[100dvh] bg-slate-50 overflow-hidden">
       
       {/* LEFT PANEL: CART */}
       <div className="w-[350px] bg-white border-r border-slate-200 shadow-xl flex flex-col z-10 relative">
@@ -164,7 +164,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
           )}
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
+        <div className="flex-shrink-0 p-6 pb-8 border-t border-slate-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
           <div className="flex justify-between items-end mb-6">
             <span className="text-slate-500 font-bold uppercase tracking-widest text-sm">Total Orden</span>
             <span className="text-4xl font-black text-slate-900">${cartTotal.toFixed(2)}</span>
