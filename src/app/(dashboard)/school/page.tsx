@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import SendReminderButton from '@/components/school/SendReminderButton';
 import { redirect } from 'next/navigation';
@@ -6,10 +6,11 @@ import { redirect } from 'next/navigation';
 import SchoolDashboardBI from '@/components/school/SchoolDashboardBI';
 
 export default async function SchoolDashboardPage() {
+  const supabase = await createClient();
   const adminClient = await createAdminClient();
   const schoolId = await getEffectiveSchoolId();
-  // Still need the session user for role check — use adminClient directly
-  const { data: { user } } = await adminClient.auth.getUser();
+  // Use session-aware client to get the current user (adminClient has no cookies)
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!schoolId || !user) {
     return (

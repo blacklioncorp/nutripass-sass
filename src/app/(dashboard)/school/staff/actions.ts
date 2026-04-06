@@ -46,10 +46,10 @@ export async function createSchoolStaff(formData: FormData) {
 
     if (authError) throw authError;
 
-    // 2. Create Profile
+    // 2. Update Profile (upsert because handle_new_user trigger auto-creates a profile row)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
+      .upsert({
         id: authUser.user.id,
         school_id: schoolId,
         role,
