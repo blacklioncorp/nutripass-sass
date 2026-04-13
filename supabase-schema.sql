@@ -168,7 +168,8 @@ CREATE TABLE IF NOT EXISTS pre_orders (
   product_id UUID REFERENCES products(id),    -- For snacks and drinks
   status TEXT CHECK (status IN ('paid', 'consumed', 'cancelled')) DEFAULT 'paid',
   order_date DATE, -- Specific date for snacks delivery
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(consumer_id, daily_menu_id)
 );
 
 -- Notifications

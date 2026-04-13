@@ -433,8 +433,10 @@ export default function PreordersClient({
             const cartKey = menu ? `combo-${menu.id}` : '';
             const isInCart = !!cartKey && cart.some(ci => ci.cartKey === cartKey);
             const isAlreadyPaid = menu
-              ? existingPreorders.some(
-                (po: any) => po.daily_menu_id === menu.id && po.consumer_id === activeConsumer.id
+              ? (existingPreorders || []).some(
+                (po: any) => 
+                  String(po.daily_menu_id) === String(menu.id) && 
+                  String(po.consumer_id) === String(activeConsumer.id)
               )
               : false;
             const price = menu

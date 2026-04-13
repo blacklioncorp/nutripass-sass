@@ -228,7 +228,7 @@ export async function createPreOrderTransaction(
             special_instructions: item.specialInstructions,
             has_allergy_override: item.hasAllergyOverride,
           }))
-        ))]
+        ), { onConflict: 'consumer_id,daily_menu_id' }))]
       : []),
 
     // Insert pre_order records for snack items (tracking what student gets what product)
