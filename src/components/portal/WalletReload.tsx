@@ -149,7 +149,7 @@ export default function WalletReload({ walletId, schoolId, onSuccess }: { wallet
               <span>${breakdown?.recharge}</span>
             </div>
             <div className="flex justify-between font-bold text-slate-500 text-sm">
-              <span>Tarifa de servicio NutriPass</span>
+              <span>Tarifa de servicio SafeLunch</span>
               <span>+ ${breakdown?.fee}</span>
             </div>
             <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between font-black text-lg text-slate-900">

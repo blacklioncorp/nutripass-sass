@@ -32,15 +32,15 @@ export default function LoginPage() {
             <img src={tenant.logo_url} alt={tenant.name} className="h-16 object-contain mb-6 drop-shadow-sm" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" alt="NutriPass" className="w-40 h-auto object-contain mb-6 drop-shadow-sm" />
+            <img src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/SafeLunch.png" alt="Logo de SafeLunch" className="w-40 h-auto object-contain mb-6 drop-shadow-sm" />
           )}
           <h2 className="text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">
             {isSignUp ? 'Crea tu cuenta familiar 👨‍👩‍👧‍👦' : '¡Hola de nuevo! 👋'}
           </h2>
           <p className="text-slate-400 font-bold mt-2 text-center text-sm">
             {isSignUp 
-              ? 'Únete a la red NutriPass escolar' 
-              : `Bienvenido a ${tenant?.name || 'NutriPass'}`}
+              ? 'Únete a la red SafeLunch escolar' 
+              : `Bienvenido a ${tenant?.name || 'SafeLunch'}`}
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-12 text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.4em] opacity-50">
-        <p>&copy; {new Date().getFullYear()} NutriPass SaaS Ecosystem</p>
+        <p>&copy; {new Date().getFullYear()} SafeLunch SaaS Ecosystem</p>
       </div>
     </div>
   );

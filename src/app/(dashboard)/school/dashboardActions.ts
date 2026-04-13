@@ -66,7 +66,7 @@ export async function sendMataMermasReminder(schoolId: string) {
   // 5. Create notifications in DB
   const notifications = Array.from(parentsToNotify).map(parentId => ({
     user_id: parentId,
-    title: '⚡ Recordatorio NutriPass',
+    title: '⚡ Recordatorio SafeLunch',
     message: '¡Aún no has programado el lunch de mañana! Evita mermas y asegura el platillo favorito de tu hijo reservando ahora.',
     is_read: false
   }));

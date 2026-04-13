@@ -149,7 +149,7 @@ export default function OperationalSettingsForm({ initialData }: OperationalSett
                       <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full uppercase ml-1">Próximamente</span>
                     </button>
                     <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-widest">
-                       Configuración de pasarela de pagos NutriPass
+                       Configuración de pasarela de pagos SafeLunch
                     </p>
                   </div>
                 </div>

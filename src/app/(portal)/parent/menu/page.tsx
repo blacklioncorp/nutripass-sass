@@ -3,7 +3,7 @@ import PreordersClient from '@/components/portal/PreordersClient';
 import { CalendarDays } from 'lucide-react';
 
 export const metadata = {
-  title: 'Reserva Semanal — NutriPass',
+  title: 'Reserva Semanal — SafeLunch',
   description: 'Pre-ordena los alimentos de tus hijos para la semana, incluyendo combos y snacks.',
 };
 

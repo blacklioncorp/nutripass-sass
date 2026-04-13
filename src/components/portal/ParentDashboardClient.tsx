@@ -293,7 +293,7 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
                 required
               />
               <label htmlFor={`disclaimer-${consumer.id}`} className="text-sm text-gray-600 font-medium leading-snug">
-                Entiendo y acepto que NutriPass es exclusivamente una plataforma tecnológica de intermediación. Libero a NutriPass de cualquier responsabilidad médica, reacción alérgica o incidencia derivada de la preparación, manejo y consumo de los alimentos por parte de la cafetería escolar.
+                Entiendo y acepto que SafeLunch es exclusivamente una plataforma tecnológica de intermediación. Libero a SafeLunch de cualquier responsabilidad médica, reacción alérgica o incidencia derivada de la preparación, manejo y consumo de los alimentos por parte de la cafetería escolar.
               </label>
             </div>
 

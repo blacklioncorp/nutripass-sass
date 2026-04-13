@@ -29,7 +29,7 @@ export default async function SchoolSettingsPage({
         </div>
         <div>
           <h1 className="text-4xl font-black text-[#1a3a5c] tracking-tight">Configuración del Sistema</h1>
-          <p className="text-[#8aa8cc] font-medium text-sm mt-1 uppercase tracking-widest leading-none">Gestión Institucional NutriPass</p>
+          <p className="text-[#8aa8cc] font-medium text-sm mt-1 uppercase tracking-widest leading-none">Gestión Institucional SafeLunch</p>
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export default async function SchoolSettingsPage({
              <div className="mb-10 max-w-xl">
                 <h2 className="text-2xl font-black text-[#1a3a5c] tracking-tight mb-2 uppercase italic">Identidad Visual (White-Label)</h2>
                 <p className="text-slate-500 font-medium text-sm leading-relaxed">
-                  Personaliza la apariencia de tu portal NutriPass subiendo el escudo de tu colegio y ajustando los **colores institucionales** para una experiencia 100% nativa.
+                  Personaliza la apariencia de tu portal SafeLunch subiendo el escudo de tu colegio y ajustando los **colores institucionales** para una experiencia 100% nativa.
                 </p>
              </div>
              <BrandSettingsForm />

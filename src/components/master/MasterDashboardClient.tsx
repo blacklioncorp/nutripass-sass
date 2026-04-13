@@ -321,7 +321,7 @@ export default function MasterDashboardClient({
           color="#3B82F6" 
         />
         <KpiCard 
-          label="Ingresos NutriPass" 
+          label="Ingresos SafeLunch" 
           value={formatCurrency(globalRevenue)} 
           subValue={`Promedio por colegio: ${formatCurrency(schools.length > 0 ? globalRevenue / schools.length : 0)}`}
           trend={8.2} 
@@ -485,7 +485,7 @@ export default function MasterDashboardClient({
                   <th className="px-7 py-4 text-center">Alumnos</th>
                   <th className="px-7 py-4 text-center">Volumen ($)</th>
                   <th className="px-7 py-4 text-center">Comisión (%)</th>
-                  <th className="px-7 py-4 text-center">Ganancia NutriPass</th>
+                  <th className="px-7 py-4 text-center">Ganancia SafeLunch</th>
                   <th className="px-7 py-4 text-center">Estado</th>
                   <th className="px-7 py-4 text-right">Acciones</th>
                 </tr>
@@ -509,7 +509,7 @@ export default function MasterDashboardClient({
                           </div>
                           <div>
                             <p className="font-black text-[#0d1f3c] text-sm">{school.name}</p>
-                            <p className="text-[#b0c8e0] text-[11px] font-semibold">{school.subdomain}.nutripass.com</p>
+                            <p className="text-[#b0c8e0] text-[11px] font-semibold">{school.subdomain}.safelunch.com</p>
                           </div>
                         </div>
                       </td>

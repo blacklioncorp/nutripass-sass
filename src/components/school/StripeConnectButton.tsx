@@ -28,7 +28,7 @@ export default function StripeConnectButton({ isConnected }: { isConnected: bool
         <span className="text-xl">✅</span> 
         <div>
           <p className="leading-tight">Cuenta Activa Verificada</p>
-          <p className="text-xs font-medium text-green-600">NutriPass enrutará transacciones directamente a tu banco local.</p>
+          <p className="text-xs font-medium text-green-600">SafeLunch enrutará transacciones directamente a tu banco local.</p>
         </div>
       </div>
     );

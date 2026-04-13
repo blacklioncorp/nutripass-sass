@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TenantProvider } from '@/components/providers/TenantProvider';
 
 export const metadata: Metadata = {
-  title: 'NutriPass - Gestión de Comedores Escolares',
+  title: 'SafeLunch - Gestión de Comedores Escolares',
   description: 'Plataforma inteligente para la gestión de pagos y nutrición en escuelas.',
 };
 

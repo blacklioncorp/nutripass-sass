@@ -43,16 +43,16 @@ export default async function PortalLayout({
                 <div className="border-l border-slate-300 h-6 opacity-60"></div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" 
-                  alt="NutriPass" 
+                  src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/SafeLunch.png" 
+                  alt="Logo de SafeLunch" 
                   className="h-5 md:h-6 w-auto object-contain drop-shadow-sm opacity-90" 
                 />
               </>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img 
-                src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" 
-                alt="NutriPass - Nutrición Escolar" 
+                src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/SafeLunch.png" 
+                alt="Logo de SafeLunch" 
                 className="h-8 md:h-10 w-auto object-contain drop-shadow-sm" 
               />
             )}

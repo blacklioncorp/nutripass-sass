@@ -783,7 +783,7 @@ export default function PreordersClient({
               </div>
               <h2 className="text-2xl font-black text-slate-900 mb-2">¡Alerta Nutricional!</h2>
               <p className="text-slate-500 font-medium">
-                La Inteligencia Artificial de NutriPass detectó que los productos en tu carrito podrían poner en riesgo a <span className="font-black text-rose-500">{activeConsumer.first_name}</span>.
+                La Inteligencia Artificial de SafeLunch detectó que los productos en tu carrito podrían poner en riesgo a <span className="font-black text-rose-500">{activeConsumer.first_name}</span>.
               </p>
             </div>
 

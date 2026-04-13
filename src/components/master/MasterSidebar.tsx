@@ -17,10 +17,10 @@ export default function MasterSidebar() {
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="bg-[#f4c430] text-[#0d1f3c] h-10 w-10 rounded-xl flex items-center justify-center text-base font-black shadow-sm">
-            N
+            S
           </div>
           <div>
-            <h2 className="text-white text-lg font-black tracking-tight leading-none">NutriPass</h2>
+            <h2 className="text-white text-lg font-black tracking-tight leading-none">SafeLunch</h2>
             <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-0.5">Panel Administrador</p>
           </div>
         </div>

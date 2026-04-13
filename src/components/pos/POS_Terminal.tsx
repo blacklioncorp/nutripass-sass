@@ -133,7 +133,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
       {/* LEFT PANEL: CART */}
       <div className="w-[350px] bg-white border-r border-slate-200 shadow-xl flex flex-col z-10 relative">
         <div className="p-6 bg-slate-900 text-white flex justify-between items-center shadow-md">
-          <h2 className="text-xl font-black tracking-widest">NUTRIPASS POS</h2>
+          <h2 className="text-xl font-black tracking-widest">SAFELUNCH POS</h2>
           <span className="text-xs font-bold opacity-50 bg-white/20 px-2 py-1 rounded">CAJA VIRTUAL</span>
         </div>
         

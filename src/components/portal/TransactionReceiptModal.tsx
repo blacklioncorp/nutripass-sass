@@ -79,7 +79,7 @@ export default function TransactionReceiptModal({ isOpen, onOpenChange, transact
           <div className="absolute top-0 left-0 w-full h-2 bg-white/10" style={{ clipPath: 'polygon(0 0, 5% 100%, 10% 0, 15% 100%, 20% 0, 25% 100%, 30% 0, 35% 100%, 40% 0, 45% 100%, 50% 0, 55% 100%, 60% 0, 65% 100%, 70% 0, 75% 100%, 80% 0, 85% 100%, 90% 0, 95% 100%, 100% 0)' }}></div>
           <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <h2 className="text-2xl font-black tracking-tight">Recibo Digital</h2>
-          <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">NutriPass • Transparencia</p>
+          <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">SafeLunch • Transparencia</p>
         </div>
 
         <div className="p-8 space-y-6">
@@ -106,7 +106,7 @@ export default function TransactionReceiptModal({ isOpen, onOpenChange, transact
                     <span>${baseAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-[#8aa8cc]">Tarifa de Servicio (NutriPass)</span>
+                    <span className="text-[#8aa8cc]">Tarifa de Servicio (SafeLunch)</span>
                     <span>${fee.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-xl font-black mt-4 pt-4 border-t border-[#e8f0f7]">
@@ -189,7 +189,7 @@ export default function TransactionReceiptModal({ isOpen, onOpenChange, transact
         </div>
 
         <div className="bg-[#fcfdfe] px-8 py-4 border-t border-[#e8f0f7] text-center">
-          <p className="text-[10px] text-[#8aa8cc] font-black uppercase tracking-widest">NutriPass © 2026 • Ticket ID: {transaction.id.slice(-6)}</p>
+          <p className="text-[10px] text-[#8aa8cc] font-black uppercase tracking-widest">SafeLunch © 2026 • Ticket ID: {transaction.id.slice(-6)}</p>
         </div>
       </DialogContent>
     </Dialog>

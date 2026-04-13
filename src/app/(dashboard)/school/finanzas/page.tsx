@@ -89,7 +89,7 @@ export default async function SchoolFinancePage() {
         </div>
 
         <div className="bg-white rounded-3xl p-8 border border-[#e8f0f7] shadow-sm">
-          <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-[0.2em] mb-4">Comisiones (NutriPass/Fee)</p>
+          <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-[0.2em] mb-4">Comisiones (SafeLunch/Fee)</p>
           <p className="text-4xl font-black text-amber-500 tracking-tight">
             -${commissions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
           </p>
@@ -154,7 +154,7 @@ export default async function SchoolFinancePage() {
         <span className="text-xl">💡</span>
         <p className="text-xs text-[#2b5fa6] font-medium leading-relaxed">
           Las dispersiones se realizan los días viernes. Si tienes alguna duda con la conciliación bancaria, 
-          puedes contactar directamente a conciliacion@nutripass.com con tu ID de escuela: <strong>{schoolId}</strong>.
+          puedes contactar directamente a conciliacion@safelunch.com con tu ID de escuela: <strong>{schoolId}</strong>.
         </p>
       </div>
     </div>

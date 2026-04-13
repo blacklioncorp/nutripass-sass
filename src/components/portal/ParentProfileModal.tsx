@@ -82,7 +82,7 @@ export default function ParentProfileModal({
       <DialogContent className="sm:max-w-md bg-white rounded-3xl p-8 border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-3xl font-black text-[#004B87] tracking-tight">
-            {needsOnboarding ? '¡Bienvenido a NutriPass!' : 'Configuración de Perfil'}
+            {needsOnboarding ? '¡Bienvenido a SafeLunch!' : 'Configuración de Perfil'}
           </DialogTitle>
           <DialogDescription className="text-base text-[#8aa8cc] font-medium mt-1">
             {needsOnboarding

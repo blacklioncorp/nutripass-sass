@@ -244,7 +244,7 @@ export default function BulkReloadModal({
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm font-bold text-slate-400">
-              <span>Tarifa NutriPass (12%)</span>
+              <span>Tarifa SafeLunch (12%)</span>
               <span>${fee.toFixed(2)}</span>
             </div>
             <div className="h-px bg-slate-800" />

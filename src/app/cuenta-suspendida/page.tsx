@@ -11,12 +11,12 @@ export default function SuspendedAccountPage() {
           Cuenta Suspendida
         </h1>
         <p className="text-[#8aa8cc] font-medium mb-8 leading-relaxed">
-          El acceso a este colegio ha sido restringido temporalmente por el administrador de NutriPass. 
+          El acceso a este colegio ha sido restringido temporalmente por el administrador de SafeLunch. 
           Por favor, contacta a soporte para regularizar tu situación.
         </p>
         <div className="space-y-4">
           <a 
-            href="mailto:soporte@nutripass.com" 
+            href="mailto:soporte@safelunch.com" 
             className="block w-full bg-[#004B87] text-white font-black py-4 rounded-xl hover:bg-[#003870] transition shadow-md"
           >
             Contactar a Soporte

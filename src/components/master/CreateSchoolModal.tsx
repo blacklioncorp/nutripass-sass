@@ -46,7 +46,7 @@ export default function CreateSchoolModal() {
                 pattern="[a-z0-9\-]+"
                 className="w-full p-2 border rounded-l-lg text-right"
               />
-              <span className="bg-slate-100 p-2 border border-l-0 rounded-r-lg text-slate-500">.nutripass.com</span>
+              <span className="bg-slate-100 p-2 border border-l-0 rounded-r-lg text-slate-500">.safelunch.com</span>
             </div>
           </div>
           <div>

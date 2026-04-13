@@ -56,8 +56,8 @@ export default function SchoolSidebar({
           {/* Derecha: La Plataforma (NutriPass) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/NutriPassLogo.png" 
-            alt="NutriPass" 
+            src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/SafeLunch.png" 
+            alt="Logo de SafeLunch" 
             className="h-6 w-auto object-contain drop-shadow-sm opacity-90" 
           />
         </div>

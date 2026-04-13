@@ -100,7 +100,7 @@ export default async function NotificationsPage() {
 
       {/* Footer Info */}
       <div className="pt-8 text-center">
-        <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.3em]">NutriPass Receipts Ecosystem</p>
+        <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.3em]">SafeLunch Receipts Ecosystem</p>
       </div>
     </div>
   );
