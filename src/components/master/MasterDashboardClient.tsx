@@ -29,6 +29,14 @@ type School = {
   commission_percentage?: number;
   stripe_account_id: string | null;
   stripe_onboarding_complete: boolean;
+  settings?: {
+    financial?: {
+      min_recharge_amount?: number;
+      overdraft_limit?: number;
+      apply_convenience_fee?: boolean;
+      convenience_fee_amount?: number;
+    };
+  };
   created_at: string;
 };
 
@@ -103,6 +111,67 @@ function CommissionCell({ schoolId, initialValue }: { schoolId: string; initialV
     >
       {Number(initialValue).toFixed(1)}%
       <Settings className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition text-[#7CB9E8]" />
+    </button>
+  );
+}
+
+// ── Min Recharge Cell (Editable JSONB) ─────────────────────
+function MinRechargeCell({ schoolId, school }: { schoolId: string; school: School }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const currentVal = school.settings?.financial?.min_recharge_amount ?? 100;
+  const [value, setValue] = useState(currentVal);
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (isNaN(value)) return;
+    setLoading(true);
+    try {
+      const newSettings = {
+        ...school.settings,
+        financial: {
+          ...(school.settings?.financial || {}),
+          min_recharge_amount: value
+        }
+      };
+      const { updateSchoolSettings } = await import('@/app/(dashboard)/master/actions');
+      await updateSchoolSettings(schoolId, newSettings);
+      setIsEditing(false);
+    } catch (e: any) {
+      alert("Error: " + e.message);
+      setValue(currentVal);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center justify-center gap-1">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => setValue(parseFloat(e.target.value))}
+          className="w-20 p-1 text-xs font-black border border-emerald-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          step="10"
+          min="0"
+          autoFocus
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          onKeyDownCapture={(e) => e.key === 'Escape' && setIsEditing(false)}
+        />
+        <button onClick={handleSave} disabled={loading} className="p-1 hover:bg-emerald-50 text-emerald-600 rounded transition disabled:opacity-30">
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "✔️"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setIsEditing(true)}
+      className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-md hover:bg-emerald-100 transition cursor-pointer flex items-center gap-1 mx-auto group border border-transparent hover:border-emerald-200"
+    >
+      ${Number(currentVal).toFixed(2)}
+      <Settings className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition text-emerald-400" />
     </button>
   );
 }
@@ -485,6 +554,7 @@ export default function MasterDashboardClient({
                   <th className="px-7 py-4 text-center">Alumnos</th>
                   <th className="px-7 py-4 text-center">Volumen ($)</th>
                   <th className="px-7 py-4 text-center">Comisión (%)</th>
+                  <th className="px-7 py-4 text-center">Recarga Mín.</th>
                   <th className="px-7 py-4 text-center">Ganancia SafeLunch</th>
                   <th className="px-7 py-4 text-center">Estado</th>
                   <th className="px-7 py-4 text-right">Acciones</th>
@@ -526,6 +596,12 @@ export default function MasterDashboardClient({
                         <CommissionCell 
                           schoolId={school.id} 
                           initialValue={commPct} 
+                        />
+                      </td>
+                      <td className="px-7 py-5 text-center">
+                        <MinRechargeCell 
+                          schoolId={school.id} 
+                          school={school} 
                         />
                       </td>
                       <td className="px-7 py-5 text-center">

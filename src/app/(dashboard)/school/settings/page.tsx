@@ -1,20 +1,19 @@
 import BrandSettingsForm from '@/components/admin/BrandSettingsForm';
-import OperationalSettingsForm from '@/components/admin/OperationalSettingsForm';
+import SchoolSettingsPanel from '@/components/school/SchoolSettingsPanel';
 import { createAdminClient } from '@/utils/supabase/server';
 import { getEffectiveSchoolId } from '@/utils/auth/effective-school';
 import { Settings, Sliders, Palette } from 'lucide-react';
 
-export default async function SchoolSettingsPage({
-  searchParams,
-}: {
-  searchParams: { tab?: string };
+export default async function SchoolSettingsPage(props: {
+  searchParams: Promise<{ tab?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const schoolId = await getEffectiveSchoolId();
   const adminClient = await createAdminClient();
   
   const { data: school } = await adminClient
     .from('schools')
-    .select('billing_email, opening_time, closing_time')
+    .select('billing_email, opening_time, closing_time, settings')
     .eq('id', schoolId)
     .single();
 
@@ -72,7 +71,7 @@ export default async function SchoolSettingsPage({
              <BrandSettingsForm />
           </div>
         ) : (
-          <OperationalSettingsForm initialData={school || { billing_email: '', opening_time: '', closing_time: '' }} />
+          <SchoolSettingsPanel initialSettings={school?.settings} />
         )}
       </div>
     </div>

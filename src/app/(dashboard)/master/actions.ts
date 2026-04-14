@@ -110,3 +110,14 @@ export async function updateSchoolCommission(schoolId: string, newPercentage: nu
   revalidatePath('/master');
   return { success: true };
 }
+
+export async function updateSchoolSettings(schoolId: string, settings: any) {
+  const { error } = await supabaseAdmin
+    .from('schools')
+    .update({ settings })
+    .eq('id', schoolId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/master');
+  return { success: true };
+}

@@ -1,17 +1,21 @@
 'use client';
 
-import { Download, LayoutDashboard, ShieldCheck, Activity } from 'lucide-react';
+import { useState } from 'react';
+
+import { LayoutDashboard, ShieldCheck, Activity, FileSpreadsheet, FileText } from 'lucide-react';
 import ConsumptionChart from './ConsumptionChart';
 import TopProductsList from './TopProductsList';
 import NutritionAlerts from './NutritionAlerts';
-import { downloadCSV } from '@/utils/export-utils';
+import { downloadCSV, downloadPremiumExcel, type SaleRow, type TopProduct } from '@/utils/export-utils';
+import { getDetailedSalesReport } from '@/app/(dashboard)/school/actions';
 
 interface SchoolDashboardBIProps {
-  chartData: any[];
-  topProducts: any[];
+  chartData: SaleRow[];
+  topProducts: TopProduct[];
   alerts: any[];
   kpis: any[];
   isEmpty: boolean;
+  schoolName?: string;
 }
 
 export default function SchoolDashboardBI({ 
@@ -19,28 +23,35 @@ export default function SchoolDashboardBI({
   topProducts, 
   alerts, 
   kpis, 
-  isEmpty 
+  isEmpty,
+  schoolName = 'Mi Escuela',
 }: SchoolDashboardBIProps) {
+  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   
   const handleDownloadCSV = () => {
-    // 1. Prepare Chart Data for CSV
     const chartCSV = chartData.map(d => ({
       Fecha: d.date_iso || d.date,
       Ventas_MXN: d.sales
     }));
-
-    // 2. Prepare Top Products for CSV
     const productsCSV = topProducts.map(p => ({
       Producto: p.name,
       Cantidad: p.quantity,
       Ingreso_MXN: p.revenue
     }));
-
-    // Trigger downloads
     downloadCSV(chartCSV, 'Reporte_Ventas_Semanal');
-    setTimeout(() => {
-      downloadCSV(productsCSV, 'Reporte_Top_Productos');
-    }, 500);
+    setTimeout(() => { downloadCSV(productsCSV, 'Reporte_Top_Productos'); }, 500);
+  };
+
+  const handleDownloadExcel = async () => {
+    setIsGeneratingExcel(true);
+    try {
+      // Fetch full transactional detail from server
+      const { data: rows, schoolName: sName, error } = await getDetailedSalesReport(30);
+      if (error) { alert(`Error al generar reporte: ${error}`); return; }
+      await downloadPremiumExcel(rows, sName || schoolName, 30);
+    } finally {
+      setIsGeneratingExcel(false);
+    }
   };
 
   return (
@@ -63,13 +74,32 @@ export default function SchoolDashboardBI({
           </div>
         </div>
         
-        <button 
-          onClick={handleDownloadCSV}
-          className="flex items-center gap-3 bg-[#1a3a5c] text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-[#0d1f3c] transition-all shadow-lg active:scale-95 group"
-        >
-          <Download className="h-5 w-5 text-[#7CB9E8] group-hover:translate-y-0.5 transition-transform" />
-          📥 Descargar Reporte Semanal (CSV)
-        </button>
+        {/* Dual Download Button Group */}
+        <div className="flex items-center gap-2">
+          {/* CSV Button */}
+          <button
+            onClick={handleDownloadCSV}
+            title="Descargar CSV (datos crudos)"
+            className="flex items-center gap-2 bg-[#1a3a5c]/90 text-white px-5 py-3.5 rounded-xl font-black text-xs hover:bg-[#0d1f3c] transition-all shadow-md active:scale-95 group"
+          >
+            <FileText className="h-4 w-4 text-[#7CB9E8]" />
+            CSV
+          </button>
+
+          {/* Excel Premium Button */}
+          <button
+            onClick={handleDownloadExcel}
+            disabled={isGeneratingExcel}
+            title="Descargar Excel Premium (.xlsx) con formato corporativo"
+            className="flex items-center gap-3 bg-[#10B981] text-white px-6 py-3.5 rounded-xl font-black text-xs hover:bg-[#059669] transition-all shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-60 disabled:cursor-wait group"
+          >
+            {isGeneratingExcel ? (
+              <><div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
+            ) : (
+              <><FileSpreadsheet className="h-4 w-4" /> Excel Premium<span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide ml-1">.xlsx</span></>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* KPI Section */}

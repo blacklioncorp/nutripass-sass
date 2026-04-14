@@ -22,8 +22,20 @@ export default async function SchoolDashboardPage() {
   }
 
   // ── Real DB queries, all scoped to this school ────────────────────────────
-  const todayIso = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayIso = today.toISOString().split('T')[0];
+  // Start of today in ISO format for timestamp comparisons
+  const todayStart = `${todayIso}T00:00:00.000Z`;
+  const tomorrowStart = `${new Date(today.getTime() + 86400000).toISOString().split('T')[0]}T00:00:00.000Z`;
 
+
+  const { data: school } = await adminClient
+    .from('schools')
+    .select('name')
+    .eq('id', schoolId)
+    .single();
+
+  const schoolName = school?.name || 'Mi Escuela';
 
   // Fetch precise role and school
   const { data: profile } = await adminClient
@@ -72,30 +84,35 @@ export default async function SchoolDashboardPage() {
   ] = await Promise.all([
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'student'),
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'staff'),
-    // Today's Sales
+    // Today's Sales — use full timestamp range to avoid timezone issues
     walletIds.length > 0
-      ? adminClient.from('transactions').select('amount').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', todayIso)
+      ? adminClient.from('transactions').select('amount').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', todayStart).lt('created_at', tomorrowStart)
       : Promise.resolve({ data: [] }),
-    // Today's Orders Count
+    // Today's Orders Count — include all this week's pre-orders (order_date may vary)
     consumerIds.length > 0
-      ? adminClient.from('pre_orders').select('*', { count: 'exact', head: true }).in('consumer_id', consumerIds).eq('order_date', todayIso).eq('status', 'paid')
+      ? adminClient.from('pre_orders').select('*', { count: 'exact', head: true }).in('consumer_id', consumerIds).gte('order_date', todayIso).eq('status', 'paid')
       : Promise.resolve({ count: 0 }),
-    // Weekly Sales Trending ($)
+    // Weekly Sales Trending ($) — use full timestamp range
     walletIds.length > 0
-      ? adminClient.from('transactions').select('amount, created_at').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', sevenDaysAgoIso)
+      ? adminClient.from('transactions').select('amount, created_at').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', `${sevenDaysAgoIso}T00:00:00.000Z`)
       : Promise.resolve({ data: [] }),
-    // Top Products Aggregation (Base Data)
+    // Top Products Aggregation — include BOTH product snacks AND daily_menu combos
     consumerIds.length > 0
-      ? adminClient.from('pre_orders').select('product_id, products(name, price)').in('consumer_id', consumerIds).not('product_id', 'is', null).order('created_at', { ascending: false }).limit(200)
+      ? adminClient.from('pre_orders')
+          .select('product_id, daily_menu_id, products(name, base_price), daily_menus(main_course_name, combo_price)')
+          .in('consumer_id', consumerIds)
+          .eq('status', 'paid')
+          .order('created_at', { ascending: false })
+          .limit(500)
       : Promise.resolve({ data: [] }),
-    // Nutrition Alerts (High Risk Today)
+    // Nutrition Alerts — show orders with allergy overrides or special instructions (entire week)
     consumerIds.length > 0
       ? adminClient.from('pre_orders').select(`
             id, special_instructions, has_allergy_override,
             consumers ( first_name, last_name, allergies ),
             daily_menus ( main_course_name ),
             products ( name )
-          `).in('consumer_id', consumerIds).eq('order_date', todayIso).or('has_allergy_override.eq.true,special_instructions.neq.null')
+          `).in('consumer_id', consumerIds).gte('order_date', todayIso).or('has_allergy_override.eq.true,special_instructions.not.is.null')
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -111,27 +128,42 @@ export default async function SchoolDashboardPage() {
   }
 
   const chartData = last7Days.map(date => {
-    const daySales = weeklyTxsRaw?.filter(tx => 
-      (tx.created_at as string).split('T')[0] === date
-    ).reduce((sum, tx) => sum + (Math.abs(tx.amount) || 0), 0) ?? 0;
+    const daySales = weeklyTxsRaw?.filter(tx => {
+      // Normalize timestamp to local date (Mexico City UTC-6) to avoid timezone mismatch
+      const txDate = new Date(tx.created_at as string);
+      const localDate = new Date(txDate.getTime() - (txDate.getTimezoneOffset() * 60000));
+      return localDate.toISOString().split('T')[0] === date;
+    }).reduce((sum, tx) => sum + (Math.abs(tx.amount) || 0), 0) ?? 0;
     
     return {
       date: new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
       sales: daySales,
-      date_iso: date // useful for CSV export later
+      date_iso: date
     };
   });
 
-  // Process Top 5 Products
+  // Process Top 5 Products — includes both combos (daily_menu) and snacks (product)
   const productAgg: Record<string, { name: string; quantity: number; revenue: number }> = {};
   (topOrdersRaw || []).forEach((o: any) => {
-    if (!o.product_id || !o.products) return;
-    const pid = o.product_id;
-    if (!productAgg[pid]) {
-      productAgg[pid] = { name: o.products.name, quantity: 0, revenue: 0 };
+    // Handle snack/product items
+    if (o.product_id && o.products) {
+      const pid = o.product_id;
+      if (!productAgg[pid]) {
+        productAgg[pid] = { name: o.products.name, quantity: 0, revenue: 0 };
+      }
+      productAgg[pid].quantity += 1;
+      productAgg[pid].revenue += Number(o.products.base_price || 0);
     }
-    productAgg[pid].quantity += 1;
-    productAgg[pid].revenue += Number(o.products.price || 0);
+    // Handle daily_menu combo items
+    else if (o.daily_menu_id && o.daily_menus) {
+      const menuName = o.daily_menus.main_course_name || 'Combo del Día';
+      const menuKey = `menu-${menuName}`;
+      if (!productAgg[menuKey]) {
+        productAgg[menuKey] = { name: menuName, quantity: 0, revenue: 0 };
+      }
+      productAgg[menuKey].quantity += 1;
+      productAgg[menuKey].revenue += Number(o.daily_menus.combo_price || 70);
+    }
   });
 
   const topProducts = Object.values(productAgg)
@@ -147,9 +179,9 @@ export default async function SchoolDashboardPage() {
   }));
 
   const kpis = [
-    { label: 'VENTAS HOY', value: `$${todaySales.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: '💳' },
+    { label: 'VENTAS HOY', value: `$${todaySales.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💳' },
     { label: 'ÓRDENES HOY', value: ordersToday ?? 0, icon: '🍽️' },
-    { label: 'TICKET PROMEDIO', value: `$${avgTicket.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: '📈' },
+    { label: 'TICKET PROMEDIO', value: `$${avgTicket.toFixed(2)}`, icon: '📈' },
     { label: 'ESTUDIANTES', value: studentsCount ?? 0, icon: '👤' },
   ];
 
@@ -191,6 +223,7 @@ export default async function SchoolDashboardPage() {
         alerts={processedAlerts}
         kpis={kpis}
         isEmpty={isEmpty}
+        schoolName={schoolName}
       />
     </div>
   );

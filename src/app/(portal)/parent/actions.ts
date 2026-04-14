@@ -218,17 +218,19 @@ export async function createPreOrderTransaction(
       : []),
 
     // Insert pre_order records for comedor daily_menu items
+    // NOTE: The frontend prevents re-ordering a paid menu, so a plain insert is safe here.
+    // Once the UNIQUE(consumer_id, daily_menu_id) constraint is applied in Supabase,
+    // this can be changed back to upsert with { onConflict: 'consumer_id,daily_menu_id' }.
     ...(comedorItems.length > 0
-      ? [run(adminClient.from('pre_orders').upsert(
+      ? [run(adminClient.from('pre_orders').insert(
           comedorItems.map(item => ({
             consumer_id: consumerId,
             daily_menu_id: item.id,
             status: 'paid',
-            order_date: item.date, // Store the intended consumption date
+            order_date: item.date,
             special_instructions: item.specialInstructions,
             has_allergy_override: item.hasAllergyOverride,
-          })),
-          { onConflict: 'consumer_id,daily_menu_id' }
+          }))
         ))]
       : []),
 

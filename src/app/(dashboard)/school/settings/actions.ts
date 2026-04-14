@@ -54,3 +54,43 @@ export async function updateOperationalSettings(formData: FormData) {
     return { success: false, error: error.message };
   }
 }
+export async function updateSchoolSettingsJSONB(settings: any) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado');
+
+    const schoolId = await getEffectiveSchoolId();
+    if (!schoolId) throw new Error('Escuela no identificada');
+
+    // Fetch existing settings to merge (protecting SuperAdmin values like min_recharge_amount)
+    const adminClient = await createAdminClient();
+    const { data: school } = await adminClient
+      .from('schools')
+      .select('settings')
+      .eq('id', schoolId)
+      .single();
+
+    const mergedSettings = {
+      ...(school?.settings || {}),
+      ...settings,
+      financial: {
+        ...(school?.settings?.financial || {}),
+        ...(settings.financial || {})
+      }
+    };
+
+    const { error } = await adminClient
+      .from('schools')
+      .update({ settings: mergedSettings })
+      .eq('id', schoolId);
+
+    if (error) throw error;
+
+    revalidatePath('/school/settings');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[updateSchoolSettingsJSONB] Error:', error);
+    return { success: false, error: error.message };
+  }
+}

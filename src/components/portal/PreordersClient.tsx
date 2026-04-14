@@ -365,7 +365,14 @@ export default function PreordersClient({
             {(initialConsumers as Consumer[]).map(c => (
               <button
                 key={c.id}
-                onClick={() => setActiveStudentId(c.id)}
+                onClick={() => {
+                  if (c.id === activeStudentId) return; // already selected
+                  setActiveStudentId(c.id);
+                  setCart([]); // ← CRITICAL: clear cart to avoid charging wrong student
+                  setCheckoutStatus('idle');
+                  setCheckoutError('');
+                  setAllergenWarnings([]);
+                }}
                 className={`px-5 py-2 rounded-full font-black text-sm transition-all duration-300 ${activeStudentId === c.id
                   ? 'bg-[#004B87] text-white shadow-md'
                   : 'text-[#8aa8cc] hover:text-[#004B87]'
