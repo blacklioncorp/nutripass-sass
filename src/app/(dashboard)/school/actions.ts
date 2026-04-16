@@ -33,15 +33,6 @@ export async function createConsumer(prevState: any, formData: FormData) {
 
   if (error) return { error: error.message };
 
-  const { error: walletError } = await supabaseAdmin
-    .from('wallets')
-    .insert([
-      { consumer_id: consumer.id, type: 'comedor', balance: 0.00 },
-      { consumer_id: consumer.id, type: 'snack', balance: 0.00 },
-    ]);
-
-  if (walletError) return { error: walletError.message };
-
   revalidatePath('/school/consumers');
   return { success: true, data: consumer };
 }
@@ -236,5 +227,134 @@ export async function getDetailedSalesReport(daysBack = 30): Promise<{
     return { data: rows, schoolName };
   } catch (e: any) {
     return { data: [], schoolName: '', error: e.message };
+  }
+}
+
+export async function importConsumersAction(consumers: any[]) {
+  try {
+    const adminClient = await createAdminClient();
+    const schoolId = await getEffectiveSchoolId();
+    if (!schoolId) throw new Error('Escuela no identificada o sin permisos.');
+
+    // 1. Fetch school settings for domain filtering
+    const { data: school } = await adminClient
+      .from('schools')
+      .select('name, settings')
+      .eq('id', schoolId)
+      .single();
+
+    const restrictedDomains = school?.settings?.operational?.restricted_domains || [];
+    const schoolName = school?.name || 'Mi Escuela';
+
+    // 2. Pre-fetch existing parents to perform linking
+    const parentEmails = [...new Set(
+      consumers
+        .map(c => c.parent_email)
+        .filter(Boolean)
+        .map(e => e.toLowerCase().trim())
+    )];
+    
+    let parentMap: Record<string, string> = {};
+    if (parentEmails.length > 0) {
+      const { data: existingParents } = await adminClient
+        .from('parents')
+        .select('id, email')
+        .in('email', parentEmails);
+      
+      existingParents?.forEach(p => {
+        parentMap[p.email.toLowerCase()] = p.id;
+      });
+    }
+
+    // 3. Prepare consumer data & Collect n8n candidates
+    let stats = {
+      newStudents: consumers.length,
+      linkedParents: 0,
+      preLinkedParents: 0,
+      skippedEmails: 0,
+      whatsappCandidates: 0
+    };
+
+    const n8nPayloads: any[] = [];
+
+    const dataToInsert = consumers.map(c => {
+      const email = c.parent_email?.toLowerCase().trim() || null;
+      const phone = c.parent_phone || null;
+      const isRestricted = email && restrictedDomains.some((d: string) => email.endsWith(d.toLowerCase()));
+      
+      const parentId = email ? parentMap[email] : null;
+      
+      if (parentId) stats.linkedParents++;
+      else if (email) stats.preLinkedParents++;
+      
+      const shouldNotifyWhatsApp = (isRestricted || !email) && !!phone;
+      if (shouldNotifyWhatsApp) stats.whatsappCandidates++;
+
+      const metadata = {
+        ...(isRestricted ? { skip_email_invite: true, reason: 'restricted_domain' } : {}),
+        ...(shouldNotifyWhatsApp ? { whatsapp_pending: true } : {})
+      };
+
+      if (shouldNotifyWhatsApp) {
+        n8nPayloads.push({
+          parent_email: email,
+          parent_phone: phone,
+          school_name: schoolName,
+          student_name: `${c.first_name} ${c.last_name}`,
+          student_id: c.identifier,
+          grade: c.grade,
+          source: 'bulk_upload_safelunch'
+        });
+      }
+
+      return {
+        school_id: schoolId,
+        first_name: c.first_name || 'Desconocido',
+        last_name: c.last_name || 'Desconocido',
+        identifier: c.identifier || null,
+        type: c.type === 'staff' ? 'staff' : 'student',
+        grade: c.grade || null,
+        parent_email: email,
+        parent_id: parentId,
+        is_active: true,
+        metadata
+      };
+    });
+
+    // 4. Perform bulk insert
+    const { data: inserted, error } = await adminClient
+      .from('consumers')
+      .insert(dataToInsert)
+      .select('id');
+
+    if (error) throw error;
+
+    // 5. Trigger n8n Webhook if candidates exist
+    if (n8nPayloads.length > 0 && process.env.N8N_WHATSAPP_WEBHOOK_URL) {
+      try {
+        await fetch(process.env.N8N_WHATSAPP_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'bulk_import_notification',
+            source: 'bulk_upload_safelunch',
+            data: n8nPayloads
+          })
+        });
+      } catch (webhookErr) {
+        console.error('[importConsumersAction] n8n Webhook Error:', webhookErr);
+      }
+    }
+
+    revalidatePath('/school/consumers');
+    
+    return { 
+      success: true, 
+      summary: stats,
+      count: inserted?.length || 0 
+    };
+  } catch (error: any) {
+    console.error('[importConsumersAction] Error:', error);
+    return { success: false, error: error.message };
   }
 }

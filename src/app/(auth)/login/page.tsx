@@ -32,7 +32,7 @@ export default function LoginPage() {
             <img src={tenant.logo_url} alt={tenant.name} className="h-16 object-contain mb-6 drop-shadow-sm" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/SafeLunch.png" alt="Logo de SafeLunch" className="w-40 h-auto object-contain mb-6 drop-shadow-sm" />
+            <img src="https://juautqvqptburnflbolm.supabase.co/storage/v1/object/public/school_assets/safelunchupgrade.PNG" alt="Logo de SafeLunch" className="w-40 h-auto object-contain mb-6 drop-shadow-sm" />
           )}
           <h2 className="text-3xl font-black text-slate-900 text-center tracking-tight leading-tight">
             {isSignUp ? 'Crea tu cuenta familiar 👨‍👩‍👧‍👦' : '¡Hola de nuevo! 👋'}

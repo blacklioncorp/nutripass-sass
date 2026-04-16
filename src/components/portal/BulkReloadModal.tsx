@@ -79,7 +79,40 @@ export default function BulkReloadModal({
   const [breakdown, setBreakdown] = useState<any>(null);
   const [isGettingIntent, setIsGettingIntent] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [minAmount, setMinAmount] = useState<number | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [settingsError, setSettingsError] = useState(false);
   const router = useRouter();
+
+  // Fetch school settings to get min_recharge_amount
+  useState(() => {
+    async function fetchSettings() {
+      try {
+        const { createClient } = await import('@/utils/supabase/client');
+        const supabase = createClient();
+        const { data, error: fetchErr } = await supabase
+          .from('schools')
+          .select('settings')
+          .eq('id', userProfile?.school_id)
+          .single();
+        
+        if (fetchErr) throw fetchErr;
+
+        const val = (data?.settings as any)?.financial?.min_recharge_amount;
+        if (val !== undefined && val !== null) {
+          setMinAmount(Number(val));
+        } else {
+          setMinAmount(50);
+        }
+      } catch (e) {
+        console.error('Error fetching min amount:', e);
+        setSettingsError(true);
+      } finally {
+        setLoadingSettings(false);
+      }
+    }
+    fetchSettings();
+  });
 
   const handleAmountChange = (studentId: string, walletType: 'comedor' | 'snack', value: string) => {
     setAmounts((prev) => ({
@@ -98,10 +131,7 @@ export default function BulkReloadModal({
         if (val && !isNaN(num) && num > 0) {
           const wallet = (student.wallets || []).find((w: any) => String(w.type).toLowerCase() === wType.toLowerCase());
           if (wallet) {
-            console.log(`Mapping allocation for ${student.first_name}: ${wType} -> ${wallet.id}`);
             result.push({ walletId: wallet.id, amount: num });
-          } else {
-            console.warn(`Missing ${wType} wallet for student ${student.first_name} (${student.id})`);
           }
         }
       }
@@ -114,10 +144,22 @@ export default function BulkReloadModal({
   const total = subtotal + fee;
 
   const handleStartReload = async () => {
+    if (minAmount === null) return;
+    
     if (allocations.length === 0) {
       alert('Ingresa al menos un monto de recarga.');
       return;
     }
+
+    // Validate per-student total meets minimum
+    for (const student of consumers) {
+      const studentTotal = Number(amounts[student.id]?.comedor || 0) + Number(amounts[student.id]?.snack || 0);
+      if (studentTotal > 0 && studentTotal < minAmount) {
+        alert(`La recarga para ${student.first_name} debe ser de al menos $${minAmount.toFixed(2)}`);
+        return;
+      }
+    }
+
     setIsGettingIntent(true);
     try {
       const res = await fetch('/api/stripe/create-payment-intent', {
@@ -224,15 +266,25 @@ export default function BulkReloadModal({
                   })}
                 </div>
 
-                {/* Mini subtotal per student */}
-                {(Number(amounts[student.id]?.comedor || 0) + Number(amounts[student.id]?.snack || 0)) > 0 && (
-                  <p className="text-right text-xs font-black text-slate-400 mt-3">
-                    Subtotal {student.first_name}:{' '}
-                    <span className="text-[#004B87]">
-                      ${(Number(amounts[student.id]?.comedor || 0) + Number(amounts[student.id]?.snack || 0)).toFixed(2)}
-                    </span>
-                  </p>
-                )}
+                {/* Mini subtotal per student with minimum validation */}
+                {(() => {
+                  const studentTotal = Number(amounts[student.id]?.comedor || 0) + Number(amounts[student.id]?.snack || 0);
+                  const isUnderMin = studentTotal > 0 && studentTotal < minAmount;
+                  if (studentTotal === 0) return null;
+                  return (
+                    <div className="flex justify-between items-center mt-3">
+                      <span className={`text-[9px] font-black uppercase tracking-wider ${isUnderMin ? 'text-red-500' : 'text-[#8aa8cc]'}`}>
+                        {isUnderMin ? `⚠️ Mínimo: $${minAmount.toFixed(2)}` : `Monto Correcto`}
+                      </span>
+                      <p className="text-right text-xs font-black text-slate-400">
+                        Subtotal {student.first_name}:{' '}
+                        <span className={isUnderMin ? 'text-red-500' : 'text-[#004B87]'}>
+                          ${studentTotal.toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -255,12 +307,22 @@ export default function BulkReloadModal({
               </div>
               <button
                 onClick={handleStartReload}
-                disabled={isGettingIntent || allocations.length === 0}
-                className="w-full sm:w-auto bg-primary hover:bg-blue-600 active:bg-blue-700 text-white font-black px-10 py-5 rounded-2xl transition disabled:opacity-50 active:scale-95 flex items-center justify-center gap-3 min-h-[64px] shadow-lg shadow-blue-500/20"
+                disabled={isGettingIntent || allocations.length === 0 || loadingSettings || settingsError}
+                className="w-full bg-[#004B87] hover:bg-[#003a6b] text-white font-black py-4 rounded-xl text-lg shadow-xl active:scale-[0.98] transition disabled:opacity-50 disabled:grayscale"
               >
-                {isGettingIntent
-                  ? <RefreshCcw className="h-6 w-6 animate-spin" />
-                  : <><CreditCard className="h-6 w-6" /> <span className="uppercase tracking-widest text-xs">Pagar ahora</span></>}
+                {isGettingIntent ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <RefreshCcw className="h-5 w-5 animate-spin" />
+                    <span>{loadingSettings ? 'Validando...' : 'Procesando...'}</span>
+                  </div>
+                ) : loadingSettings ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <RefreshCcw className="h-5 w-5 animate-spin" />
+                    <span>Sincronizando...</span>
+                  </div>
+                ) : (
+                  'Siguiente'
+                )}
               </button>
             </div>
           </div>

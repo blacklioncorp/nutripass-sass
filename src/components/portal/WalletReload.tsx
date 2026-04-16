@@ -63,11 +63,47 @@ export default function WalletReload({ walletId, schoolId, onSuccess }: { wallet
   const [breakdown, setBreakdown] = useState<any>(null);
   const [isGettingIntent, setIsGettingIntent] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [minAmount, setMinAmount] = useState<number | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Fetch school settings to get min_recharge_amount
+  useState(() => {
+    async function fetchSettings() {
+      try {
+        const { createClient } = await import('@/utils/supabase/client');
+        const supabase = createClient();
+        const { data, error: fetchErr } = await supabase
+          .from('schools')
+          .select('settings')
+          .eq('id', schoolId)
+          .single();
+        
+        if (fetchErr) throw fetchErr;
+
+        const val = (data?.settings as any)?.financial?.min_recharge_amount;
+        if (val !== undefined && val !== null) {
+          setMinAmount(Number(val));
+        } else {
+          // Fallback if settings exist but min_recharge is missing in JSON
+          setMinAmount(50); 
+        }
+      } catch (e: any) {
+        console.error('Error fetching min amount:', e);
+        setError('No se pudo obtener la configuración de recarga de la escuela.');
+      } finally {
+        setLoadingSettings(false);
+      }
+    }
+    fetchSettings();
+  });
+
   const handleStartReload = async () => {
-    if (!amount || isNaN(Number(amount)) || Number(amount) < 50) {
-      alert("El monto mínimo de recarga es $50.00");
+    if (minAmount === null) return;
+    
+    if (!amount || isNaN(Number(amount)) || Number(amount) < minAmount) {
+      alert(`El monto mínimo de recarga configurado por tu escuela es $${minAmount.toFixed(2)}`);
       return;
     }
 
@@ -124,21 +160,43 @@ export default function WalletReload({ walletId, schoolId, onSuccess }: { wallet
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl">$</span>
               <input 
                 type="number" 
-                min="50"
+                min={minAmount ?? 0}
                 step="50"
-                placeholder="500.00"
+                placeholder={loadingSettings ? "Cargando..." : String(minAmount ?? 50)}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-10 pr-4 py-4 text-2xl font-black text-slate-900 border-2 border-slate-200 rounded-xl focus:border-primary focus:outline-none transition"
+                disabled={loadingSettings}
+                className={`w-full pl-10 pr-4 py-4 text-2xl font-black text-slate-900 border-2 rounded-xl focus:border-primary focus:outline-none transition ${minAmount && Number(amount) < minAmount && amount ? 'border-red-200 bg-red-50' : 'border-slate-200'}`}
               />
             </div>
+            {error ? (
+              <p className="text-[10px] text-red-500 font-black uppercase tracking-widest mt-2 ml-1">
+                ⚠️ {error}
+              </p>
+            ) : minAmount !== null && (
+              <p className="text-[10px] text-[#8aa8cc] font-black uppercase tracking-widest mt-2 ml-1">
+                Recarga mínima: <span className={Number(amount) < minAmount && amount ? 'text-red-500' : 'text-[#7CB9E8]'}>${minAmount.toFixed(2)} MXN</span>
+              </p>
+            )}
+            {loadingSettings && (
+               <p className="text-[10px] text-[#8aa8cc] font-black uppercase tracking-widest mt-2 ml-1 animate-pulse">
+                Verificando políticas de la escuela...
+              </p>
+            )}
           </div>
           <button 
             onClick={handleStartReload} 
-            disabled={isGettingIntent || !amount}
-            className="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-slate-800 transition disabled:opacity-50"
+            disabled={isGettingIntent || loadingSettings || !!error}
+            className="w-full bg-[#004B87] hover:bg-[#003a6b] text-white font-black py-4 rounded-xl text-lg shadow-lg active:scale-[0.98] transition disabled:opacity-50 disabled:grayscale"
           >
-            {isGettingIntent ? 'Calculando Tarifas...' : 'Siguiente'}
+            {isGettingIntent ? (
+              <div className="flex items-center justify-center gap-3">
+                <RefreshCcw className="h-5 w-5 animate-spin" />
+                <span>Procesando...</span>
+              </div>
+            ) : (
+              'Siguiente'
+            )}
           </button>
         </div>
       ) : (

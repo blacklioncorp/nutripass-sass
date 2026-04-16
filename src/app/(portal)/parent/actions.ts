@@ -32,6 +32,35 @@ export async function updateAllergies(consumerId: string, allergies: string[]) {
   revalidatePath('/parent');
 }
 
+export async function updateDailyLimit(consumerId: string, limit: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('No autenticado. Por favor inicia sesión.');
+
+  // 1. Verify ownership
+  const { data: consumer, error: fetchErr } = await supabase
+    .from('consumers')
+    .select('id')
+    .eq('id', consumerId)
+    .eq('parent_id', user.id)
+    .single();
+
+  if (fetchErr || !consumer) {
+    throw new Error('Alumno no encontrado o sin permisos.');
+  }
+
+  // 2. Update limit
+  const { error: updateErr } = await supabase
+    .from('consumers')
+    .update({ daily_purchase_limit: limit })
+    .eq('id', consumerId);
+
+  if (updateErr) throw new Error(updateErr.message);
+
+  revalidatePath('/parent');
+}
+
 export async function updateParentProfile(userId: string, fullName: string, email?: string) {
   const supabase = await createClient();
 

@@ -25,7 +25,8 @@ type Props = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatMoney(n: number) {
-  return `$${Math.abs(n).toFixed(2)}`;
+  const absoluteAmount = Math.abs(n).toFixed(2);
+  return n < 0 ? `-$${absoluteAmount}` : `$${absoluteAmount}`;
 }
 
 function formatDate(iso: string) {
@@ -44,35 +45,41 @@ function formatDate(iso: string) {
 
 function WalletCard({ wallet, type, onReload }: { wallet: WalletType | undefined; type: string; label: string; onReload: () => void }) {
   const balance = wallet?.balance ?? 0;
-  const low = balance < 50;
+  const isNegative = balance < 0;
+  const isLow = balance < 50 && !isNegative;
+  
   // Use the explicit `type` prop so the label is always correct even if wallet.type is null
   const walletType = wallet?.type ?? type;
 
   return (
-    <div className={`bg-white rounded-2xl p-6 border shadow-sm hover:shadow-md transition-shadow flex flex-col gap-5 ${low ? 'border-amber-200' : 'border-[#e8f0f7]'}`}>
+    <div className={`bg-white rounded-2xl p-6 border shadow-sm hover:shadow-md transition-shadow flex flex-col gap-5 ${isNegative ? 'border-red-200 bg-red-50/10' : isLow ? 'border-amber-200' : 'border-[#e8f0f7]'}`}>
       <div className="flex justify-between items-start">
         <div>
           <p className="text-[#8aa8cc] text-[10px] font-black uppercase tracking-widest">
             {type === 'snack' ? 'Billetera Snack' : 'Billetera Comedor'}
           </p>
-          {low && (
+          {isNegative ? (
+            <span className="inline-flex items-center gap-1 text-red-600 text-[10px] font-bold mt-1 uppercase">
+              <AlertTriangle className="h-3 w-3" /> Sobregirado (Deuda)
+            </span>
+          ) : isLow ? (
             <span className="inline-flex items-center gap-1 text-amber-600 text-[10px] font-bold mt-1">
               <AlertTriangle className="h-3 w-3" /> Saldo Bajo
             </span>
-          )}
+          ) : null}
         </div>
-        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${low ? 'bg-amber-50' : 'bg-[#e8f0f7]'}`}>
-          <Wallet className={`h-5 w-5 ${low ? 'text-amber-500' : 'text-[#7CB9E8]'}`} />
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${isNegative ? 'bg-red-100 text-red-600' : isLow ? 'bg-amber-50' : 'bg-[#e8f0f7]'}`}>
+          <Wallet className={`h-5 w-5 ${isNegative ? 'text-red-500' : isLow ? 'text-amber-500' : 'text-[#7CB9E8]'}`} />
         </div>
       </div>
-      <p className={`text-5xl font-black tracking-tight ${low ? 'text-amber-600' : 'text-[#004B87]'}`}>
+      <p className={`text-5xl font-black tracking-tight ${isNegative ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-[#004B87]'}`}>
         {formatMoney(balance)}
       </p>
       <button
         onClick={onReload}
-        className="w-full bg-[#F4C430] hover:bg-[#e6b110] active:scale-95 text-[#1a3a5c] font-black text-sm px-4 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-sm uppercase"
+        className={`w-full font-black text-sm px-4 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-sm uppercase active:scale-95 ${isNegative ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-[#F4C430] hover:bg-[#e6b110] text-[#1a3a5c]'}`}
       >
-        <CreditCard className="h-4 w-4" /> Recargar Saldo
+        <CreditCard className="h-4 w-4" /> {isNegative ? 'Liquidar Deuda' : 'Recargar Saldo'}
       </button>
     </div>
   );
@@ -149,6 +156,98 @@ function NutriPuntosCard({ consumer }: { consumer: Consumer }) {
 }
 
 
+function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
+  const [isActive, setIsActive] = useState((consumer as any).daily_purchase_limit > 0);
+  const [limit, setLimit] = useState((consumer as any).daily_purchase_limit || 0);
+  const [saving, setSaving] = useState(false);
+
+  const handleToggle = async () => {
+    const nextActive = !isActive;
+    setIsActive(nextActive);
+    const nextLimit = nextActive ? (limit || 100) : 0;
+    if (!nextActive) setLimit(0);
+    else if (limit === 0) setLimit(100);
+    
+    setSaving(true);
+    try {
+      const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
+      await updateDailyLimit(consumer.id, nextLimit);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLimitChange = async (val: number) => {
+    setLimit(val);
+  };
+
+  const handleSaveLimit = async () => {
+    setSaving(true);
+    try {
+      const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
+      await updateDailyLimit(consumer.id, limit);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 border border-[#e8f0f7] shadow-sm">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="bg-amber-50 h-10 w-10 rounded-xl flex items-center justify-center">
+            <Tag className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h3 className="font-black text-[#004B87] text-lg">Límite de Gasto</h3>
+            <p className="text-[#8aa8cc] text-[10px] font-bold uppercase tracking-widest">Control diario de consumo</p>
+          </div>
+        </div>
+        <button 
+          onClick={handleToggle}
+          disabled={saving}
+          className={`w-12 h-6 rounded-full transition-all relative ${isActive ? 'bg-emerald-500' : 'bg-slate-200'}`}
+        >
+          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isActive ? 'left-7' : 'left-1'}`} />
+        </button>
+      </div>
+
+      {isActive ? (
+        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8aa8cc] font-black text-sm">$</span>
+            <input 
+              type="number" 
+              value={limit}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              onBlur={handleSaveLimit}
+              className="w-full pl-8 pr-4 py-3 bg-[#f8fafd] border border-[#e8f0f7] rounded-xl text-[#004B87] font-bold focus:ring-2 focus:ring-[#7CB9E8]/20 focus:border-[#7CB9E8] transition-all"
+              placeholder="100.00"
+            />
+          </div>
+          <p className="text-[10px] text-[#8aa8cc] font-medium leading-tight">
+            Se impedirá cualquier compra en el POS si el acumulado del día excede este monto.
+          </p>
+        </div>
+      ) : (
+        <p className="text-[#b0c8e0] text-sm italic py-2">
+          Sin límite de gasto configurado.
+        </p>
+      )}
+      
+      {saving && (
+        <div className="mt-3 flex items-center gap-2 text-[#7CB9E8] text-[10px] font-bold uppercase tracking-widest animate-pulse">
+          <RefreshCcw className="h-3 w-3 animate-spin" /> Guardando...
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AllergyCard({ consumer }: { consumer: Consumer }) {
   const [editing, setEditing] = useState(false);
   const [allergies, setAllergies] = useState<string[]>(consumer.allergies || []);
@@ -206,7 +305,7 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
       <p className="text-[#8aa8cc] text-sm ml-[52px] mb-5">Restricciones para {consumer.first_name} {consumer.last_name}.</p>
 
       {/* Alergias */}
-      <div className="mb-5">
+      <div className="mb-2">
         <div className="flex justify-between items-center mb-3">
           <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest">Alergias Registradas</p>
           {!editing && (
@@ -319,17 +418,6 @@ function AllergyCard({ consumer }: { consumer: Consumer }) {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Productos Bloqueados */}
-      <div>
-        <p className="flex items-center gap-1.5 text-amber-500 font-black text-[10px] uppercase tracking-widest mb-3">
-          <AlertTriangle className="h-3.5 w-3.5" /> Productos Bloqueados
-        </p>
-        <p className="text-[#b0c8e0] text-sm">No hay productos bloqueados.</p>
-        <button className="text-[#7CB9E8] text-xs font-bold hover:underline mt-3 flex items-center gap-1">
-          <Tag className="h-3.5 w-3.5" /> Configurar límites de gasto diario
-        </button>
       </div>
     </div>
   );
@@ -555,10 +643,11 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
             />
           </div>
 
-          {/* Right: Nutri-Puntos + Salud */}
+          {/* Right: Nutri-Puntos + Salud + Límite */}
           <div className="space-y-5">
             <NutriPuntosCard consumer={activeConsumer} />
-            <AllergyCard key={activeConsumer.id} consumer={activeConsumer} />
+            <ExpenditureLimitCard key={`limit-${activeConsumer.id}`} consumer={activeConsumer} />
+            <AllergyCard key={`allergy-${activeConsumer.id}`} consumer={activeConsumer} />
 
             {/* How it works */}
             <div className="bg-[#f0f5fb] rounded-2xl p-6 border border-[#e8f0f7]">

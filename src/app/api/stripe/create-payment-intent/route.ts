@@ -30,8 +30,37 @@ export async function POST(req: Request) {
     const platformFeeCents = Math.round(totalReloadAmountCents * feePercentage);
     const totalChargeCents = totalReloadAmountCents + platformFeeCents;
 
-    // 1. Fetch destination school
-    const { data: school } = await supabase.from('schools').select('stripe_account_id, stripe_onboarding_complete').eq('id', schoolId).single();
+    // 1. Fetch destination school and settings
+    const { data: school } = await supabase
+      .from('schools')
+      .select('stripe_account_id, stripe_onboarding_complete, settings')
+      .eq('id', schoolId)
+      .single();
+    
+    // 1.1 Validate Minimum Recharge Amount
+    const minRechargeAmount = (school?.settings as any)?.financial?.min_recharge_amount ?? 50;
+    
+    if (isBulk && allocations) {
+      // For bulk, we validate EACH student allocation meets the minimum
+      // User says: "control de padres... control de escuela"
+      // If any single allocation is below min, block.
+      const invalid = allocations.find((a: any) => a.amount < minRechargeAmount);
+      if (invalid) {
+         return NextResponse.json(
+           { error: `El monto mínimo de recarga por alumno es $${minRechargeAmount.toFixed(2)}. Revisa tus montos.` }, 
+           { status: 400 }
+         );
+      }
+    } else {
+      // Single recharge validation
+      const rechargeAmount = totalReloadAmountCents / 100;
+      if (rechargeAmount < minRechargeAmount) {
+        return NextResponse.json(
+          { error: `El monto mínimo de recarga es $${minRechargeAmount.toFixed(2)}` }, 
+          { status: 400 }
+        );
+      }
+    }
     
     // 2. Prepare Metadata
     // Note: allocations might be too big for metadata if there are many kids. 

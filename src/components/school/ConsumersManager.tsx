@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import CSVUploader from './CSVUploader';
+import BulkUpload from './BulkUpload';
 import ConsumerFormModal from './ConsumerFormModal';
 
 export default function ConsumersManager({ initialConsumers }: { initialConsumers: any[] }) {
@@ -35,7 +35,7 @@ export default function ConsumersManager({ initialConsumers }: { initialConsumer
           </div>
           {/* Actions */}
           <div className="flex gap-3">
-            <CSVUploader />
+            <BulkUpload />
             <ConsumerFormModal />
           </div>
         </div>
