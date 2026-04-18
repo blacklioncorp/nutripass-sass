@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import BulkUpload from './BulkUpload';
 import ConsumerFormModal from './ConsumerFormModal';
+import VinculacionModal from './VinculacionModal';
 
 export default function ConsumersManager({ initialConsumers }: { initialConsumers: any[] }) {
   const [activeTab, setActiveTab] = useState<'student' | 'staff'>('student');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedConsumerForNfc, setSelectedConsumerForNfc] = useState<any | null>(null);
 
   const source = initialConsumers;
 
@@ -96,11 +98,17 @@ export default function ConsumersManager({ initialConsumers }: { initialConsumer
                     </td>
                     <td className="px-6 py-5">
                       {c.nfc_tag_uid ? (
-                        <span className="bg-[#e8f0f7] text-[#2b5fa6] font-mono text-xs px-3 py-1.5 rounded-full font-bold">
+                        <button 
+                          onClick={() => setSelectedConsumerForNfc(c)}
+                          className="bg-[#e8f0f7] text-[#2b5fa6] font-mono text-xs px-3 py-1.5 rounded-full font-bold hover:bg-[#d0e1f0] transition"
+                        >
                           {c.nfc_tag_uid}
-                        </span>
+                        </button>
                       ) : (
-                        <button className="text-[#3b82f6] text-xs font-black flex items-center gap-1 hover:underline transition">
+                        <button 
+                          onClick={() => setSelectedConsumerForNfc(c)}
+                          className="text-[#3b82f6] text-xs font-black flex items-center gap-1 hover:underline transition"
+                        >
                           🏷️ VINCULAR
                         </button>
                       )}
@@ -135,6 +143,14 @@ export default function ConsumersManager({ initialConsumers }: { initialConsumer
           </table>
         </div>
       </div>
+
+      {selectedConsumerForNfc && (
+        <VinculacionModal
+          isOpen={!!selectedConsumerForNfc}
+          onClose={() => setSelectedConsumerForNfc(null)}
+          consumer={selectedConsumerForNfc}
+        />
+      )}
     </div>
   );
 }

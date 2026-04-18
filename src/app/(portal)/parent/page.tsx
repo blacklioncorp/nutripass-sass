@@ -69,14 +69,11 @@ export default async function ParentPortal() {
   let profile = profileResult.data as UserProfile | null;
   let consumers = consumersResult.data as Consumer[] | null;
 
-  // Fetch school_id from profiles (since parents table might not have it yet, or it's separate)
-  // The system seems to use 'profiles' for roles/school_id and 'parents' for parent-specific data.
-  // We'll keep school_id logic but transition the main 'onboarding' trigger to 'parents' table.
-  if (!profile || !profile.full_name) {
-    const { data: profileRel } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).single();
-    if (profileRel) {
-      profile = { ...profile, ...profileRel } as UserProfile;
-    }
+  // Fetch school_id and role from profiles (source of truth for metadata)
+  const { data: profileRel } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).single();
+  
+  if (profileRel) {
+    profile = { ...profile, ...profileRel } as UserProfile;
   }
 
   // AUTO-LINKING LOGIC: Search by email for consumers not yet linked by ID
