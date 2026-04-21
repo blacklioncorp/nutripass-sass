@@ -358,3 +358,123 @@ export async function importConsumersAction(consumers: any[]) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getSchoolDailyKPIs() {
+  const supabaseAdmin = await createAdminClient();
+  const schoolId = await getEffectiveSchoolId();
+  if (!schoolId) return { error: 'Escuela no asignada' };
+
+  const todayIso = new Date().toISOString().split('T')[0];
+  const todayStart = `${todayIso}T00:00:00.000Z`;
+  const tomorrowStart = `${new Date(new Date().getTime() + 86400000).toISOString().split('T')[0]}T00:00:00.000Z`;
+
+  const { data: consumers } = await supabaseAdmin
+    .from('consumers')
+    .select('id')
+    .eq('school_id', schoolId);
+
+  const consumerIds = consumers?.map(c => c.id) || [];
+  let saldoTotal = 0;
+  let ventaTotalHoy = 0;
+  let alumnosAtendidos = 0;
+
+  if (consumerIds.length > 0) {
+    const { data: wallets } = await supabaseAdmin
+      .from('wallets')
+      .select('id, balance, consumer_id')
+      .in('consumer_id', consumerIds);
+    
+    const walletData = wallets || [];
+    saldoTotal = walletData.reduce((acc, w) => acc + (Number(w.balance) || 0), 0);
+    const walletIds = walletData.map(w => w.id);
+
+    if (walletIds.length > 0) {
+       const { data: txs } = await supabaseAdmin
+         .from('transactions')
+         .select('amount, wallet_id')
+         .in('wallet_id', walletIds)
+         .in('type', ['purchase', 'debit'])
+         .gte('created_at', todayStart)
+         .lt('created_at', tomorrowStart);
+
+       const transactionsData = txs || [];
+       ventaTotalHoy = transactionsData.reduce((acc, tx) => acc + Math.abs(Number(tx.amount) || 0), 0);
+
+       const txWalletIds = [...new Set(transactionsData.map(tx => tx.wallet_id))];
+       const transactingConsumerIds = new Set();
+       txWalletIds.forEach(wid => {
+          const w = walletData.find(w => w.id === wid);
+          if (w) transactingConsumerIds.add(w.consumer_id);
+       });
+       alumnosAtendidos = transactingConsumerIds.size;
+    }
+  }
+
+  const ticketPromedio = alumnosAtendidos > 0 ? (ventaTotalHoy / alumnosAtendidos) : 0;
+
+  return {
+    ventaTotalHoy,
+    alumnosAtendidos,
+    ticketPromedio,
+    saldoTotal
+  };
+}
+
+export async function getSalesByGradeToday() {
+  const supabaseAdmin = await createAdminClient();
+  const schoolId = await getEffectiveSchoolId();
+  if (!schoolId) return { error: 'Escuela no asignada' };
+
+  const todayIso = new Date().toISOString().split('T')[0];
+  const todayStart = `${todayIso}T00:00:00.000Z`;
+  const tomorrowStart = `${new Date(new Date().getTime() + 86400000).toISOString().split('T')[0]}T00:00:00.000Z`;
+
+  const { data: consumers } = await supabaseAdmin
+    .from('consumers')
+    .select('id, grade')
+    .eq('school_id', schoolId);
+
+  const consumerIds = consumers?.map(c => c.id) || [];
+  
+  if (consumerIds.length === 0) return { data: [] };
+
+  const { data: wallets } = await supabaseAdmin
+    .from('wallets')
+    .select('id, consumer_id')
+    .in('consumer_id', consumerIds);
+
+  const walletData = wallets || [];
+  const walletIds = walletData.map(w => w.id);
+
+  if (walletIds.length === 0) return { data: [] };
+
+  const { data: txs } = await supabaseAdmin
+    .from('transactions')
+    .select('amount, wallet_id')
+    .in('wallet_id', walletIds)
+    .in('type', ['purchase', 'debit'])
+    .gte('created_at', todayStart)
+    .lt('created_at', tomorrowStart);
+
+  const transactionsData = txs || [];
+
+  const gradeSales: Record<string, number> = {};
+
+  transactionsData.forEach(tx => {
+     const w = walletData.find(w => w.id === tx.wallet_id);
+     if (w) {
+        const c = consumers?.find(c => c.id === w.consumer_id);
+        // Only grouping by known grades and ignoring blanks, or putting them in 'Sin Grado'
+        const grade = (c && c.grade) ? c.grade : 'Sin Grado';
+        if (!gradeSales[grade]) gradeSales[grade] = 0;
+        gradeSales[grade] += Math.abs(Number(tx.amount) || 0);
+     }
+  });
+
+  const chartData = Object.entries(gradeSales).map(([grade, sales]) => ({
+     grade,
+     sales
+  })).sort((a, b) => b.sales - a.sales);
+
+  return { data: chartData };
+}

@@ -46,7 +46,14 @@ export async function processSmartCheckout(
   consumerId: string, 
   preOrderIds: string[], 
   newItems: any[], 
-  total: number
+  config: {
+    comedorTotal: number;
+    snackTotal: number;
+    cartTotal: number;
+    wComedorId: string | null;
+    wSnackId: string | null;
+    fallbackAuthorized: boolean;
+  }
 ) {
   const supabase = await createClient();
 
@@ -55,27 +62,96 @@ export async function processSmartCheckout(
     0
   );
 
-  const payloadItems = newItems.map(item => ({
-    product_id: item.id,
-    quantity: item.quantity,
-    price: item.base_price
-  }));
+  let overdraft_triggered = false;
+  let chargeComedor = config.comedorTotal;
+  let chargeSnack = config.snackTotal;
 
-  const { data, error } = await supabase.rpc('smart_pos_checkout', {
-    p_consumer_id: consumerId,
-    p_pre_order_ids: preOrderIds,
-    p_cart_total: total,
-    p_nutri_points_earned: nutriPointsEarned,
-    p_items: payloadItems,
-  });
-
-  if (error) {
-    return { error: error.message };
+  // Manual fallback calculation
+  if (config.wComedorId && config.wSnackId && config.fallbackAuthorized) {
+    const { data: wCData } = await supabase.from('wallets').select('balance').eq('id', config.wComedorId).single();
+    if (wCData && chargeComedor > wCData.balance) {
+      const faltante = chargeComedor - wCData.balance;
+      chargeComedor = wCData.balance;
+      chargeSnack += faltante;
+    }
+    
+    // In actual fallback from Snack to Comedor (rare but possible based on our generic handling)
+    const { data: wSData } = await supabase.from('wallets').select('balance').eq('id', config.wSnackId).single();
+    if (wSData && chargeSnack > wSData.balance && config.fallbackAuthorized) {
+      const faltante = chargeSnack - wSData.balance;
+      chargeSnack = wSData.balance;
+      chargeComedor += faltante;
+    }
   }
+
+  // Define checkout messages
+  const messages: string[] = [];
+
+  // Charge Comedor
+  let newComedorBalance = 0;
+  if (config.wComedorId && chargeComedor > 0) {
+    const { data: wData } = await supabase.from('wallets').select('balance, max_overdraft').eq('id', config.wComedorId).single();
+    if (wData) {
+      newComedorBalance = Number(wData.balance) - chargeComedor;
+      if (newComedorBalance < 0) overdraft_triggered = true;
+      await supabase.from('wallets').update({ balance: newComedorBalance }).eq('id', config.wComedorId);
+      await supabase.from('transactions').insert({
+        wallet_id: config.wComedorId,
+        amount: -chargeComedor,
+        type: 'purchase',
+        description: 'Compra en POS - Comida/Desayuno'
+      });
+      messages.push(`Cargo realizado a billetera COMEDOR: $${chargeComedor.toFixed(2)}`);
+    }
+  }
+
+  // Charge Snacks
+  let newSnackBalance = 0;
+  if (config.wSnackId && chargeSnack > 0) {
+    const { data: wData } = await supabase.from('wallets').select('balance, max_overdraft').eq('id', config.wSnackId).single();
+    if (wData) {
+      newSnackBalance = Number(wData.balance) - chargeSnack;
+      if (newSnackBalance < 0) overdraft_triggered = true;
+      await supabase.from('wallets').update({ balance: newSnackBalance }).eq('id', config.wSnackId);
+      await supabase.from('transactions').insert({
+        wallet_id: config.wSnackId,
+        amount: -chargeSnack,
+        type: 'purchase',
+        description: 'Compra en POS - Snacks/Bebidas'
+      });
+      messages.push(`Cargo realizado a billetera SNACKS: $${chargeSnack.toFixed(2)}`);
+    }
+  }
+
+  // Close pre-orders
+  if (preOrderIds.length > 0) {
+    await supabase.from('pre_orders')
+      .update({ status: 'delivered' })
+      .in('id', preOrderIds);
+  }
+
+  // Award Nutri-Points
+  if (nutriPointsEarned > 0) {
+    const { data: cData } = await supabase.from('consumers').select('earned_nutri_points, first_name').eq('id', consumerId).single();
+    if (cData) {
+      await supabase.from('consumers').update({ 
+        earned_nutri_points: (cData.earned_nutri_points || 0) + nutriPointsEarned 
+      }).eq('id', consumerId);
+    }
+  }
+
+  const { data: consumerData } = await supabase.from('consumers').select('first_name').eq('id', consumerId).single();
 
   revalidatePath('/point-of-sale');
   revalidatePath('/school/kitchen');
   revalidatePath('/school/checklist');
   
-  return { success: true, result: data };
+  return { 
+    success: true, 
+    result: {
+      consumer_name: consumerData?.first_name || 'Desconocido',
+      messages,
+      overdraft_triggered
+    }
+  };
 }

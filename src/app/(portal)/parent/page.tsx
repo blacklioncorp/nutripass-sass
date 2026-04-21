@@ -58,7 +58,7 @@ export default async function ParentPortal() {
     supabase
       .from('consumers')
       .select(`
-        id, first_name, last_name, identifier, type,
+        id, first_name, last_name, identifier, type, school_id,
         allergies, earned_nutri_points, nfc_tag_uid,
         wallets ( id, type, balance, max_overdraft )
       `)
@@ -74,6 +74,15 @@ export default async function ParentPortal() {
   
   if (profileRel) {
     profile = { ...profile, ...profileRel } as UserProfile;
+  }
+
+  // FALLBACK: If profile still lacks school_id, try to infer it from the first linked consumer
+  if (profile && !profile.school_id && consumers && consumers.length > 0) {
+    const inferredSchoolId = (consumers[0] as any).school_id;
+    if (inferredSchoolId) {
+      console.log('Inferred school_id from consumer:', inferredSchoolId);
+      profile.school_id = inferredSchoolId;
+    }
   }
 
   // AUTO-LINKING LOGIC: Search by email for consumers not yet linked by ID

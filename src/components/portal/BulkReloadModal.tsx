@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, CreditCard, RefreshCcw } from 'lucide-react';
+import { TrendingUp, CreditCard, RefreshCcw, AlertTriangle } from 'lucide-react';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy');
 const PLATFORM_FEE_PERCENTAGE = 0.12;
@@ -70,7 +70,6 @@ export default function BulkReloadModal({
   userProfile: any;
   onSuccess: () => void;
 }) {
-  // State: { [studentId]: { comedor: string, snack: string } }
   const [amounts, setAmounts] = useState<Record<string, { comedor: string; snack: string }>>(() =>
     Object.fromEntries(consumers.map((c) => [c.id, { comedor: '', snack: '' }]))
   );
@@ -81,19 +80,31 @@ export default function BulkReloadModal({
   const [isSuccess, setIsSuccess] = useState(false);
   const [minAmount, setMinAmount] = useState<number | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
-  const [settingsError, setSettingsError] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const router = useRouter();
 
+  const schoolId = userProfile?.school_id;
+
   // Fetch school settings to get min_recharge_amount
-  useState(() => {
+  useEffect(() => {
     async function fetchSettings() {
+      if (!schoolId) {
+        console.error('BulkReloadModal: schoolId is missing');
+        setSettingsError('Error de vinculación escolar: ID de escuela no encontrado.');
+        setLoadingSettings(false);
+        return;
+      }
+
+      setLoadingSettings(true);
+      setSettingsError(null);
+
       try {
         const { createClient } = await import('@/utils/supabase/client');
         const supabase = createClient();
         const { data, error: fetchErr } = await supabase
           .from('schools')
           .select('settings')
-          .eq('id', userProfile?.school_id)
+          .eq('id', schoolId)
           .single();
         
         if (fetchErr) throw fetchErr;
@@ -104,15 +115,15 @@ export default function BulkReloadModal({
         } else {
           setMinAmount(50);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error fetching min amount:', e);
-        setSettingsError(true);
+        setSettingsError('No se pudo obtener la configuración de recarga de la escuela.');
       } finally {
         setLoadingSettings(false);
       }
     }
     fetchSettings();
-  });
+  }, [schoolId]);
 
   const handleAmountChange = (studentId: string, walletType: 'comedor' | 'snack', value: string) => {
     setAmounts((prev) => ({
@@ -165,7 +176,7 @@ export default function BulkReloadModal({
       const res = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ allocations, schoolId: userProfile?.school_id, isBulk: true }),
+        body: JSON.stringify({ allocations, schoolId, isBulk: true }),
       });
       const data = await res.json();
       if (data.clientSecret) {
@@ -180,6 +191,29 @@ export default function BulkReloadModal({
       setIsGettingIntent(false);
     }
   };
+
+  const SkeletonReload = () => (
+    <div className="space-y-6 animate-pulse p-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-slate-200 rounded-full"></div>
+            <div className="h-4 w-32 bg-slate-200 rounded-lg"></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-slate-200 rounded"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-slate-200 rounded"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   if (isSuccess) {
     return (
@@ -200,7 +234,7 @@ export default function BulkReloadModal({
   }
 
   return (
-    <div className="bg-white p-6 sm:p-8 pb-32 sm:pb-8 rounded-3xl max-w-2xl mx-auto w-full">
+    <div className="bg-white p-6 sm:p-8 pb-32 sm:pb-8 rounded-3xl max-w-2xl mx-auto w-full min-h-[400px]">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="h-12 w-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
@@ -212,15 +246,34 @@ export default function BulkReloadModal({
         </div>
       </div>
 
-      {!clientSecret ? (
-        <div className="space-y-8">
+      {loadingSettings ? (
+        <SkeletonReload />
+      ) : settingsError ? (
+        <div className="bg-red-50 border border-red-100 p-8 rounded-3xl text-center space-y-4">
+          <div className="h-16 w-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto transition-transform hover:scale-110">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-red-600 font-black text-lg uppercase tracking-tight">{settingsError}</p>
+            <p className="text-red-400 text-sm font-medium px-4">Esta es una configuración necesaria para procesar pagos seguros.</p>
+          </div>
+          <button 
+            onClick={() => router.refresh()}
+            className="text-red-600 font-bold underline hover:text-red-800"
+          >
+            Reintentar cargar página
+          </button>
+        </div>
+      ) : !clientSecret ? (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {/* ── Per-student inputs ── */}
           <div className="space-y-5">
+            {console.log('--- DEBUG: Consumers data received in BulkReloadModal ---', JSON.stringify(consumers, null, 2))}
             {consumers.map((student) => (
-              <div key={student.id} className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+              <div key={student.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:border-[#7CB9E8]/30 transition-all">
                 {/* Student name */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="h-9 w-9 bg-[#004B87] text-white rounded-full flex items-center justify-center text-sm font-black flex-shrink-0">
+                  <div className="h-9 w-9 bg-[#004B87] text-white rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm">
                     {student.first_name?.[0]}
                   </div>
                   <h3 className="font-black text-slate-800 text-base">
@@ -231,34 +284,43 @@ export default function BulkReloadModal({
                 {/* Two inputs side by side on desktop, stacked on mobile */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {(['comedor', 'snack'] as const).map((wType) => {
-                    const wallet = (student.wallets || []).find((w: any) => String(w.type).toLowerCase() === wType.toLowerCase());
-                    const hasWallet = !!wallet;
+                    const wallets = student.wallets || [];
+                    
+                    // --- Búsqueda ultra-robusta de billetera ---
+                    // Se busca ignorando mayúsculas, minúsculas, espacios y caracteres nulos.
+                    // Priorizamos SIEMPRE la existencia de la billetera sobre cualquier configuración del plantel.
+                    const wallet = wallets.find((w: any) => 
+                      w && w.type && String(w.type).trim().toLowerCase() === wType.toLowerCase()
+                    );
+                    
+                    const hasWallet = !!wallet; // Si existe la billetera, prevalece y permite la recarga.
                     const val = amounts[student.id]?.[wType] || '';
 
                     return (
-                      <div key={wType} className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                      <div key={wType} className="flex flex-col gap-1.5 flex-1 min-w-[120px]">
                         <span className="text-[10px] font-black text-[#8aa8cc] uppercase tracking-wider ml-1">
                           {wType === 'comedor' ? '🍽 Monto Comedor' : '🍎 Monto Snack'}
                         </span>
                         <div className="relative group">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-black text-[#8aa8cc]">$</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-black text-[#8aa8cc] transition-colors group-focus-within:text-[#7CB9E8]">$</span>
                           <input
                             type="number"
                             min="0"
                             step="50"
                             placeholder="0.00"
                             value={val}
+                            disabled={!hasWallet}
                             onChange={(e) => handleAmountChange(student.id, wType, e.target.value)}
-                            className={`w-full pl-6 pr-3 py-2.5 text-sm font-black rounded-xl border-2 transition-all outline-none ${
-                              !hasWallet && val
-                                ? 'border-red-200 bg-red-50 text-red-500'
-                                : 'border-[#f0f5fb] focus:border-[#7CB9E8] text-[#004B87] group-hover:border-[#e8f0f7]'
+                            className={`w-full pl-6 pr-3 py-3 text-sm font-black rounded-xl border-2 transition-all outline-none ${
+                               !hasWallet
+                                ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-60'
+                                : 'border-[#f8fafd] bg-[#f8fafd] focus:border-[#7CB9E8] focus:bg-white text-[#004B87] group-hover:border-slate-200 shadow-inner'
                             }`}
                           />
                         </div>
-                        {!hasWallet && val && (
-                          <span className="text-[9px] text-red-400 font-bold ml-1 animate-pulse">
-                            ⚠️ Billetera no existe
+                        {!hasWallet && (
+                          <span className="text-[9px] text-amber-500 font-bold ml-1 flex items-center gap-1">
+                            <AlertTriangle className="h-2 w-2" /> No disponible en este plantel
                           </span>
                         )}
                       </div>

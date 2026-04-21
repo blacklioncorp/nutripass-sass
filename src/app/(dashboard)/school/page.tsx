@@ -69,33 +69,18 @@ export default async function SchoolDashboardPage() {
 
   const walletIds = schoolWallets?.map(w => w.id) ?? [];
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const sevenDaysAgoIso = sevenDaysAgo.toISOString().split('T')[0];
+  const { getSchoolDailyKPIs, getSalesByGradeToday } = await import('@/app/(dashboard)/school/actions');
 
   const [
     { count: studentsCount },
     { count: staffCount },
-    { data: todayTxs },
-    { count: ordersToday },
-    { data: weeklyTxsRaw },
     { data: topOrdersRaw },
     { data: highRiskOrders },
+    kpiData,
+    chartResult
   ] = await Promise.all([
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'student'),
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'staff'),
-    // Today's Sales — use full timestamp range to avoid timezone issues
-    walletIds.length > 0
-      ? adminClient.from('transactions').select('amount').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', todayStart).lt('created_at', tomorrowStart)
-      : Promise.resolve({ data: [] }),
-    // Today's Orders Count — include all this week's pre-orders (order_date may vary)
-    consumerIds.length > 0
-      ? adminClient.from('pre_orders').select('*', { count: 'exact', head: true }).in('consumer_id', consumerIds).gte('order_date', todayIso).eq('status', 'paid')
-      : Promise.resolve({ count: 0 }),
-    // Weekly Sales Trending ($) — use full timestamp range
-    walletIds.length > 0
-      ? adminClient.from('transactions').select('amount, created_at').in('wallet_id', walletIds).eq('type', 'debit').gte('created_at', `${sevenDaysAgoIso}T00:00:00.000Z`)
-      : Promise.resolve({ data: [] }),
     // Top Products Aggregation — include BOTH product snacks AND daily_menu combos
     consumerIds.length > 0
       ? adminClient.from('pre_orders')
@@ -114,33 +99,13 @@ export default async function SchoolDashboardPage() {
             products ( name )
           `).in('consumer_id', consumerIds).gte('order_date', todayIso).or('has_allergy_override.eq.true,special_instructions.not.is.null')
       : Promise.resolve({ data: [] }),
+    // Multitenant Daily KPIs
+    getSchoolDailyKPIs(),
+    // Ventas por Grado
+    getSalesByGradeToday()
   ]);
 
-  const todaySales = todayTxs?.reduce((sum, t) => sum + (Math.abs(t.amount) || 0), 0) ?? 0;
-  const avgTicket = ordersToday && ordersToday > 0 ? (todaySales / ordersToday) : 0;
-
-  // Process Weekly Sales Trend
-  const last7Days: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    last7Days.push(d.toISOString().split('T')[0]);
-  }
-
-  const chartData = last7Days.map(date => {
-    const daySales = weeklyTxsRaw?.filter(tx => {
-      // Normalize timestamp to local date (Mexico City UTC-6) to avoid timezone mismatch
-      const txDate = new Date(tx.created_at as string);
-      const localDate = new Date(txDate.getTime() - (txDate.getTimezoneOffset() * 60000));
-      return localDate.toISOString().split('T')[0] === date;
-    }).reduce((sum, tx) => sum + (Math.abs(tx.amount) || 0), 0) ?? 0;
-    
-    return {
-      date: new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
-      sales: daySales,
-      date_iso: date
-    };
-  });
+  const chartData = chartResult?.data || [];
 
   // Process Top 5 Products — includes both combos (daily_menu) and snacks (product)
   const productAgg: Record<string, { name: string; quantity: number; revenue: number }> = {};
@@ -179,10 +144,10 @@ export default async function SchoolDashboardPage() {
   }));
 
   const kpis = [
-    { label: 'VENTAS HOY', value: `$${todaySales.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💳' },
-    { label: 'ÓRDENES HOY', value: ordersToday ?? 0, icon: '🍽️' },
-    { label: 'TICKET PROMEDIO', value: `$${avgTicket.toFixed(2)}`, icon: '📈' },
-    { label: 'ESTUDIANTES', value: studentsCount ?? 0, icon: '👤' },
+    { label: 'VENTA TOTAL HOY', value: `$${kpiData.ventaTotalHoy.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '💳' },
+    { label: 'ALUMNOS ATENDIDOS', value: kpiData.alumnosAtendidos ?? 0, icon: '👤' },
+    { label: 'TICKET PROMEDIO', value: `$${kpiData.ticketPromedio.toFixed(2)}`, icon: '📈' },
+    { label: 'SALDO TOTAL ESCOLAR', value: `$${kpiData.saldoTotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: '🏦' },
   ];
 
   const isEmpty = (studentsCount ?? 0) === 0 && (staffCount ?? 0) === 0;

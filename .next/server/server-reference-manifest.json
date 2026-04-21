@@ -82,10 +82,17 @@
           "async": false,
           "exportedName": "createPreOrderTransaction",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts"
+        },
+        "app/(portal)/parent/preorders/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(portal)/parent/preorders/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/actions/allergen.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createPreOrderTransaction",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts"
         }
       },
       "layer": {
-        "app/(portal)/parent/page": "action-browser"
+        "app/(portal)/parent/page": "action-browser",
+        "app/(portal)/parent/preorders/page": "action-browser"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts",
       "exportedName": "createPreOrderTransaction"
@@ -122,14 +129,32 @@
     },
     "00a52250c5f6a3f25c257113fe5a313a40ce9e2e6d": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "stopImpersonation",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "stopImpersonation",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "stopImpersonation",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "stopImpersonation",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "stopImpersonation",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -148,8 +173,11 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
@@ -158,14 +186,32 @@
     },
     "4078f4c6eec964fc97d0940200eebd21bcb2e1e6d4": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "impersonateSchool",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "impersonateSchool",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "impersonateSchool",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "impersonateSchool",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "impersonateSchool",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -184,8 +230,11 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
@@ -194,14 +243,32 @@
     },
     "6022dcc7e925c54dba83f64e2b57e7888916c0d6ed": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSchoolWithAdmin",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "createSchoolWithAdmin",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSchoolWithAdmin",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSchoolWithAdmin",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "createSchoolWithAdmin",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -220,8 +287,11 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
@@ -230,14 +300,32 @@
     },
     "605badf0104abf895a051e30d6bfc8f5ead08b4dfb": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolSettings",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "updateSchoolSettings",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolSettings",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolSettings",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "updateSchoolSettings",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -256,8 +344,11 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
@@ -266,14 +357,32 @@
     },
     "60b735a5681d19ddfdf35f20892acd7b6c5c10c206": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleSchoolStatus",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "toggleSchoolStatus",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleSchoolStatus",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleSchoolStatus",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "toggleSchoolStatus",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -292,8 +401,11 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
@@ -302,14 +414,32 @@
     },
     "60fe8fd1af496c404bbd2c08721a98abb0870ea29f": {
       "workers": {
+        "app/(dashboard)/master/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/master/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolCommission",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/consumers/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "updateSchoolCommission",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         },
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolCommission",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolCommission",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "updateSchoolCommission",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
@@ -328,33 +458,73 @@
         }
       },
       "layer": {
+        "app/(dashboard)/master/page": "action-browser",
         "app/(dashboard)/school/consumers/page": "rsc",
+        "app/(dashboard)/school/menu/page": "rsc",
         "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/products/page": "rsc",
         "app/(dashboard)/school/settings/page": "rsc",
         "app/(dashboard)/school/staff/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "updateSchoolCommission"
     },
-    "40e487380bb6bc1e6ea179facfbea2786ba1581684": {
+    "008623fdd5d5015cca3afbd9485c1f641f93ba860a": {
       "workers": {
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
-          "exportedName": "sendMataMermasReminder",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts"
+          "exportedName": "getSchoolDailyKPIs",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "action-browser"
+        "app/(dashboard)/school/page": "rsc"
       },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts",
-      "exportedName": "sendMataMermasReminder"
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "getSchoolDailyKPIs"
+    },
+    "00d524fa0f2172f0382aaac947fddefde284211063": {
+      "workers": {
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getSalesByGradeToday",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/page": "rsc"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "getSalesByGradeToday"
+    },
+    "404d4b9f113110b6e470e639a48c87791c4f5459f2": {
+      "workers": {
+        "app/(dashboard)/school/consumers/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "importConsumersAction",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        },
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "importConsumersAction",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/consumers/page": "action-browser",
+        "app/(dashboard)/school/page": "rsc"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "importConsumersAction"
     },
     "40fe52f882ce5ebc08942122dc9055510efc6f460a": {
       "workers": {
         "app/(dashboard)/school/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
           "exportedName": "getDetailedSalesReport",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
@@ -365,6 +535,87 @@
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
       "exportedName": "getDetailedSalesReport"
+    },
+    "606cec87df36943ca843538f096bbbbe28d8d262c8": {
+      "workers": {
+        "app/(dashboard)/school/consumers/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateConsumer",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        },
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateConsumer",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/consumers/page": "action-browser",
+        "app/(dashboard)/school/page": "rsc"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "updateConsumer"
+    },
+    "60920a9fa47216a39d462b190f50a70808021d2ca1": {
+      "workers": {
+        "app/(dashboard)/school/consumers/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createConsumer",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        },
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createConsumer",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/consumers/page": "action-browser",
+        "app/(dashboard)/school/page": "rsc"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "createConsumer"
+    },
+    "60f68ae68463e78503e7e26bbafc81e89cbee2d8a4": {
+      "workers": {
+        "app/(dashboard)/school/consumers/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "linkNfcTag",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        },
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "linkNfcTag",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/consumers/page": "action-browser",
+        "app/(dashboard)/school/page": "rsc"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
+      "exportedName": "linkNfcTag"
+    },
+    "40e487380bb6bc1e6ea179facfbea2786ba1581684": {
+      "workers": {
+        "app/(dashboard)/school/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "sendMataMermasReminder",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/dashboardActions.ts",
+      "exportedName": "sendMataMermasReminder"
     },
     "405fc33038f10cc48978c6bdaf112f11933445d234": {
       "workers": {
@@ -395,66 +646,6 @@
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/staff/actions.ts",
       "exportedName": "createSchoolStaff"
-    },
-    "404d4b9f113110b6e470e639a48c87791c4f5459f2": {
-      "workers": {
-        "app/(dashboard)/school/consumers/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "importConsumersAction",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(dashboard)/school/consumers/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
-      "exportedName": "importConsumersAction"
-    },
-    "60920a9fa47216a39d462b190f50a70808021d2ca1": {
-      "workers": {
-        "app/(dashboard)/school/consumers/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "createConsumer",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(dashboard)/school/consumers/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
-      "exportedName": "createConsumer"
-    },
-    "606cec87df36943ca843538f096bbbbe28d8d262c8": {
-      "workers": {
-        "app/(dashboard)/school/consumers/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "updateConsumer",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(dashboard)/school/consumers/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
-      "exportedName": "updateConsumer"
-    },
-    "60f68ae68463e78503e7e26bbafc81e89cbee2d8a4": {
-      "workers": {
-        "app/(dashboard)/school/consumers/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/consumers/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "linkNfcTag",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(dashboard)/school/consumers/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/actions.ts",
-      "exportedName": "linkNfcTag"
     },
     "4017c709bf14e533d6e5d01f304be1962f3ad18862": {
       "workers": {
@@ -488,6 +679,12 @@
     },
     "60915c414b9559af34be4c9857a2b6142cee7c3964": {
       "workers": {
+        "app/(portal)/parent/preorders/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(portal)/parent/preorders/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(portal)/parent/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/actions/allergen.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "validateCartAllergens",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/actions/allergen.ts"
+        },
         "app/(pos)/point-of-sale/page": {
           "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(pos)/point-of-sale/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(pos)/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/actions/allergen.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": false,
@@ -496,6 +693,7 @@
         }
       },
       "layer": {
+        "app/(portal)/parent/preorders/page": "action-browser",
         "app/(pos)/point-of-sale/page": "action-browser"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/actions/allergen.ts",
@@ -515,6 +713,66 @@
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts",
       "exportedName": "updateSchoolSettingsJSONB"
+    },
+    "60dd972ce3055ecde1c83e194dbe2cd0718ca85274": {
+      "workers": {
+        "app/(dashboard)/school/products/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/products/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "upsertProduct",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/products/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/productActions.ts",
+      "exportedName": "upsertProduct"
+    },
+    "6044f42e52c2e0c498ce374df3018c152986e06a76": {
+      "workers": {
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "upsertDailyMenu",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/menu/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts",
+      "exportedName": "upsertDailyMenu"
+    },
+    "601ba30414da30910605f13262be1770fe83ad80f2": {
+      "workers": {
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "clearDailyMenu",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/menu/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts",
+      "exportedName": "clearDailyMenu"
+    },
+    "60291add88d795aac817ad1b4cb067af807d19b638": {
+      "workers": {
+        "app/(dashboard)/school/menu/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/menu/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "copyPreviousWeek",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/menu/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/menuActions.ts",
+      "exportedName": "copyPreviousWeek"
     }
   },
   "edge": {},

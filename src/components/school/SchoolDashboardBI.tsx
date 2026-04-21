@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { LayoutDashboard, ShieldCheck, Activity, FileSpreadsheet, FileText } from 'lucide-react';
-import ConsumptionChart from './ConsumptionChart';
+import SalesByGradeChart from './SalesByGradeChart';
 import TopProductsList from './TopProductsList';
 import NutritionAlerts from './NutritionAlerts';
 import { downloadCSV, downloadPremiumExcel, type SaleRow, type TopProduct } from '@/utils/export-utils';
@@ -123,7 +123,7 @@ export default function SchoolDashboardBI({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Main Sales Chart */}
         <div className="lg:col-span-8 bg-white rounded-[3rem] border border-[#e8f0f7] shadow-sm p-10 min-h-[500px] flex flex-col">
-            <ConsumptionChart data={chartData} />
+            <SalesByGradeChart data={chartData as any} />
         </div>
 
         {/* Top Sellers Panel */}

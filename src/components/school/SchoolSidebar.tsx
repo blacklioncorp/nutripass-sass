@@ -18,7 +18,7 @@ const navItems = [
 export default function SchoolSidebar({ 
   schoolName, 
   role,
-  schoolLogo = 'https://ui-avatars.com/api/?name=Colegio+Americano&background=0D8ABC&color=fff&rounded=true' // Default fallback
+  schoolLogo
 }: { 
   schoolName?: string; 
   role?: string;

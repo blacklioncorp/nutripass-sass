@@ -93,12 +93,64 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
       }
     }
 
+    // --- Categorization & Balance Validation ---
+    // Lógica de asignación basada en la lista oficial del usuario
+    const isComida = (c: string) => c?.trim() === 'Desayuno (Preparado)';
+    const comedorTotal = cart.reduce((acc, item) => isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+    const snackTotal = cart.reduce((acc, item) => !isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+
+    const wComedor = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'comedor');
+    const wSnack = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'snack');
+    
+    const saldoComedor = wComedor?.balance || 0;
+    const saldoSnack = wSnack?.balance || 0;
+
+    let fallbackAuthorized = false;
+
+    // We only process if there is a cart. Pre-orders alone do not charge wallet.
+    if (cartTotal > 0) {
+      if (comedorTotal > saldoComedor) {
+        if (saldoComedor + saldoSnack >= comedorTotal + snackTotal) {
+          const ok = window.confirm(`El alumno no tiene saldo suficiente en COMEDOR.\nFaltan $${(comedorTotal - saldoComedor).toFixed(2)}.\n\n¿Autorizas usar la billetera de SNACKS para cubrir el excedente?`);
+          if (!ok) {
+            setIsProcessing(false);
+            return;
+          }
+          fallbackAuthorized = true;
+        } else {
+          setErrorMsg('Fondos insuficientes: El saldo total no alcanza para esta compra.');
+          setIsProcessing(false);
+          return;
+        }
+      } else if (snackTotal > saldoSnack) {
+        if (saldoComedor + saldoSnack >= comedorTotal + snackTotal) {
+          const ok = window.confirm(`El alumno no tiene saldo suficiente en SNACKS.\nFaltan $${(snackTotal - saldoSnack).toFixed(2)}.\n\n¿Autorizas usar la billetera de COMEDOR para cubrir el excedente?`);
+          if (!ok) {
+            setIsProcessing(false);
+            return;
+          }
+          fallbackAuthorized = true;
+        } else {
+          setErrorMsg('Fondos insuficientes: El saldo total no alcanza para esta compra.');
+          setIsProcessing(false);
+          return;
+        }
+      }
+    }
+
     try {
       const resp = await processSmartCheckout(
         studentInfo.id,
         selectedPreOrderIds,
         cart,
-        cartTotal
+        {
+          comedorTotal,
+          snackTotal,
+          cartTotal,
+          wComedorId: wComedor ? wComedor.id : null,
+          wSnackId: wSnack ? wSnack.id : null,
+          fallbackAuthorized
+        }
       );
       if (resp.error) throw new Error(resp.error);
       
@@ -111,7 +163,6 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
       setIsProcessing(false);
     }
   };
-
   const resetCheckout = () => {
     setIsCheckoutOpen(false);
     setCheckoutResult(null);
@@ -236,9 +287,18 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 mb-2">¡Cobro Exitoso!</h2>
                 <p className="text-slate-500 mb-6">Gracias <b>{checkoutResult.consumer_name}</b></p>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 font-code text-center">
-                  <p className="text-sm text-slate-500">Nuevo Saldo:</p>
-                  <p className={`text-2xl font-black ${checkoutResult.new_balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${checkoutResult.new_balance}</p>
+                
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 font-code text-center space-y-2">
+                  {checkoutResult.messages ? (
+                    checkoutResult.messages.map((msg: string, i: number) => (
+                      <p key={i} className="text-sm font-bold text-slate-700 bg-white border border-slate-200 p-2 rounded-lg">{msg}</p>
+                    ))
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-500">Nuevo Saldo:</p>
+                      <p className={`text-2xl font-black ${checkoutResult.new_balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${checkoutResult.new_balance}</p>
+                    </>
+                  )}
                   {checkoutResult.overdraft_triggered && (
                     <p className="text-xs text-red-500 mt-2 font-bold animate-pulse">FONDO DE EMERGENCIA UTILIZADO</p>
                   )}
