@@ -157,8 +157,8 @@ function NutriPuntosCard({ consumer }: { consumer: Consumer }) {
 
 
 function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
-  const [isActive, setIsActive] = useState((consumer as any).daily_purchase_limit > 0);
-  const [limit, setLimit] = useState((consumer as any).daily_purchase_limit || 0);
+  const [isActive, setIsActive] = useState(((consumer as any).daily_limit || 0) > 0);
+  const [limit, setLimit] = useState((consumer as any).daily_limit || 0);
   const [saving, setSaving] = useState(false);
 
   const handleToggle = async () => {

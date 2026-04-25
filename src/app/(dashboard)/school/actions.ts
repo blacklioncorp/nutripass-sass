@@ -11,6 +11,13 @@ export async function createConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
+  const allergiesRaw = (formData.get('allergies') as string) || '';
+  const allergies = allergiesRaw
+    .split(',')
+    .map(a => a.trim())
+    .filter(Boolean);
+  const dailyLimitRaw = formData.get('dailyLimit') as string;
+  const daily_limit = dailyLimitRaw ? parseFloat(dailyLimitRaw) : null;
 
   const supabaseAdmin = await createAdminClient();
   const schoolId = await getEffectiveSchoolId();
@@ -26,6 +33,8 @@ export async function createConsumer(prevState: any, formData: FormData) {
       type,
       grade: type === 'student' ? grade : null,
       parent_email: type === 'student' ? parentEmail : null,
+      allergies: type === 'student' ? allergies : [],
+      daily_limit: type === 'student' ? daily_limit : null,
       is_active: true
     })
     .select()
@@ -45,6 +54,13 @@ export async function updateConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
+  const allergiesRaw = (formData.get('allergies') as string) || '';
+  const allergies = allergiesRaw
+    .split(',')
+    .map(a => a.trim())
+    .filter(Boolean);
+  const dailyLimitRaw = formData.get('dailyLimit') as string;
+  const daily_limit = dailyLimitRaw ? parseFloat(dailyLimitRaw) : null;
 
   const supabaseAdmin = await createAdminClient();
   const schoolId = await getEffectiveSchoolId();
@@ -59,6 +75,8 @@ export async function updateConsumer(prevState: any, formData: FormData) {
       type,
       grade: type === 'student' ? grade : null,
       parent_email: type === 'student' ? parentEmail : null,
+      allergies: type === 'student' ? allergies : [],
+      daily_limit: type === 'student' ? daily_limit : null,
     })
     .eq('id', consumerId)
     .eq('school_id', schoolId)

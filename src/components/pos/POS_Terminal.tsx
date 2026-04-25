@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { getStudentStatusByNFC, processSmartCheckout } from '@/app/(pos)/actions';
-import { validateCartAllergens } from '@/app/actions/allergen';
 import { Check, X, AlertTriangle, CreditCard, ShoppingBag, User } from 'lucide-react';
 
 export default function POS_Terminal({ catalog }: { catalog: any[] }) {
@@ -12,11 +11,6 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  
-  // AI Validation States
-  const [isValidatingAllergens, setIsValidatingAllergens] = useState(false);
-  const [allergenWarnings, setAllergenWarnings] = useState<string[]>([]);
-  const [isWarningOpen, setIsWarningOpen] = useState(false);
   
   // Smart POS states
   const [studentInfo, setStudentInfo] = useState<any>(null);
@@ -71,72 +65,21 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     }
   };
 
-  const handleSmartCheckout = async (force: boolean = false) => {
+  const isComida = (cat: string) => {
+    const c = cat?.trim().toUpperCase();
+    return c === 'DESAYUNO (PREPARADO)' || c === 'DESAYUNO' || c === 'COMIDA';
+  };
+
+  const comedorTotal = cart.reduce((acc, item) => isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+  const snackTotal = cart.reduce((acc, item) => !isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+
+  const handleSmartCheckout = async () => {
     if (!studentInfo) return;
     setIsProcessing(true);
     setErrorMsg('');
 
-    // AI Check
-    if (cart.length > 0 && !force) {
-      setIsValidatingAllergens(true);
-      const aiResult = await validateCartAllergens(
-        studentInfo.id, 
-        cart.map(i => ({ id: i.id, name: i.name, description: i.description }))
-      );
-      setIsValidatingAllergens(false);
-      
-      if (!aiResult.safe && aiResult.warnings.length > 0) {
-         setAllergenWarnings(aiResult.warnings);
-         setIsWarningOpen(true);
-         setIsProcessing(false);
-         return; 
-      }
-    }
-
-    // --- Categorization & Balance Validation ---
-    // Lógica de asignación basada en la lista oficial del usuario
-    const isComida = (c: string) => c?.trim() === 'Desayuno (Preparado)';
-    const comedorTotal = cart.reduce((acc, item) => isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
-    const snackTotal = cart.reduce((acc, item) => !isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
-
     const wComedor = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'comedor');
     const wSnack = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'snack');
-    
-    const saldoComedor = wComedor?.balance || 0;
-    const saldoSnack = wSnack?.balance || 0;
-
-    let fallbackAuthorized = false;
-
-    // We only process if there is a cart. Pre-orders alone do not charge wallet.
-    if (cartTotal > 0) {
-      if (comedorTotal > saldoComedor) {
-        if (saldoComedor + saldoSnack >= comedorTotal + snackTotal) {
-          const ok = window.confirm(`El alumno no tiene saldo suficiente en COMEDOR.\nFaltan $${(comedorTotal - saldoComedor).toFixed(2)}.\n\n¿Autorizas usar la billetera de SNACKS para cubrir el excedente?`);
-          if (!ok) {
-            setIsProcessing(false);
-            return;
-          }
-          fallbackAuthorized = true;
-        } else {
-          setErrorMsg('Fondos insuficientes: El saldo total no alcanza para esta compra.');
-          setIsProcessing(false);
-          return;
-        }
-      } else if (snackTotal > saldoSnack) {
-        if (saldoComedor + saldoSnack >= comedorTotal + snackTotal) {
-          const ok = window.confirm(`El alumno no tiene saldo suficiente en SNACKS.\nFaltan $${(snackTotal - saldoSnack).toFixed(2)}.\n\n¿Autorizas usar la billetera de COMEDOR para cubrir el excedente?`);
-          if (!ok) {
-            setIsProcessing(false);
-            return;
-          }
-          fallbackAuthorized = true;
-        } else {
-          setErrorMsg('Fondos insuficientes: El saldo total no alcanza para esta compra.');
-          setIsProcessing(false);
-          return;
-        }
-      }
-    }
 
     try {
       const resp = await processSmartCheckout(
@@ -149,7 +92,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
           cartTotal,
           wComedorId: wComedor ? wComedor.id : null,
           wSnackId: wSnack ? wSnack.id : null,
-          fallbackAuthorized
+          fallbackAuthorized: false
         }
       );
       if (resp.error) throw new Error(resp.error);
@@ -169,7 +112,6 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     setErrorMsg('');
     setStudentInfo(null);
     setSelectedPreOrderIds([]);
-    setIsWarningOpen(false);
   };
 
   const togglePreOrder = (id: string) => {
@@ -309,16 +251,20 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
               </div>
             ) : errorMsg ? (
               <div className="text-center py-6">
-                <div className="h-20 w-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className={`h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6 ${errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'bg-red-600 text-white animate-bounce shadow-[0_0_30px_rgba(220,38,38,0.6)]' : 'bg-red-100 text-red-600'}`}>
                   <X className="h-10 w-10" />
                 </div>
-                <h2 className="text-xl font-black text-slate-900 mb-2">Error en Transacción</h2>
-                <p className="text-red-600 font-bold bg-red-50 p-4 rounded-xl border border-red-200 mb-6">{errorMsg}</p>
-                <button onClick={() => { setErrorMsg(''); setStudentInfo(null); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2">
-                  INTENTAR DE NUEVO
+                <h2 className="text-xl font-black text-slate-900 mb-2">
+                  {errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'Riesgo Médico Detectado' : 'Transacción Rechazada'}
+                </h2>
+                <div className={`font-bold p-4 rounded-xl border mb-6 text-sm ${errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'text-white bg-red-600 border-red-700 shadow-inner' : 'text-red-700 bg-red-50 border-red-200'}`}>
+                  {errorMsg}
+                </div>
+                <button onClick={() => { setErrorMsg(''); setStudentInfo(null); setCart([]); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2 uppercase tracking-widest text-xs">
+                  {errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'VACIAR CARRITO Y CANCELAR' : 'INTENTAR DE NUEVO'}
                 </button>
-                <button onClick={resetCheckout} className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition">
-                  CANCELAR
+                <button onClick={resetCheckout} className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition uppercase tracking-widest text-xs">
+                  SALIR DEL MODO COBRO
                 </button>
               </div>
             ) : studentInfo ? (
@@ -386,20 +332,27 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                   </div>
                 )}
 
-                {/* Checkout Button */}
-                <div className="pt-4 border-t border-slate-100">
-                   {cart.length > 0 && (
-                     <div className="mb-4 bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center text-blue-700">
-                        <span className="text-xs font-black uppercase tracking-widest">Cobro Extra (Hoy)</span>
-                        <span className="font-black">${cartTotal.toFixed(2)}</span>
+                {/* Checkout Summary & Button */}
+                <div className="pt-4 border-t border-slate-100 space-y-2">
+                   {comedorTotal > 0 && (
+                     <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 flex justify-between items-center text-emerald-700">
+                        <span className="text-[10px] font-black uppercase tracking-widest">BILLETERA COMEDOR</span>
+                        <span className="font-black">${comedorTotal.toFixed(2)}</span>
                      </div>
                    )}
+                   {snackTotal > 0 && (
+                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center text-blue-700">
+                        <span className="text-[10px] font-black uppercase tracking-widest">BILLETERA SNACKS</span>
+                        <span className="font-black">${snackTotal.toFixed(2)}</span>
+                     </div>
+                   )}
+                   
                    <button 
-                     onClick={() => handleSmartCheckout(false)}
-                     disabled={isProcessing || isValidatingAllergens || (cart.length === 0 && selectedPreOrderIds.length === 0)}
-                     className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                     onClick={() => handleSmartCheckout()}
+                     disabled={isProcessing || (cart.length === 0 && selectedPreOrderIds.length === 0)}
+                     className="w-full mt-2 bg-slate-900 text-white font-black text-lg py-4 rounded-xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
                    >
-                     {isValidatingAllergens ? 'IA Analizando Alergias...' : isProcessing ? 'Procesando...' : (
+                     {isProcessing ? 'Procesando...' : (
                        <>
                          <CreditCard className="h-5 w-5" />
                          FINALIZAR CHECKOUT
@@ -443,51 +396,6 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* IA ALLERGEN WARNING MODAL */}
-      {isWarningOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsWarningOpen(false)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200 border border-red-100 flex flex-col gap-6">
-            <div className="text-center">
-              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                <AlertTriangle className="h-8 w-8" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">¡Alto! Riesgo Médico</h2>
-              <p className="text-slate-500 font-medium text-sm">
-                La IA ha detectado posibles alérgenos en el carrito del alumno <span className="font-black text-red-500">{studentInfo?.first_name}</span>.
-              </p>
-            </div>
-
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2 max-h-48 overflow-y-auto">
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-800">Causa del Bloqueo:</p>
-              <ul className="list-disc list-inside text-red-700 text-xs font-bold space-y-2">
-                {allergenWarnings.map((w, idx) => (
-                  <li key={idx} className="leading-snug">{w}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setIsWarningOpen(false);
-                  handleSmartCheckout(true);
-                }}
-                className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 font-black py-4 rounded-xl shadow-sm transition-all text-sm"
-              >
-                VENDER BAJO RIESGO
-              </button>
-              <button
-                onClick={() => setIsWarningOpen(false)}
-                className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg text-sm"
-              >
-                EDITAR CARRITO SEGÚN IA
-              </button>
-            </div>
           </div>
         </div>
       )}

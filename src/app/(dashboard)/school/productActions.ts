@@ -22,12 +22,20 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   const stock_quantity = parseInt(formData.get('stockQuantity') as string) || 0;
   const nutri_points_reward = parseInt(formData.get('nutriPoints') as string) || 0;
   const image_url = formData.get('imageUrl') as string;
+  // Parse manually entered allergens (comma-separated); these take priority over AI
+  const manualAllergensRaw = (formData.get('manualAllergens') as string) || '';
+  const manualAllergens = manualAllergensRaw
+    .split(',')
+    .map(a => a.trim())
+    .filter(Boolean);
 
-  const showsStock = true; // All categories now have stock management
+  const showsStock = true;
 
-  // ── AI ALLERGEN DETECTION ──────────────────────────────────────────────
-  let detectedAllergens: string[] = [];
-  if (process.env.OPENAI_API_KEY) {
+  // ── ALLERGEN DETECTION: Manual first, AI as fallback ──────────────────
+  let detectedAllergens: string[] = manualAllergens;
+
+  if (detectedAllergens.length === 0 && process.env.OPENAI_API_KEY) {
+    // AI assist only when admin has not set manual allergens
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const aiResponse = await openai.chat.completions.create({
@@ -50,7 +58,7 @@ export async function upsertProduct(prevState: any, formData: FormData) {
       if (!Array.isArray(detectedAllergens)) detectedAllergens = [];
     } catch (error) {
       console.error("OpenAI Allergen detection error:", error);
-      detectedAllergens = []; // Fallback safely
+      detectedAllergens = [];
     }
   }
   // ───────────────────────────────────────────────────────────────────────

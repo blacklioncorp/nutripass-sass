@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     const isBulk = paymentIntent.metadata.is_bulk === 'true';
     const bulkRechargeId = paymentIntent.metadata.bulk_recharge_id;
     const singleWalletId = paymentIntent.metadata.wallet_id;
+    const singleSchoolId = paymentIntent.metadata.school_id;
     const singleRechargeAmount = parseFloat(paymentIntent.metadata.recharge_amount);
     const intentId = paymentIntent.id;
 
@@ -53,8 +54,30 @@ export async function POST(req: Request) {
 
         const allocations = bulkDoc.allocations as any[];
 
-        // Update each wallet
-        for (const alloc of allocations) {
+        // FIX 1 (BULK): INSERT before UPDATE — idempotency gate
+        for (let i = 0; i < allocations.length; i++) {
+          const alloc = allocations[i];
+          const compoundId = `${intentId}-bulk-${i}`;
+
+          // Step 1: Attempt INSERT first (idempotency gate)
+          const { error: insertErr } = await supabaseAdmin.from('transactions').insert({
+            wallet_id: alloc.walletId,
+            amount: parseFloat(alloc.amount),
+            type: 'credit',
+            description: 'Recarga Múltiple (Stripe)',
+            stripe_payment_intent_id: compoundId,
+          });
+
+          if (insertErr) {
+            if (insertErr.code === '23505') {
+              // Duplicate detected — wallet was already funded, skip silently
+              console.warn(`Webhook duplicado ignorado (bulk): ${compoundId}`);
+              continue;
+            }
+            throw insertErr;
+          }
+
+          // Step 2: INSERT succeeded → safe to update wallet balance
           const { data: wallet } = await supabaseAdmin
             .from('wallets')
             .select('balance')
@@ -67,15 +90,6 @@ export async function POST(req: Request) {
               .from('wallets')
               .update({ balance: newBalance })
               .eq('id', alloc.walletId);
-            
-            // Log individual transaction
-            await supabaseAdmin.from('transactions').insert({
-              wallet_id: alloc.walletId,
-              amount: alloc.amount,
-              type: 'credit',
-              description: 'Recarga Múltiple (Stripe)',
-              stripe_payment_intent_id: intentId,
-            });
           }
         }
 
@@ -87,7 +101,25 @@ export async function POST(req: Request) {
 
       } else if (singleWalletId && !isNaN(singleRechargeAmount)) {
         const rechargeAmount = parseFloat(singleRechargeAmount.toString());
-        await supabaseAdmin.from('transactions').insert({
+
+        // FIX 2 (SINGLE): Tenant Isolation — validate wallet belongs to correct school
+        if (singleSchoolId) {
+          const { data: validWallet, error: validationError } = await supabaseAdmin
+            .from('wallets')
+            .select('id, consumers!inner(school_id)')
+            .eq('id', singleWalletId)
+            .eq('consumers.school_id', singleSchoolId)
+            .single();
+
+          if (validationError || !validWallet) {
+            console.error(`SECURITY: Tenant isolation breach attempt — wallet ${singleWalletId} does not belong to school ${singleSchoolId}. Intent: ${intentId}`);
+            // Return 200 so Stripe stops retrying — but do NOT touch any wallet
+            return NextResponse.json({ received: true });
+          }
+        }
+
+        // FIX 1 (SINGLE): INSERT before UPDATE — idempotency gate
+        const { error: insertError } = await supabaseAdmin.from('transactions').insert({
           wallet_id: singleWalletId,
           amount: rechargeAmount,
           type: 'credit',
@@ -95,13 +127,23 @@ export async function POST(req: Request) {
           stripe_payment_intent_id: intentId,
         });
 
+        if (insertError) {
+          if (insertError.code === '23505') {
+            // Duplicate webhook — wallet already funded, acknowledge and stop
+            console.warn(`Webhook duplicado ignorado (single): ${intentId}`);
+            return NextResponse.json({ received: true });
+          }
+          throw insertError;
+        }
+
+        // INSERT succeeded → safe to update wallet balance
         const { data: wallet, error: walletError } = await supabaseAdmin
           .from('wallets')
           .select('balance')
           .eq('id', singleWalletId)
           .single();
 
-        if (walletError || !wallet) throw new Error('Wallet not found');
+        if (walletError || !wallet) throw new Error('Wallet not found after idempotency check');
         const newBalance = (parseFloat(wallet.balance.toString()) || 0) + rechargeAmount;
         
         await supabaseAdmin

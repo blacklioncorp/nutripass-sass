@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, useEffect } from 'react';
+import { useActionState, useState, useEffect, useRef } from 'react';
 import { upsertProduct } from '@/app/(dashboard)/school/productActions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import UnsplashSelector from './UnsplashSelector';
@@ -14,6 +14,21 @@ export default function ProductFormModal({ product }: { product?: any }) {
   const [category, setCategory] = useState(product?.category || 'comedor');
   // State for image
   const [imageUrl, setImageUrl] = useState(product?.image_url || '');
+  // Allergen chips state — these are the MANUAL, authoritative source
+  const [allergens, setAllergens] = useState<string[]>(
+    Array.isArray(product?.allergens) ? product.allergens : []
+  );
+  const [allergenInput, setAllergenInput] = useState('');
+  const allergenInputRef = useRef<HTMLInputElement>(null);
+
+  const addAllergen = () => {
+    const trimmed = allergenInput.trim();
+    if (trimmed && !allergens.map(a => a.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setAllergens(prev => [...prev, trimmed]);
+    }
+    setAllergenInput('');
+  };
+  const removeAllergen = (item: string) => setAllergens(prev => prev.filter(a => a !== item));
 
   useEffect(() => {
     if (state?.success) {
@@ -50,15 +65,53 @@ export default function ProductFormModal({ product }: { product?: any }) {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1 text-[#2b5fa6]">Descripción / Ingredientes (Para la IA)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1 text-[#2b5fa6]">Descripción / Ingredientes</label>
             <textarea 
               name="description" 
               defaultValue={product?.description} 
-              rows={3} 
+              rows={2} 
               className="w-full p-2 border border-slate-200 rounded-lg text-sm" 
               placeholder="Ej. Lechuga, crutones, queso parmesano y aderezo especial (contiene leche y huevo)."
             />
-            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">ESTO AYUDA A LA IA A DETECTAR ALÉRGENOS AUTOMÁTICAMENTE</p>
+          </div>
+
+          {/* Manual Allergens — primary authority over AI */}
+          <div>
+            <label className="block text-sm font-bold text-red-600 mb-1">🚨 Alérgenos Confirmados</label>
+            <input type="hidden" name="manualAllergens" value={allergens.join(',')} />
+            <div className="flex gap-2">
+              <input
+                ref={allergenInputRef}
+                type="text"
+                value={allergenInput}
+                onChange={e => setAllergenInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAllergen(); } }}
+                placeholder="ej. Gluten, Lácteos, Cacahuate..."
+                className="flex-1 p-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-400 transition"
+              />
+              <button
+                type="button"
+                onClick={addAllergen}
+                className="px-3 py-2 bg-red-500 text-white text-sm font-bold rounded-lg hover:bg-red-600 transition"
+              >
+                + Agregar
+              </button>
+            </div>
+            {allergens.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {allergens.map(al => (
+                  <span key={al} className="flex items-center gap-1 bg-red-50 text-red-700 text-xs font-bold px-3 py-1 rounded-full border border-red-200">
+                    {al}
+                    <button type="button" onClick={() => removeAllergen(al)} className="text-red-400 hover:text-red-700 ml-1">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 mt-1">
+              Si dejas vacío, la IA intentará detectarlos automáticamente. Los alérgenos manuales siempre tienen prioridad.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -37,13 +37,10 @@ export async function POST(req: Request) {
       .eq('id', schoolId)
       .single();
     
-    // 1.1 Validate Minimum Recharge Amount
+    // 1.1 Validate Minimum Recharge Amount and Tenant Isolation
     const minRechargeAmount = (school?.settings as any)?.financial?.min_recharge_amount ?? 50;
     
     if (isBulk && allocations) {
-      // For bulk, we validate EACH student allocation meets the minimum
-      // User says: "control de padres... control de escuela"
-      // If any single allocation is below min, block.
       const invalid = allocations.find((a: any) => a.amount < minRechargeAmount);
       if (invalid) {
          return NextResponse.json(
@@ -51,14 +48,38 @@ export async function POST(req: Request) {
            { status: 400 }
          );
       }
+      
+      // Tenant Isolation for Bulk Wallets
+      const walletIds = allocations.map((a: any) => a.walletId);
+      const { data: validWallets } = await supabase
+        .from('wallets')
+        .select('id, consumers!inner(school_id)')
+        .in('id', walletIds);
+      
+      const allValid = validWallets && validWallets.every((w: any) => w.consumers?.school_id === schoolId);
+      if (!allValid || validWallets.length !== walletIds.length) {
+         return NextResponse.json({ error: 'Algunas carteras no pertenecen a la escuela actual o son inválidas.' }, { status: 403 });
+      }
     } else {
-      // Single recharge validation
       const rechargeAmount = totalReloadAmountCents / 100;
       if (rechargeAmount < minRechargeAmount) {
         return NextResponse.json(
           { error: `El monto mínimo de recarga es $${minRechargeAmount.toFixed(2)}` }, 
           { status: 400 }
         );
+      }
+      
+      // Tenant Isolation for Single Wallet
+      if (walletId) {
+        const { data: validWallet } = await supabase
+          .from('wallets')
+          .select('id, consumers!inner(school_id)')
+          .eq('id', walletId)
+          .single();
+        
+        if (!validWallet || (validWallet as any).consumers?.school_id !== schoolId) {
+           return NextResponse.json({ error: 'La cartera proporcionada no pertenece a la escuela actual o es inválida.' }, { status: 403 });
+        }
       }
     }
     
@@ -94,6 +115,7 @@ export async function POST(req: Request) {
         is_bulk: isBulk ? 'true' : 'false',
         bulk_recharge_id: bulkRechargeId || '',
         wallet_id: walletId || '',
+        school_id: schoolId || '',
         recharge_amount: (totalReloadAmountCents / 100).toFixed(2),
       }
     };

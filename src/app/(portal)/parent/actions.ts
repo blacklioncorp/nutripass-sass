@@ -53,7 +53,7 @@ export async function updateDailyLimit(consumerId: string, limit: number) {
   // 2. Update limit
   const { error: updateErr } = await supabase
     .from('consumers')
-    .update({ daily_purchase_limit: limit })
+    .update({ daily_limit: limit })
     .eq('id', consumerId);
 
   if (updateErr) throw new Error(updateErr.message);
