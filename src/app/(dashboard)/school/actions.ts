@@ -23,20 +23,27 @@ export async function createConsumer(prevState: any, formData: FormData) {
   const schoolId = await getEffectiveSchoolId();
   if (!schoolId) return { error: 'Escuela no asignada' };
 
+  const payload: any = {
+    school_id: schoolId,
+    first_name: firstName,
+    last_name: lastName,
+    identifier,
+    type,
+    grade: type === 'student' ? grade : null,
+    parent_email: type === 'student' ? parentEmail : null,
+    allergies: type === 'student' ? allergies : [],
+    is_active: true
+  };
+
+  // Solo incluimos daily_limit si el valor no es nulo o si ya sabemos que la columna existe.
+  // Esto evita el Internal Server Error (500) si la migración de la DB aún no se ha ejecutado.
+  if (daily_limit !== null) {
+    payload.daily_limit = daily_limit;
+  }
+
   const { data: consumer, error } = await supabaseAdmin
     .from('consumers')
-    .insert({
-      school_id: schoolId,
-      first_name: firstName,
-      last_name: lastName,
-      identifier,
-      type,
-      grade: type === 'student' ? grade : null,
-      parent_email: type === 'student' ? parentEmail : null,
-      allergies: type === 'student' ? allergies : [],
-      daily_limit: type === 'student' ? daily_limit : null,
-      is_active: true
-    })
+    .insert(payload)
     .select()
     .single();
 
@@ -66,18 +73,23 @@ export async function updateConsumer(prevState: any, formData: FormData) {
   const schoolId = await getEffectiveSchoolId();
   if (!schoolId) return { error: 'Profile not found' };
 
+  const payload: any = {
+    first_name: firstName,
+    last_name: lastName,
+    identifier,
+    type,
+    grade: type === 'student' ? grade : null,
+    parent_email: type === 'student' ? parentEmail : null,
+    allergies: type === 'student' ? allergies : [],
+  };
+
+  if (daily_limit !== null) {
+    payload.daily_limit = daily_limit;
+  }
+
   const { data: consumer, error } = await supabaseAdmin
     .from('consumers')
-    .update({
-      first_name: firstName,
-      last_name: lastName,
-      identifier,
-      type,
-      grade: type === 'student' ? grade : null,
-      parent_email: type === 'student' ? parentEmail : null,
-      allergies: type === 'student' ? allergies : [],
-      daily_limit: type === 'student' ? daily_limit : null,
-    })
+    .update(payload)
     .eq('id', consumerId)
     .eq('school_id', schoolId)
     .select()

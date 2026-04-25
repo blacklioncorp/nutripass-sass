@@ -76,9 +76,9 @@ export default async function ParentPortal() {
     profile = { ...profile, ...profileRel } as UserProfile;
   }
 
-  // FALLBACK: If profile still lacks school_id, try to infer it from the first linked consumer
+  // FALLBACK: If profile still lacks school_id, try to infer it from any linked consumer
   if (profile && !profile.school_id && consumers && consumers.length > 0) {
-    const inferredSchoolId = (consumers[0] as any).school_id;
+    const inferredSchoolId = consumers.find(c => (c as any).school_id)?.school_id;
     if (inferredSchoolId) {
       console.log('Inferred school_id from consumer:', inferredSchoolId);
       profile.school_id = inferredSchoolId;

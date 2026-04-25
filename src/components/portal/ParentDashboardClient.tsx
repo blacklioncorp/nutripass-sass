@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Wallet, Zap, ShieldCheck, History, ChevronDown,
   RefreshCcw, AlertTriangle, Pencil, Star, TrendingUp, CreditCard,
-  Utensils, Tag, Receipt
+  Utensils, Tag, Receipt, LogOut
 } from 'lucide-react';
 import type { Consumer, Transaction, Wallet as WalletType, UserProfile } from '@/app/(portal)/parent/page';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -157,21 +157,29 @@ function NutriPuntosCard({ consumer }: { consumer: Consumer }) {
 
 
 function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
-  const [isActive, setIsActive] = useState(((consumer as any).daily_limit || 0) > 0);
-  const [limit, setLimit] = useState((consumer as any).daily_limit || 0);
+  // --- SEGURIDAD DE RENDERIZADO ---
+  // Si la columna daily_limit no existe en la base de datos o el objeto es nulo, 
+  // devolvemos null para evitar que el dashboard entero se caiga en producción.
+  if (!consumer || !('daily_limit' in consumer)) return null;
+
+  const initialLimit = (consumer as any).daily_limit || 0;
+  const [isActive, setIsActive] = useState(initialLimit > 0);
+  const [limit, setLimit] = useState<string>(initialLimit > 0 ? String(initialLimit) : '');
   const [saving, setSaving] = useState(false);
 
   const handleToggle = async () => {
     const nextActive = !isActive;
     setIsActive(nextActive);
-    const nextLimit = nextActive ? (limit || 100) : 0;
-    if (!nextActive) setLimit(0);
-    else if (limit === 0) setLimit(100);
     
+    // Si se apaga, el límite es 0. Si se enciende, default a 100 o el valor previo.
+    const numericLimit = nextActive ? (parseFloat(limit) || 100) : 0;
+    if (nextActive && !limit) setLimit('100');
+    if (!nextActive) setLimit('');
+
     setSaving(true);
     try {
       const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
-      await updateDailyLimit(consumer.id, nextLimit);
+      await updateDailyLimit(consumer.id, numericLimit);
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -179,15 +187,20 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
     }
   };
 
-  const handleLimitChange = async (val: number) => {
-    setLimit(val);
+  const handleLimitChange = (val: string) => {
+    // Regex para permitir solo números y un punto decimal
+    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+      setLimit(val);
+    }
   };
 
   const handleSaveLimit = async () => {
+    const numericValue = limit === '' ? null : parseFloat(limit);
+    
     setSaving(true);
     try {
       const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
-      await updateDailyLimit(consumer.id, limit);
+      await updateDailyLimit(consumer.id, numericValue as any);
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -221,9 +234,10 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8aa8cc] font-black text-sm">$</span>
             <input 
-              type="number" 
+              type="text" 
+              inputMode="decimal"
               value={limit}
-              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              onChange={(e) => handleLimitChange(e.target.value)}
               onBlur={handleSaveLimit}
               className="w-full pl-8 pr-4 py-3 bg-[#f8fafd] border border-[#e8f0f7] rounded-xl text-[#004B87] font-bold focus:ring-2 focus:ring-[#7CB9E8]/20 focus:border-[#7CB9E8] transition-all"
               placeholder="100.00"
@@ -578,6 +592,12 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
               </button>
             </h1>
             <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[9px] sm:text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
+            <button
+              onClick={() => window.location.href = '/auth/logout'}
+              className="mt-4 flex items-center gap-2 text-red-400 hover:text-red-600 font-black text-[10px] uppercase tracking-widest transition-colors"
+            >
+              <LogOut className="h-3 w-3" /> Cerrar Sesión
+            </button>
           </div>
 
           <button 
