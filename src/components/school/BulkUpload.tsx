@@ -89,7 +89,9 @@ export default function BulkUpload() {
   };
 
   const processInitialData = (headers: string[], rows: any[]) => {
-    setRawHeaders(headers);
+    // Limpiamos los headers de strings vacíos para evitar que el componente Select de Radix truene
+    const cleanHeaders = headers.filter(h => h && h.trim() !== '');
+    setRawHeaders(cleanHeaders);
     setRawData(rows);
 
     // Smart Guesser (ES/EN logic)
@@ -285,8 +287,8 @@ export default function BulkUpload() {
                           <SelectValue placeholder="Seleccionar columna..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
-                          {rawHeaders.map((h) => (
-                            <SelectItem key={h} value={h} className="font-bold">{h}</SelectItem>
+                          {rawHeaders.filter(h => h && h.trim() !== '').map((h, i) => (
+                            <SelectItem key={`${h}-${i}`} value={h} className="font-bold">{h}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
