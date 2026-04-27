@@ -69,7 +69,7 @@ export default async function SchoolDashboardPage() {
 
   const walletIds = schoolWallets?.map(w => w.id) ?? [];
 
-  const { getSchoolDailyKPIs, getSalesByGradeToday } = await import('@/app/(dashboard)/school/actions');
+  const { getSchoolDailyKPIs, getSalesByGradeToday, getAllergyStats } = await import('@/app/(dashboard)/school/actions');
 
   const [
     { count: studentsCount },
@@ -77,7 +77,8 @@ export default async function SchoolDashboardPage() {
     { data: topOrdersRaw },
     { data: highRiskOrders },
     kpiData,
-    chartResult
+    chartResult,
+    allergyStats
   ] = await Promise.all([
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'student'),
     adminClient.from('consumers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('type', 'staff'),
@@ -102,7 +103,9 @@ export default async function SchoolDashboardPage() {
     // Multitenant Daily KPIs
     getSchoolDailyKPIs(),
     // Ventas por Grado
-    getSalesByGradeToday()
+    getSalesByGradeToday(),
+    // Allergy Monitoring
+    getAllergyStats()
   ]);
 
   const chartData = chartResult?.data || [];
@@ -187,6 +190,8 @@ export default async function SchoolDashboardPage() {
         topProducts={topProducts}
         alerts={processedAlerts}
         kpis={kpis}
+        allergyData={allergyStats?.topAllergies || []}
+        totalWithAllergies={allergyStats?.totalWithAllergies || 0}
         isEmpty={isEmpty}
         schoolName={schoolName}
       />

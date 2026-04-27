@@ -298,18 +298,56 @@ export async function importConsumersAction(consumers: any[]) {
 
     // 3. Prepare consumer data & Collect n8n candidates
     let stats = {
-      newStudents: consumers.length,
+      newStudents: 0,
       linkedParents: 0,
       preLinkedParents: 0,
       skippedEmails: 0,
-      whatsappCandidates: 0
+      whatsappCandidates: 0,
+      skippedRows: 0
     };
 
     const n8nPayloads: any[] = [];
+    const balancesToApply: Record<string, number> = {}; // identifier -> balance
+    const validConsumers: any[] = [];
 
-    const dataToInsert = consumers.map(c => {
+    consumers.forEach(c => {
+      // 3.1 Basic validation (Identifier and Name)
+      const identifier = c.identifier?.toString().trim();
+      const rawFullName = c.full_name?.toString().trim();
+      const rawFirstName = c.first_name?.toString().trim();
+      const rawLastName = c.last_name?.toString().trim();
+
+      if (!identifier || (!rawFullName && !rawFirstName && !rawLastName)) {
+        stats.skippedRows++;
+        return;
+      }
+
+      // 3.2 Name Normalization
+      let firstName = rawFirstName || '';
+      let lastName = rawLastName || '';
+      if (!firstName && rawFullName) {
+        const parts = rawFullName.split(' ');
+        firstName = parts[0];
+        lastName = parts.slice(1).join(' ');
+      }
+
+      // 3.3 Allergy Normalization
+      let allergies: string[] = [];
+      const rawAllergies = c.allergies?.toString().trim().toUpperCase();
+      if (rawAllergies && rawAllergies !== 'NINGUNA' && rawAllergies !== 'N/A' && rawAllergies !== 'NO' && rawAllergies !== 'S/A') {
+        allergies = rawAllergies.split(/[,;|]/).map((a: string) => a.trim()).filter(Boolean);
+      }
+
+      // 3.4 Balance & NFC logic
+      const nfc_tag_uid = c.nfc_tag?.toString().trim() || null;
+      const initialBalance = parseFloat(c.balance?.toString().replace(/[^0-9.]/g, '') || '0');
+
+      if (initialBalance > 0) {
+        balancesToApply[identifier] = initialBalance;
+      }
+
       const email = c.parent_email?.toLowerCase().trim() || null;
-      const phone = c.parent_phone || null;
+      const phone = c.parent_phone?.toString().trim() || null;
       const isRestricted = email && restrictedDomains.some((d: string) => email.endsWith(d.toLowerCase()));
       
       const parentId = email ? parentMap[email] : null;
@@ -330,34 +368,69 @@ export async function importConsumersAction(consumers: any[]) {
           parent_email: email,
           parent_phone: phone,
           school_name: schoolName,
-          student_name: `${c.first_name} ${c.last_name}`,
-          student_id: c.identifier,
+          student_name: `${firstName} ${lastName}`,
+          student_id: identifier,
           grade: c.grade,
           source: 'bulk_upload_safelunch'
         });
       }
 
-      return {
+      validConsumers.push({
         school_id: schoolId,
-        first_name: c.first_name || 'Desconocido',
-        last_name: c.last_name || 'Desconocido',
-        identifier: c.identifier || null,
+        first_name: firstName || 'Desconocido',
+        last_name: lastName || 'Desconocido',
+        identifier,
         type: c.type === 'staff' ? 'staff' : 'student',
-        grade: c.grade || null,
+        grade: c.grade?.toString().trim() || null,
         parent_email: email,
         parent_id: parentId,
+        nfc_tag_uid,
+        allergies,
         is_active: true,
         metadata
-      };
+      });
     });
+
+    stats.newStudents = validConsumers.length;
+    if (validConsumers.length === 0) {
+       return { success: true, summary: stats, count: 0 };
+    }
 
     // 4. Perform bulk insert
     const { data: inserted, error } = await adminClient
       .from('consumers')
-      .insert(dataToInsert)
-      .select('id');
+      .insert(validConsumers)
+      .select('id, identifier');
 
     if (error) throw error;
+
+    // 4.1 Handle Initial Balances (if trigger created wallets)
+    const insertedIds = inserted?.map(i => i.id) || [];
+    if (insertedIds.length > 0 && Object.keys(balancesToApply).length > 0) {
+      // Find 'snack' wallets for these consumers
+      const { data: wallets } = await adminClient
+        .from('wallets')
+        .select('id, consumer_id')
+        .in('consumer_id', insertedIds)
+        .eq('type', 'snack');
+
+      if (wallets && wallets.length > 0) {
+        for (const w of wallets) {
+          const consumer = inserted.find(i => i.id === w.consumer_id);
+          const balance = balancesToApply[consumer?.identifier || ''];
+          if (balance && balance > 0) {
+            // Manual update and transaction log
+            await adminClient.from('wallets').update({ balance: balance }).eq('id', w.id);
+            await adminClient.from('transactions').insert({
+                wallet_id: w.id,
+                amount: balance,
+                type: 'credit',
+                description: 'Carga inicial via importación masiva'
+            });
+          }
+        }
+      }
+    }
 
     // 5. Trigger n8n Webhook if candidates exist
     if (n8nPayloads.length > 0 && process.env.N8N_WHATSAPP_WEBHOOK_URL) {
@@ -507,4 +580,47 @@ export async function getSalesByGradeToday() {
   })).sort((a, b) => b.sales - a.sales);
 
   return { data: chartData };
+}
+
+export async function getAllergyStats() {
+  try {
+    const adminClient = await createAdminClient();
+    const schoolId = await getEffectiveSchoolId();
+    if (!schoolId) return { totalWithAllergies: 0, topAllergies: [] };
+
+    const { data: consumers } = await adminClient
+      .from('consumers')
+      .select('allergies')
+      .eq('school_id', schoolId)
+      .eq('type', 'student')
+      .eq('is_active', true);
+
+    if (!consumers) return { totalWithAllergies: 0, topAllergies: [] };
+
+    const allergyCounts: Record<string, number> = {};
+    let totalWithAllergies = 0;
+
+    consumers.forEach(c => {
+      const allergies = c.allergies as string[] || [];
+      if (allergies.length > 0) {
+        totalWithAllergies++;
+        allergies.forEach(a => {
+          const norm = a.trim().toUpperCase();
+          if (norm && norm !== 'NINGUNA' && norm !== 'N/A') {
+            allergyCounts[norm] = (allergyCounts[norm] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const topAllergies = Object.entries(allergyCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { totalWithAllergies, topAllergies };
+  } catch (e) {
+    console.error('Error fetching allergy stats:', e);
+    return { totalWithAllergies: 0, topAllergies: [] };
+  }
 }

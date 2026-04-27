@@ -52,13 +52,17 @@ interface MappingState {
 }
 
 const TARGET_FIELDS = [
-  { id: 'first_name', label: 'Nombre(s)', required: true, aliases: ['nombre', 'firstname', 'nom', 'first', 'estudiante', 'student'] },
-  { id: 'last_name', label: 'Apellidos', required: true, aliases: ['apellido', 'lastname', 'surname', 'paterno', 'last'] },
-  { id: 'identifier', label: 'Matrícula / ID', required: false, aliases: ['matricula', 'id', 'student_id', 'code', 'codigo', 'enrollment'] },
+  { id: 'first_name', label: 'Nombre(s)', required: false, aliases: ['nombre', 'firstname', 'nom', 'first', 'estudiante', 'student'] },
+  { id: 'last_name', label: 'Apellidos', required: false, aliases: ['apellido', 'lastname', 'surname', 'paterno', 'last'] },
+  { id: 'full_name', label: 'Nombre Completo', required: false, aliases: ['nombrecompleto', 'fullname', 'completo', 'alumno'] },
+  { id: 'identifier', label: 'Matrícula / ID', required: true, aliases: ['matricula', 'id', 'student_id', 'code', 'codigo', 'enrollment', 'identificador'] },
   { id: 'grade', label: 'Grado / Grupo', required: false, aliases: ['grado', 'grade', 'curso', 'class', 'grupo'] },
   { id: 'type', label: 'Tipo (student/staff)', required: false, aliases: ['tipo', 'type', 'role', 'categoria'] },
+  { id: 'nfc_tag', label: 'NFC Tag UID', required: false, aliases: ['nfc', 'tag', 'rfid', 'card', 'chip'] },
+  { id: 'balance', label: 'Saldo Inicial', required: false, aliases: ['saldo', 'balance', 'monto', 'inicial'] },
   { id: 'parent_email', label: 'Email Padre', required: false, aliases: ['email_padre', 'parent_email', 'correo', 'mail', 'contacto', 'email'] },
   { id: 'parent_phone', label: 'Teléfono Padre', required: false, aliases: ['telefono_padre', 'parent_phone', 'celular', 'phone', 'whatsapp', 'tel'] },
+  { id: 'allergies', label: 'Alergias', required: false, aliases: ['alergias', 'allergies', 'dieta', 'restricciones'] },
 ];
 
 export default function BulkUpload() {
@@ -173,8 +177,13 @@ export default function BulkUpload() {
 
   const handleStartImport = async () => {
     const missing = TARGET_FIELDS.filter(f => f.required && !mapping[f.id as keyof MappingState]);
-    if (missing.length > 0) {
-      setError(`Campos obligatorios faltantes: ${missing.map(m => m.label).join(', ')}`);
+    const hasNameMapped = mapping.first_name || mapping.last_name || (mapping as any).full_name;
+
+    if (missing.length > 0 || !hasNameMapped) {
+      let msg = '';
+      if (missing.length > 0) msg += `Campos obligatorios faltantes: ${missing.map(m => m.label).join(', ')}. `;
+      if (!hasNameMapped) msg += 'Debes mapear al menos un campo de nombre (Nombre, Apellido o Nombre Completo).';
+      setError(msg);
       return;
     }
 
@@ -321,22 +330,22 @@ export default function BulkUpload() {
                    <CheckCircle2 className="h-16 w-16 text-emerald-500 mb-6" />
                    <h3 className="text-3xl font-black text-[#1a3a5c] mb-2">¡Importación Exitosa!</h3>
                    <div className="grid grid-cols-2 gap-4 w-full mt-8">
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p className="text-2xl font-black text-[#1a3a5c]">{report.newStudents}</p>
-                        <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Alumnos</p>
-                      </div>
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p className="text-2xl font-black text-[#1a3a5c]">{report.linkedParents}</p>
-                        <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Padres Vinculados</p>
-                      </div>
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p className="text-2xl font-black text-[#1a3a5c]">{report.preLinkedParents}</p>
-                        <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Pre-Vínculos</p>
-                      </div>
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p className="text-2xl font-black text-[#1a3a5c]">{report.whatsappCandidates}</p>
-                        <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Envios WhatsApp</p>
-                      </div>
+                       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                         <p className="text-2xl font-black text-[#1a3a5c]">{report.newStudents}</p>
+                         <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Alumnos Creados</p>
+                       </div>
+                       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-amber-400">
+                         <p className="text-2xl font-black text-amber-600">{report.skippedRows || 0}</p>
+                         <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Filas Omitidas</p>
+                       </div>
+                       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                         <p className="text-2xl font-black text-[#1a3a5c]">{report.linkedParents}</p>
+                         <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Padres Vinculados</p>
+                       </div>
+                       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                         <p className="text-2xl font-black text-[#1a3a5c]">{report.whatsappCandidates}</p>
+                         <p className="text-[10px] font-black uppercase text-[#8aa8cc]">Envios WhatsApp</p>
+                       </div>
                    </div>
                    {report.whatsappCandidates > 0 && (
                      <div className="mt-6 flex items-center gap-2 bg-blue-50 p-3 rounded-xl border border-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-tighter">

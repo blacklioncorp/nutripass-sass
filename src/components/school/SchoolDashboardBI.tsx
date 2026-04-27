@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { LayoutDashboard, ShieldCheck, Activity, FileSpreadsheet, FileText } from 'lucide-react';
 import SalesByGradeChart from './SalesByGradeChart';
+import AllergyStatsChart from './AllergyStatsChart';
 import TopProductsList from './TopProductsList';
 import NutritionAlerts from './NutritionAlerts';
 import { downloadCSV, downloadPremiumExcel, type SaleRow, type TopProduct } from '@/utils/export-utils';
@@ -14,6 +15,8 @@ interface SchoolDashboardBIProps {
   topProducts: TopProduct[];
   alerts: any[];
   kpis: any[];
+  allergyData?: { name: string; count: number }[];
+  totalWithAllergies?: number;
   isEmpty: boolean;
   schoolName?: string;
 }
@@ -23,6 +26,8 @@ export default function SchoolDashboardBI({
   topProducts, 
   alerts, 
   kpis, 
+  allergyData = [],
+  totalWithAllergies = 0,
   isEmpty,
   schoolName = 'Mi Escuela',
 }: SchoolDashboardBIProps) {
@@ -117,6 +122,19 @@ export default function SchoolDashboardBI({
             </div>
           </div>
         ))}
+
+        {/* New KPI: Students with Allergies */}
+        <div className="bg-white rounded-[2.5rem] p-8 border border-[#e8f0f7] shadow-sm hover:shadow-md transition-all group overflow-hidden relative border-l-4 border-l-red-400">
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-6xl">
+              🏥
+          </div>
+          <p className="text-[#8aa8cc] font-black text-[10px] uppercase tracking-widest relative z-10">Alumnos con Alergias Registradas</p>
+          <p className="text-4xl font-black text-red-600 mt-2 tracking-tight relative z-10">{totalWithAllergies}</p>
+          <div className="flex items-center gap-1.5 mt-3 relative z-10">
+              <Activity className="h-3 w-3 text-red-500" />
+              <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Nivel de Riesgo Escolar</span>
+          </div>
+        </div>
       </div>
 
       {/* BI Visualizations Grid */}
@@ -126,20 +144,22 @@ export default function SchoolDashboardBI({
             <SalesByGradeChart data={chartData as any} />
         </div>
 
-        {/* Top Sellers Panel */}
+        {/* Allergy Monitor Panel */}
         <div className="lg:col-span-4 bg-white rounded-[3rem] border border-[#e8f0f7] shadow-sm p-10 min-h-[500px] flex flex-col relative overflow-hidden group">
+            <AllergyStatsChart data={allergyData} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Top Sellers Panel */}
+        <div className="lg:col-span-12 bg-white rounded-[3rem] border border-[#e8f0f7] shadow-sm p-10 relative overflow-hidden group">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-[#1a3a5c] font-black text-2xl tracking-tight">Top 5 Productos</h2>
+                <h2 className="text-[#1a3a5c] font-black text-2xl tracking-tight">Top 5 Productos Vendidos</h2>
                 <p className="text-[#8aa8cc] text-[10px] font-bold uppercase tracking-widest mt-0.5">Volumen de venta total ($)</p>
               </div>
             </div>
             <TopProductsList products={topProducts} />
-            <div className="mt-8 pt-6 border-t border-slate-50">
-                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center leading-relaxed">
-                    Basado en las transacciones netas <br/> del ciclo actual de facturación.
-                </p>
-            </div>
         </div>
       </div>
 
