@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { getStudentStatusByNFC, processSmartCheckout } from '@/app/(pos)/actions';
-import { Check, X, AlertTriangle, CreditCard, ShoppingBag, User } from 'lucide-react';
+import { Check, X, AlertTriangle, CreditCard, ShoppingBag, User, ArrowRight } from 'lucide-react';
 
 export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   const [cart, setCart] = useState<any[]>([]);
@@ -15,15 +15,16 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   // Smart POS states
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [selectedPreOrderIds, setSelectedPreOrderIds] = useState<string[]>([]);
+  const [checkoutPhase, setCheckoutPhase] = useState<'scan' | 'comedor' | 'snack' | 'success'>('scan');
+  const [combinedResults, setCombinedResults] = useState<string[]>([]);
   
   const nfcInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus NFC input when Modal opens
   useEffect(() => {
-    if (isCheckoutOpen && !isProcessing && !checkoutResult && !errorMsg) {
+    if (isCheckoutOpen && checkoutPhase === 'scan' && !isProcessing && !checkoutResult && !errorMsg) {
       setTimeout(() => nfcInputRef.current?.focus(), 100);
     }
-  }, [isCheckoutOpen, isProcessing, checkoutResult, errorMsg]);
+  }, [isCheckoutOpen, checkoutPhase, isProcessing, checkoutResult, errorMsg]);
 
   const addToCart = (product: any) => {
     setCart(prev => {
@@ -41,6 +42,14 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
 
   const cartTotal = cart.reduce((acc, item) => acc + (parseFloat(item.base_price) * item.quantity), 0);
 
+  const isComida = (cat: string) => {
+    const c = cat?.trim().toUpperCase();
+    return c === 'DESAYUNO (PREPARADO)' || c === 'DESAYUNO' || c === 'COMIDA' || c === 'COMEDOR';
+  };
+
+  const comedorTotal = cart.reduce((acc, item) => isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+  const snackTotal = cart.reduce((acc, item) => !isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
+
   const handleNfcSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nfcInput) return;
@@ -53,10 +62,19 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
       if (resp.error) throw new Error(resp.error);
       
       setStudentInfo(resp.consumer);
-      // Auto-select all today's pre-orders
-      setSelectedPreOrderIds(resp.todayPreOrders?.map((po: any) => po.id) || []);
-      // Pre-orders list for the UI
+      const preOrders = resp.todayPreOrders?.map((po: any) => po.id) || [];
+      setSelectedPreOrderIds(preOrders);
       (resp.consumer as any).todayPreOrders = resp.todayPreOrders;
+
+      // Determine next phase
+      if (comedorTotal > 0 || preOrders.length > 0) {
+        setCheckoutPhase('comedor');
+      } else if (snackTotal > 0) {
+        setCheckoutPhase('snack');
+      } else {
+        setCheckoutPhase('comedor'); // Empty cart fallback
+      }
+
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -65,53 +83,122 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
     }
   };
 
-  const isComida = (cat: string) => {
-    const c = cat?.trim().toUpperCase();
-    return c === 'DESAYUNO (PREPARADO)' || c === 'DESAYUNO' || c === 'COMIDA';
-  };
-
-  const comedorTotal = cart.reduce((acc, item) => isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
-  const snackTotal = cart.reduce((acc, item) => !isComida(item.category) ? acc + (parseFloat(item.base_price) * item.quantity) : acc, 0);
-
-  const handleSmartCheckout = async () => {
+  const handleComedorCheckout = async (skip: boolean = false) => {
     if (!studentInfo) return;
-    setIsProcessing(true);
     setErrorMsg('');
 
+    if (skip) {
+      if (snackTotal > 0) {
+        setCheckoutPhase('snack');
+      } else {
+        setCheckoutPhase('success');
+        if (combinedResults.length > 0) {
+            setCheckoutResult({ consumer_name: studentInfo.first_name, messages: combinedResults });
+        } else {
+            resetCheckout();
+        }
+      }
+      return;
+    }
+
+    setIsProcessing(true);
     const wComedor = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'comedor');
-    const wSnack = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'snack');
+    const comedorItems = cart.filter(item => isComida(item.category));
 
     try {
       const resp = await processSmartCheckout(
         studentInfo.id,
         selectedPreOrderIds,
-        cart,
+        comedorItems,
         {
           comedorTotal,
-          snackTotal,
-          cartTotal,
+          snackTotal: 0,
+          cartTotal: comedorTotal,
           wComedorId: wComedor ? wComedor.id : null,
+          wSnackId: studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'snack')?.id || null,
+          fallbackAuthorized: false
+        }
+      );
+      if (resp.error) throw new Error(resp.error);
+      
+      const newResults = [...combinedResults, ...resp.result.messages];
+      setCombinedResults(newResults);
+      
+      if (snackTotal > 0) {
+        setCheckoutPhase('snack');
+      } else {
+        setCheckoutResult({
+          consumer_name: resp.result.consumer_name,
+          messages: newResults,
+        });
+        setCheckoutPhase('success');
+        setCart([]); // Clear cart entirely on full success
+      }
+    } catch (err: any) {
+      setErrorMsg(`COMEDOR: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSnackCheckout = async (skip: boolean = false) => {
+    if (!studentInfo) return;
+    setErrorMsg('');
+
+    if (skip) {
+      setCheckoutPhase('success');
+      if (combinedResults.length > 0) {
+        setCheckoutResult({ consumer_name: studentInfo.first_name, messages: combinedResults });
+      } else {
+        resetCheckout();
+      }
+      return;
+    }
+
+    setIsProcessing(true);
+    const wSnack = studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'snack');
+    const snackItems = cart.filter(item => !isComida(item.category));
+
+    try {
+      const resp = await processSmartCheckout(
+        studentInfo.id,
+        [], // Preorders processed in comedor phase
+        snackItems,
+        {
+          comedorTotal: 0,
+          snackTotal,
+          cartTotal: snackTotal,
+          wComedorId: studentInfo.wallets?.find((w: any) => w.type?.toLowerCase() === 'comedor')?.id || null,
           wSnackId: wSnack ? wSnack.id : null,
           fallbackAuthorized: false
         }
       );
       if (resp.error) throw new Error(resp.error);
       
-      setCheckoutResult(resp.result);
-      setCart([]);
-      setStudentInfo(null);
+      const newResults = [...combinedResults, ...resp.result.messages];
+      setCombinedResults(newResults);
+      
+      setCheckoutResult({
+        consumer_name: resp.result.consumer_name,
+        messages: newResults,
+      });
+      setCheckoutPhase('success');
+      setCart([]); // clear cart on full success
     } catch (err: any) {
-      setErrorMsg(err.message);
+      setErrorMsg(`SNACK: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
   };
+
   const resetCheckout = () => {
     setIsCheckoutOpen(false);
     setCheckoutResult(null);
     setErrorMsg('');
     setStudentInfo(null);
     setSelectedPreOrderIds([]);
+    setCheckoutPhase('scan');
+    setCombinedResults([]);
   };
 
   const togglePreOrder = (id: string) => {
@@ -216,158 +303,18 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
         )}
       </div>
 
-      {/* CHECKOUT MODAL (WAITING FOR NFC) */}
+      {/* CHECKOUT MODALS */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={resetCheckout}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
+          
+          <div className={`relative rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200 transition-colors ${
+            checkoutPhase === 'comedor' ? 'bg-green-600 text-white' : 
+            checkoutPhase === 'snack' ? 'bg-purple-600 text-white' :
+            'bg-white'
+          }`}>
             
-            {checkoutResult ? (
-              <div className="text-center py-6">
-                <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="text-4xl">✓</span>
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2">¡Cobro Exitoso!</h2>
-                <p className="text-slate-500 mb-6">Gracias <b>{checkoutResult.consumer_name}</b></p>
-                
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 font-code text-center space-y-2">
-                  {checkoutResult.messages ? (
-                    checkoutResult.messages.map((msg: string, i: number) => (
-                      <p key={i} className="text-sm font-bold text-slate-700 bg-white border border-slate-200 p-2 rounded-lg">{msg}</p>
-                    ))
-                  ) : (
-                    <>
-                      <p className="text-sm text-slate-500">Nuevo Saldo:</p>
-                      <p className={`text-2xl font-black ${checkoutResult.new_balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${checkoutResult.new_balance}</p>
-                    </>
-                  )}
-                  {checkoutResult.overdraft_triggered && (
-                    <p className="text-xs text-red-500 mt-2 font-bold animate-pulse">FONDO DE EMERGENCIA UTILIZADO</p>
-                  )}
-                </div>
-                <button onClick={resetCheckout} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition">
-                  CERRAR (Siguiente Cliente)
-                </button>
-              </div>
-            ) : errorMsg ? (
-              <div className="text-center py-6">
-                <div className={`h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6 ${errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'bg-red-600 text-white animate-bounce shadow-[0_0_30px_rgba(220,38,38,0.6)]' : 'bg-red-100 text-red-600'}`}>
-                  <X className="h-10 w-10" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 mb-2">
-                  {errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'Riesgo Médico Detectado' : 'Transacción Rechazada'}
-                </h2>
-                <div className={`font-bold p-4 rounded-xl border mb-6 text-sm ${errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'text-white bg-red-600 border-red-700 shadow-inner' : 'text-red-700 bg-red-50 border-red-200'}`}>
-                  {errorMsg}
-                </div>
-                <button onClick={() => { setErrorMsg(''); setStudentInfo(null); setCart([]); }} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition mb-2 uppercase tracking-widest text-xs">
-                  {errorMsg.includes('BLOQUEO DE SEGURIDAD') ? 'VACIAR CARRITO Y CANCELAR' : 'INTENTAR DE NUEVO'}
-                </button>
-                <button onClick={resetCheckout} className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition uppercase tracking-widest text-xs">
-                  SALIR DEL MODO COBRO
-                </button>
-              </div>
-            ) : studentInfo ? (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                    <User className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900 leading-none">{studentInfo.first_name} {studentInfo.last_name}</h3>
-                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">{studentInfo.type}</p>
-                    {studentInfo.allergies?.length > 0 && (
-                      <div className="mt-2 flex items-center gap-1 text-red-500 font-black text-[10px] animate-pulse">
-                        <AlertTriangle className="h-3 w-3" /> ALERGIAS: {studentInfo.allergies.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Saldos de Billeteras */}
-                <div className="grid grid-cols-2 gap-3">
-                  {studentInfo.wallets?.map((w: any) => (
-                    <div key={w.type} className="bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{w.type}</p>
-                      <p className={`font-black text-lg ${w.balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>${w.balance.toFixed(2)}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pre-órdenes de Hoy */}
-                {studentInfo.todayPreOrders?.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <ShoppingBag className="h-4 w-4" />
-                      <span className="text-xs font-black uppercase tracking-widest">Pre-órdenes para Hoy</span>
-                    </div>
-                    <div className="space-y-2">
-                      {studentInfo.todayPreOrders.map((po: any) => (
-                        <label 
-                          key={po.id} 
-                          className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                            selectedPreOrderIds.includes(po.id) 
-                              ? 'border-emerald-500 bg-emerald-50' 
-                              : 'border-slate-100 bg-white opacity-60'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input 
-                              type="checkbox" 
-                              className="hidden" 
-                              checked={selectedPreOrderIds.includes(po.id)}
-                              onChange={() => togglePreOrder(po.id)}
-                            />
-                            <div className={`h-5 w-5 rounded-md flex items-center justify-center border-2 ${
-                              selectedPreOrderIds.includes(po.id) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200'
-                            }`}>
-                              {selectedPreOrderIds.includes(po.id) && <Check className="h-3 w-3" />}
-                            </div>
-                            <span className="text-sm font-bold text-slate-700">{po.name}</span>
-                          </div>
-                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">PAGADO</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Checkout Summary & Button */}
-                <div className="pt-4 border-t border-slate-100 space-y-2">
-                   {comedorTotal > 0 && (
-                     <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 flex justify-between items-center text-emerald-700">
-                        <span className="text-[10px] font-black uppercase tracking-widest">BILLETERA COMEDOR</span>
-                        <span className="font-black">${comedorTotal.toFixed(2)}</span>
-                     </div>
-                   )}
-                   {snackTotal > 0 && (
-                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center text-blue-700">
-                        <span className="text-[10px] font-black uppercase tracking-widest">BILLETERA SNACKS</span>
-                        <span className="font-black">${snackTotal.toFixed(2)}</span>
-                     </div>
-                   )}
-                   
-                   <button 
-                     onClick={() => handleSmartCheckout()}
-                     disabled={isProcessing || (cart.length === 0 && selectedPreOrderIds.length === 0)}
-                     className="w-full mt-2 bg-slate-900 text-white font-black text-lg py-4 rounded-xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
-                   >
-                     {isProcessing ? 'Procesando...' : (
-                       <>
-                         <CreditCard className="h-5 w-5" />
-                         FINALIZAR CHECKOUT
-                       </>
-                     )}
-                   </button>
-                   <button 
-                     onClick={() => setStudentInfo(null)}
-                     className="w-full text-sm text-slate-400 font-bold py-3 mt-2 hover:text-slate-600"
-                   >
-                     Cancelar y re-escanear
-                   </button>
-                </div>
-              </div>
-            ) : (
+            {checkoutPhase === 'scan' && (
               <div className="text-center py-8">
                 <div className="h-24 w-24 bg-blue-50 relative rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner overflow-hidden border border-blue-100">
                   <div className="absolute inset-0 border-4 border-primary rounded-[2rem] opacity-50 animate-ping"></div>
@@ -376,6 +323,12 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                 <h2 className="text-2xl font-black text-slate-900 mb-2">Identificar Alumno</h2>
                 <p className="text-slate-500 mb-6 max-w-xs mx-auto">Acerca la pulsera al lector o teclea la matrícula para cobrar <b>${cartTotal.toFixed(2)}</b>.</p>
                 
+                {errorMsg && (
+                  <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-xl mb-4 font-bold text-sm">
+                    {errorMsg}
+                  </div>
+                )}
+
                 <form onSubmit={handleNfcSubmit} className="max-w-[250px] mx-auto">
                   <input 
                     ref={nfcInputRef}
@@ -393,6 +346,177 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
                 <p className="text-xs text-slate-400 font-medium mt-6">* El lector físico también está activo</p>
                 <button onClick={resetCheckout} className="mt-6 text-sm text-slate-400 font-bold hover:text-slate-600">
                   Cancelar Operación
+                </button>
+              </div>
+            )}
+
+            {checkoutPhase === 'comedor' && studentInfo && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-3xl font-black mb-1">COMEDOR</h2>
+                  <p className="text-green-200 font-bold text-sm">Cobro de Alimentos y Desayunos</p>
+                </div>
+
+                <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/20">
+                  <div className="h-14 w-14 bg-white/20 rounded-full flex items-center justify-center">
+                    <User className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black leading-none">{studentInfo.first_name} {studentInfo.last_name}</h3>
+                    <p className="text-xs font-bold text-green-200 mt-1 uppercase tracking-widest">{studentInfo.type}</p>
+                    {studentInfo.allergies?.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1 text-red-300 font-black text-[10px] animate-pulse">
+                        <AlertTriangle className="h-3 w-3" /> ALERGIAS: {studentInfo.allergies.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pre-órdenes de Hoy */}
+                {studentInfo.todayPreOrders?.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-white/80">
+                      <ShoppingBag className="h-4 w-4" />
+                      <span className="text-xs font-black uppercase tracking-widest">Pre-órdenes (Comedor)</span>
+                    </div>
+                    <div className="space-y-2">
+                      {studentInfo.todayPreOrders.map((po: any) => (
+                        <label 
+                          key={po.id} 
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                            selectedPreOrderIds.includes(po.id) 
+                              ? 'border-white bg-white/20' 
+                              : 'border-white/10 bg-white/5 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="checkbox" 
+                              className="hidden" 
+                              checked={selectedPreOrderIds.includes(po.id)}
+                              onChange={() => togglePreOrder(po.id)}
+                            />
+                            <div className={`h-5 w-5 rounded-md flex items-center justify-center border-2 ${
+                              selectedPreOrderIds.includes(po.id) ? 'bg-white border-white text-green-600' : 'border-white/30'
+                            }`}>
+                              {selectedPreOrderIds.includes(po.id) && <Check className="h-3 w-3" />}
+                            </div>
+                            <span className="text-sm font-bold">{po.name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-green-700/50 p-4 rounded-xl border border-green-500/50 flex justify-between items-center shadow-inner">
+                   <span className="text-sm font-black uppercase tracking-widest">Total Comedor</span>
+                   <span className="text-3xl font-black">${comedorTotal.toFixed(2)}</span>
+                </div>
+
+                {errorMsg && (
+                  <div className="bg-red-500/20 text-white border border-red-500 p-3 rounded-xl font-bold text-sm text-center">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <div className="pt-2 space-y-3">
+                   <button 
+                     onClick={() => handleComedorCheckout(false)}
+                     disabled={isProcessing || (comedorTotal === 0 && selectedPreOrderIds.length === 0)}
+                     className="w-full bg-white text-green-700 font-black text-lg py-4 rounded-xl shadow-xl hover:bg-green-50 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                   >
+                     {isProcessing ? 'Procesando...' : 'COBRAR COMEDOR'}
+                   </button>
+                   
+                   <div className="flex justify-between gap-3">
+                     <button 
+                       onClick={resetCheckout}
+                       className="flex-1 bg-green-700 text-white font-bold py-3 rounded-xl hover:bg-green-800 transition text-sm"
+                     >
+                       Cancelar Todo
+                     </button>
+                     {snackTotal > 0 && (
+                       <button 
+                         onClick={() => handleComedorCheckout(true)}
+                         className="flex-1 bg-green-500/30 text-white font-bold py-3 rounded-xl hover:bg-green-500/50 transition text-sm flex items-center justify-center gap-1"
+                       >
+                         Omitir <ArrowRight className="h-4 w-4"/>
+                       </button>
+                     )}
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {checkoutPhase === 'snack' && studentInfo && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-3xl font-black mb-1">SNACKS</h2>
+                  <p className="text-purple-200 font-bold text-sm">Cobro de Bebidas y Antojos</p>
+                </div>
+
+                <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/20">
+                  <div className="h-14 w-14 bg-white/20 rounded-full flex items-center justify-center">
+                    <User className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black leading-none">{studentInfo.first_name} {studentInfo.last_name}</h3>
+                    <p className="text-xs font-bold text-purple-200 mt-1 uppercase tracking-widest">{studentInfo.type}</p>
+                  </div>
+                </div>
+
+                <div className="bg-purple-700/50 p-4 rounded-xl border border-purple-500/50 flex justify-between items-center shadow-inner">
+                   <span className="text-sm font-black uppercase tracking-widest">Total Snacks</span>
+                   <span className="text-3xl font-black">${snackTotal.toFixed(2)}</span>
+                </div>
+
+                {errorMsg && (
+                  <div className="bg-red-500/20 text-white border border-red-500 p-3 rounded-xl font-bold text-sm text-center">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <div className="pt-2 space-y-3">
+                   <button 
+                     onClick={() => handleSnackCheckout(false)}
+                     disabled={isProcessing || snackTotal === 0}
+                     className="w-full bg-white text-purple-700 font-black text-lg py-4 rounded-xl shadow-xl hover:bg-purple-50 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                   >
+                     {isProcessing ? 'Procesando...' : 'COBRAR SNACKS'}
+                   </button>
+                   
+                   <div className="flex justify-between gap-3">
+                     <button 
+                       onClick={() => handleSnackCheckout(true)}
+                       className="flex-1 bg-purple-700 text-white font-bold py-3 rounded-xl hover:bg-purple-800 transition text-sm"
+                     >
+                       {combinedResults.length > 0 ? 'Omitir y Finalizar' : 'Cancelar Todo'}
+                     </button>
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {checkoutPhase === 'success' && checkoutResult && (
+              <div className="text-center py-6 text-slate-900 bg-white rounded-3xl -m-8 p-8">
+                <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-4xl">✓</span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">¡Operación Finalizada!</h2>
+                <p className="text-slate-500 mb-6">Gracias <b>{checkoutResult.consumer_name}</b></p>
+                
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 font-code text-center space-y-2 max-h-48 overflow-y-auto">
+                  {checkoutResult.messages?.length > 0 ? (
+                    checkoutResult.messages.map((msg: string, i: number) => (
+                      <p key={i} className="text-xs font-bold text-slate-700 bg-white border border-slate-200 p-2 rounded-lg">{msg}</p>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">Sin mensajes adicionales.</p>
+                  )}
+                </div>
+                <button onClick={resetCheckout} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition">
+                  CERRAR (Siguiente Cliente)
                 </button>
               </div>
             )}

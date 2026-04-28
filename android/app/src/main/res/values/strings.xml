@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SafeLunch</string>
+    <string name="title_activity_main">SafeLunch</string>
+    <string name="package_name">com.safelunch.app</string>
+    <string name="custom_url_scheme">com.safelunch.app</string>
+</resources>
