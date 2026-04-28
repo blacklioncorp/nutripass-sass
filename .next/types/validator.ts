@@ -191,6 +191,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/(portal)/parent/profile/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/parent/profile">> = Specific
+  const handler = {} as typeof import("../../src/app/(portal)/parent/profile/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/(pos)/point-of-sale/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/point-of-sale">> = Specific
@@ -213,6 +222,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/">> = Specific
   const handler = {} as typeof import("../../src/app/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/notifications/send/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/notifications/send">> = Specific
+  const handler = {} as typeof import("../../src/app/api/notifications/send/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

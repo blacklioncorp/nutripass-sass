@@ -7,6 +7,7 @@ import { TenantProvider } from '@/components/providers/TenantProvider';
 export const metadata: Metadata = {
   title: 'SafeLunch - Gestión de Comedores Escolares',
   description: 'Plataforma inteligente para la gestión de pagos y nutrición en escuelas.',
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

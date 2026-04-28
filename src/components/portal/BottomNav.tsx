@@ -18,7 +18,7 @@ export default function BottomNav() {
     { label: 'Inicio', href: '/parent', icon: Home },
     { label: 'Pedidos', href: '/parent/preorders', icon: Receipt },
     { label: 'Avisos', href: '/parent/notificaciones', icon: Bell },
-    { label: 'Perfil', href: '#settings', icon: User },
+    { label: 'Perfil', href: '/parent/profile', icon: User },
   ];
 
   if (!mounted) return null;

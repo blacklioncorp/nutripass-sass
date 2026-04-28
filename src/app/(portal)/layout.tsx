@@ -85,9 +85,9 @@ export default async function PortalLayout({
                 <Bell className="h-5 w-5 text-[#004B87] group-hover:scale-110 transition-transform" />
                 <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />
               </button>
-              <button className="h-10 w-10 bg-white border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-full transition-all flex items-center justify-center group" title="Configuración">
+              <Link href="/parent/profile" className="h-10 w-10 bg-white border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 rounded-full transition-all flex items-center justify-center group" title="Configuración">
                 <Settings className="h-5 w-5 text-[#004B87] group-hover:rotate-90 transition-transform duration-500" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
