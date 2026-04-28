@@ -592,12 +592,7 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
               </button>
             </h1>
             <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[9px] sm:text-[10px]">Gestiona las billeteras y nutrición de tus hijos</p>
-            <button
-              onClick={() => window.location.href = '/auth/logout'}
-              className="mt-4 flex items-center gap-2 text-red-400 hover:text-red-600 font-black text-[10px] uppercase tracking-widest transition-colors"
-            >
-              <LogOut className="h-3 w-3" /> Cerrar Sesión
-            </button>
+
           </div>
 
           <button 
