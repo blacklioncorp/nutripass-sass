@@ -312,37 +312,9 @@ export default function PreordersClient({
     }
   };
 
-  const handleConfirmCheckout = () => {
-    if (!activeConsumer) return;
-    startTransition(async () => {
-      try {
-        const result = await createPreOrderTransaction(
-          activeConsumer.id,
-          cart.map(i => ({
-            id: i.id,
-            name: i.name,
-            price: i.price,
-            date: i.date,
-            walletType: i.walletType,
-            sourceType: i.sourceType,
-            nutriPoints: i.nutriPoints,
-            specialInstructions: i.specialInstructions,
-            hasAllergyOverride: i.hasAllergyOverride,
-          }))
-        );
-
-        if (result && result.error) {
-          throw new Error(result.error);
-        }
-
-        setCheckoutStatus('success');
-        setCart([]);
-      } catch (e: any) {
-        setCheckoutStatus('error');
-        setCheckoutError(e.message || 'Error desconocido al procesar la pre-venta.');
-      }
-    });
-  };
+  const handleRemovePaidItems = useCallback((type: 'comedor' | 'snack') => {
+    setCart(prev => prev.filter(i => i.walletType !== type));
+  }, []);
 
   // ── Empty state ──
 
@@ -886,20 +858,13 @@ export default function PreordersClient({
           cart={cart}
           comedorTotal={comedorTotal}
           snackTotal={snackTotal}
-          cartTotal={cartTotal}
           comedorBalance={parseFloat(String(comedorWallet?.balance ?? 0))}
           snackBalance={parseFloat(String(snackWallet?.balance ?? 0))}
           consumerName={activeConsumer.first_name}
+          consumerId={activeConsumer.id}
           schoolLogoUrl={(activeConsumer as any).schools?.logo_url}
-          isProcessing={isPending}
-          status={checkoutStatus}
-          errorMessage={checkoutError}
-          onConfirm={handleConfirmCheckout}
-          onClose={() => {
-            setIsCheckoutOpen(false);
-            setCheckoutStatus('idle');
-            setCheckoutError('');
-          }}
+          onRemovePaidItems={handleRemovePaidItems}
+          onClose={() => setIsCheckoutOpen(false)}
         />
       )}
     </div>
@@ -1011,49 +976,108 @@ function CheckoutModal({
   cart,
   comedorTotal,
   snackTotal,
-  cartTotal,
   comedorBalance,
   snackBalance,
   consumerName,
+  consumerId,
   schoolLogoUrl,
-  isProcessing,
-  status,
-  errorMessage,
-  onConfirm,
+  onRemovePaidItems,
   onClose,
 }: {
   cart: CartItem[];
   comedorTotal: number;
   snackTotal: number;
-  cartTotal: number;
   comedorBalance: number;
   snackBalance: number;
   consumerName: string;
+  consumerId: string;
   schoolLogoUrl?: string;
-  isProcessing: boolean;
-  status: 'idle' | 'success' | 'error';
-  errorMessage: string;
-  onConfirm: () => void;
+  onRemovePaidItems: (type: 'comedor' | 'snack') => void;
   onClose: () => void;
 }) {
-  const insufficientComedor = comedorTotal > 0 && comedorBalance < comedorTotal;
-  const insufficientSnack = snackTotal > 0 && snackBalance < snackTotal;
-  const canProceed = !insufficientComedor && !insufficientSnack && !isProcessing;
+  const [comedorStatus, setComedorStatus] = useState<'idle'|'processing'|'paid'|'error'>('idle');
+  const [snackStatus, setSnackStatus] = useState<'idle'|'processing'|'paid'|'error'>('idle');
+  const [comedorError, setComedorError] = useState('');
+  const [snackError, setSnackError] = useState('');
+
+  const [paidComedorAmount, setPaidComedorAmount] = useState(0);
+  const [paidSnackAmount, setPaidSnackAmount] = useState(0);
+  
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isPartialSuccess, setIsPartialSuccess] = useState(false);
+
+  const hadComedor = comedorTotal > 0;
+  const hadSnack = snackTotal > 0;
+
+  useEffect(() => {
+    const comedorDone = !hadComedor || comedorStatus === 'paid';
+    const snackDone = !hadSnack || snackStatus === 'paid';
+    if ((hadComedor || hadSnack) && comedorDone && snackDone) {
+      setShowSuccess(true);
+      setIsPartialSuccess(false);
+    }
+  }, [comedorStatus, snackStatus, hadComedor, hadSnack]);
+
+  const handlePayComedor = async () => {
+    setComedorStatus('processing');
+    setComedorError('');
+    const items = cart.filter(i => i.walletType === 'comedor');
+    
+    try {
+      const result = await createPreOrderTransaction(consumerId, items);
+      if (result.error) throw new Error(result.error);
+      
+      setComedorStatus('paid');
+      setPaidComedorAmount(comedorTotal);
+      onRemovePaidItems('comedor');
+    } catch (e: any) {
+      setComedorStatus('error');
+      setComedorError(e.message || 'Error al pagar desayunos.');
+    }
+  };
+
+  const handlePaySnack = async () => {
+    setSnackStatus('processing');
+    setSnackError('');
+    const items = cart.filter(i => i.walletType === 'snack');
+    
+    try {
+      const result = await createPreOrderTransaction(consumerId, items);
+      if (result.error) throw new Error(result.error);
+      
+      setSnackStatus('paid');
+      setPaidSnackAmount(snackTotal);
+      onRemovePaidItems('snack');
+    } catch (e: any) {
+      setSnackStatus('error');
+      setSnackError(e.message || 'Error al pagar snacks.');
+    }
+  };
+
+  const handlePartialClose = () => {
+    if (comedorStatus === 'paid' || snackStatus === 'paid') {
+      setShowSuccess(true);
+      setIsPartialSuccess(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const insufficientComedor = hadComedor && comedorBalance < comedorTotal;
+  const insufficientSnack = hadSnack && snackBalance < snackTotal;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-[#004B87]/60 backdrop-blur-md"
-        onClick={status === 'success' ? undefined : onClose}
+        onClick={showSuccess ? undefined : handlePartialClose}
       />
-      <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden border border-[#e8f0f7]">
+      <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full animate-in zoom-in-95 duration-200 overflow-hidden border border-[#e8f0f7] max-h-[90vh] flex flex-col">
 
-        {/* ── Success State ── */}
-        {status === 'success' && (
-          <div className="p-10 text-center">
+        {showSuccess ? (
+          <div className="p-10 text-center overflow-y-auto">
             {schoolLogoUrl ? (
               <div className="h-24 flex items-center justify-center mx-auto mb-6">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={schoolLogoUrl} alt="Colegio" className="h-24 w-auto object-contain drop-shadow-sm" />
               </div>
             ) : (
@@ -1061,10 +1085,28 @@ function CheckoutModal({
                 <CheckCircle2 className="h-12 w-12 text-emerald-500" />
               </div>
             )}
-            <h2 className="text-3xl font-black text-[#004B87] mb-2">¡Recibo Digital!</h2>
-            <p className="text-[#7CB9E8] font-medium mb-8">
-              Los alimentos de <span className="font-black text-[#004B87]">{consumerName}</span> están reservados y los saldos fueron debitados.
-            </p>
+            <h2 className="text-3xl font-black text-[#004B87] mb-2">
+              {isPartialSuccess ? '¡Confirmación Parcial!' : '¡Orden Confirmada!'}
+            </h2>
+            <div className="text-[#7CB9E8] font-medium mb-8 space-y-2">
+              {isPartialSuccess ? (
+                <p>
+                  Pagaste 
+                  {paidComedorAmount > 0 && <span className="font-black text-[#004B87]"> ${paidComedorAmount.toFixed(2)} de desayunos</span>}
+                  {paidComedorAmount > 0 && paidSnackAmount > 0 && ' y '}
+                  {paidSnackAmount > 0 && <span className="font-black text-[#004B87]"> ${paidSnackAmount.toFixed(2)} de snacks</span>}. 
+                  Tus otros artículos siguen en el carrito.
+                </p>
+              ) : (
+                <p>
+                  Pagaste 
+                  {paidComedorAmount > 0 && <span className="font-black text-[#004B87]"> ${paidComedorAmount.toFixed(2)} de desayuno</span>}
+                  {paidComedorAmount > 0 && paidSnackAmount > 0 && ' y '}
+                  {paidSnackAmount > 0 && <span className="font-black text-[#004B87]"> ${paidSnackAmount.toFixed(2)} de snacks</span>}. 
+                  Tu recibo digital ha sido generado.
+                </p>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="w-full bg-[#004B87] text-white font-black py-4 rounded-2xl hover:bg-[#003a6b] transition-colors active:scale-95"
@@ -1072,162 +1114,113 @@ function CheckoutModal({
               ¡Listo! 🎉
             </button>
           </div>
-        )}
-
-        {/* ── Error State ── */}
-        {status === 'error' && (
-          <div className="p-10 text-center">
-            <div className="h-24 w-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertCircle className="h-12 w-12 text-red-500" />
-            </div>
-            <h2 className="text-2xl font-black text-[#004B87] mb-3">Error al Procesar</h2>
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 text-left">
-              <p className="text-red-700 font-bold text-sm">{errorMessage}</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 border border-[#e8f0f7] text-[#8aa8cc] font-bold py-3.5 rounded-2xl hover:bg-[#f0f5fb] transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={onConfirm}
-                className="flex-1 bg-[#004B87] text-white font-black py-3.5 rounded-2xl hover:bg-[#003a6b] transition active:scale-95"
-              >
-                Reintentar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Idle / Confirm State ── */}
-        {status === 'idle' && (
+        ) : (
           <>
-            {/* Header */}
-            <div className="bg-gradient-to-br from-[#004B87] to-[#0063b3] p-6 text-white">
+            <div className="bg-gradient-to-br from-[#004B87] to-[#0063b3] p-6 text-white flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-black">Confirmar Pre-venta</h2>
+                  <h2 className="text-xl font-black">Validación de Pagos</h2>
                   <p className="text-blue-300 text-sm mt-0.5">Para: <span className="font-black text-white">{consumerName}</span></p>
                 </div>
-                <button onClick={onClose} className="text-blue-300 hover:text-white transition p-1">
+                <button onClick={handlePartialClose} className="text-blue-300 hover:text-white transition p-1">
                   <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            {/* Items list */}
-            <div className="max-h-[35vh] overflow-y-auto divide-y divide-[#f0f5fb]">
-              {cart.map(item => (
-                <div
-                  key={item.cartKey}
-                  className="flex items-center justify-between px-6 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${item.walletType === 'comedor' ? 'bg-[#e8f0f7]' : 'bg-amber-100'
-                      }`}>
-                      {item.walletType === 'comedor' ? '🍽️' : CATEGORY_EMOJIS[item.category ?? 'snack'] ?? '🥨'}
-                    </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              
+              {/* Sección Superior (Verde): COMEDOR */}
+              {hadComedor && (
+                <div className="bg-green-600/10 border-2 border-green-500/20 rounded-3xl p-5 space-y-4 relative overflow-hidden">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-sm font-black text-[#004B87] leading-tight">{item.name}</p>
-                      <p className="text-[11px] text-[#8aa8cc]">
-                        {formatDateLong(item.date)}
-                        {' · '}
-                        <span className={`font-black uppercase ${item.walletType === 'comedor' ? 'text-[#7CB9E8]' : 'text-amber-500'}`}>
-                          {item.sourceType === 'daily_menu' || item.category === 'comedor' ? 'DESAYUNO' : (item.category ?? 'PRODUCTO')}
-                        </span>
-                      </p>
-                      {item.specialInstructions && (
-                        <p className="text-[10px] text-rose-500 font-bold leading-tight mt-1 bg-rose-50 px-2 py-0.5 rounded-md inline-block">
-                          {item.specialInstructions}
-                        </p>
-                      )}
+                      <h3 className="font-black text-green-800 text-lg">Pago de Desayunos</h3>
+                      <p className="text-green-700/70 text-xs font-bold uppercase tracking-widest mt-1">Billetera Comedor</p>
                     </div>
+                    <span className="text-3xl font-black text-green-700">${comedorTotal.toFixed(2)}</span>
                   </div>
-                  <span className="font-black text-[#004B87] text-sm flex-shrink-0 ml-3">
-                    ${item.price.toFixed(2)}
-                  </span>
+
+                  {comedorStatus === 'error' && (
+                    <div className="bg-white/60 border border-red-300 text-red-700 text-xs font-bold p-3 rounded-xl flex gap-2">
+                       <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                       <p>{comedorError}</p>
+                    </div>
+                  )}
+
+                  {insufficientComedor && comedorStatus !== 'paid' && (
+                    <div className="bg-white/60 border border-red-300 text-red-700 text-xs font-bold p-3 rounded-xl flex gap-2">
+                       <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                       <p>Saldo insuficiente en Billetera Comedor (${comedorBalance.toFixed(2)} disponibles).</p>
+                    </div>
+                  )}
+
+                  {comedorStatus === 'paid' ? (
+                     <div className="w-full bg-white/50 text-green-700 font-black text-lg py-3 rounded-2xl flex items-center justify-center gap-2 border-2 border-green-500">
+                        <CheckCircle2 className="h-5 w-5" /> PAGADO ✅
+                     </div>
+                  ) : (
+                     <button
+                        onClick={handlePayComedor}
+                        disabled={comedorStatus === 'processing' || insufficientComedor}
+                        className="w-full bg-green-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg hover:bg-green-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                     >
+                        {comedorStatus === 'processing' ? <Loader2 className="h-5 w-5 animate-spin"/> : 'Pagar Desayunos'}
+                     </button>
+                  )}
                 </div>
-              ))}
+              )}
+
+              {/* Sección Inferior (Morado): SNACKS */}
+              {hadSnack && (
+                <div className="bg-purple-600/10 border-2 border-purple-500/20 rounded-3xl p-5 space-y-4 relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-black text-purple-800 text-lg">Pago de Snacks y Bebidas</h3>
+                      <p className="text-purple-700/70 text-xs font-bold uppercase tracking-widest mt-1">Billetera Snacks</p>
+                    </div>
+                    <span className="text-3xl font-black text-purple-700">${snackTotal.toFixed(2)}</span>
+                  </div>
+
+                  {snackStatus === 'error' && (
+                     <div className="bg-white/60 border border-red-300 text-red-700 text-xs font-bold p-3 rounded-xl flex gap-2">
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                        <p>{snackError}</p>
+                     </div>
+                  )}
+
+                  {insufficientSnack && snackStatus !== 'paid' && (
+                     <div className="bg-white/60 border border-red-300 text-red-700 text-xs font-bold p-3 rounded-xl flex gap-2">
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                        <p>Saldo insuficiente en Billetera Snack (${snackBalance.toFixed(2)} disponibles).</p>
+                     </div>
+                  )}
+
+                  {snackStatus === 'paid' ? (
+                     <div className="w-full bg-white/50 text-purple-700 font-black text-lg py-3 rounded-2xl flex items-center justify-center gap-2 border-2 border-purple-500">
+                        <CheckCircle2 className="h-5 w-5" /> PAGADO ✅
+                     </div>
+                  ) : (
+                     <button
+                        onClick={handlePaySnack}
+                        disabled={snackStatus === 'processing' || insufficientSnack}
+                        className="w-full bg-purple-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg hover:bg-purple-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                     >
+                        {snackStatus === 'processing' ? <Loader2 className="h-5 w-5 animate-spin"/> : 'Pagar Snacks'}
+                     </button>
+                  )}
+                </div>
+              )}
+
             </div>
 
-            {/* Wallet breakdown */}
-            <div className="px-6 pt-4 pb-2 space-y-3 border-t border-[#f0f5fb]">
-              {comedorTotal > 0 && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-[#e8f0f7] rounded-xl flex items-center justify-center text-base">🍽️</div>
-                    <div>
-                      <p className="text-[10px] font-black text-[#004B87] uppercase tracking-widest">Billetera Comedor</p>
-                      <p className={`text-[10px] font-semibold ${insufficientComedor ? 'text-red-500' : 'text-[#8aa8cc]'}`}>
-                        Saldo disponible: ${comedorBalance.toFixed(2)}
-                        {insufficientComedor && ' — ⚠️ Insuficiente'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`font-black text-lg ${insufficientComedor ? 'text-red-500' : 'text-[#004B87]'}`}>
-                    −${comedorTotal.toFixed(2)}
-                  </span>
-                </div>
-              )}
-
-              {snackTotal > 0 && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 bg-amber-100 rounded-xl flex items-center justify-center text-base">🥨</div>
-                    <div>
-                      <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Billetera Snack</p>
-                      <p className={`text-[10px] font-semibold ${insufficientSnack ? 'text-red-500' : 'text-[#8aa8cc]'}`}>
-                        Saldo disponible: ${snackBalance.toFixed(2)}
-                        {insufficientSnack && ' — ⚠️ Insuficiente'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`font-black text-lg ${insufficientSnack ? 'text-red-500' : 'text-amber-700'}`}>
-                    −${snackTotal.toFixed(2)}
-                  </span>
-                </div>
-              )}
-
-              {/* Total line */}
-              <div className="border-t border-[#e8f0f7] pt-3 flex items-center justify-between">
-                <span className="font-black text-[#004B87] uppercase tracking-wider text-xs">Total a Cobrar</span>
-                <span className="font-black text-2xl text-[#004B87]">${cartTotal.toFixed(2)}</span>
-              </div>
-
-              {/* Insufficient balance warning */}
-              {(insufficientComedor || insufficientSnack) && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-700 text-sm font-semibold leading-snug">
-                    Saldo insuficiente en billetera{' '}
-                    <span className="font-black">
-                      {insufficientComedor && insufficientSnack
-                        ? 'Comedor y Snack'
-                        : insufficientComedor
-                          ? 'Comedor'
-                          : 'Snack'}
-                    </span>. Recarga antes de continuar.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm button */}
-            <div className="p-6 pt-3">
-              <button
-                onClick={onConfirm}
-                disabled={!canProceed}
-                style={{ backgroundColor: canProceed ? (schoolLogoUrl ? '#004B87' : '#10b981') : undefined }}
-                className="w-full disabled:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
-              >
-                {isProcessing ? (
-                  <><Loader2 className="h-5 w-5 animate-spin" /> Procesando...</>
-                ) : (
-                  <>Confirmar Pre-venta — ${cartTotal.toFixed(2)}</>
-                )}
-              </button>
+            <div className="p-6 pt-0 mt-auto flex-shrink-0">
+               <button
+                  onClick={handlePartialClose}
+                  className="w-full border-2 border-slate-200 text-slate-500 font-bold py-3.5 rounded-2xl hover:bg-slate-50 transition-colors"
+               >
+                  {comedorStatus === 'paid' || snackStatus === 'paid' ? 'Finalizar Orden Parcial' : 'Cancelar y Cerrar'}
+               </button>
             </div>
           </>
         )}

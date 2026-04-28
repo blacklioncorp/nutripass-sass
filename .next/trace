@@ -374,3 +374,4 @@
 [{"name":"compile-path","duration":19258,"timestamp":1655482124492,"id":542,"tags":{"trigger":"middleware"},"startTime":1777321058127,"traceId":"f3411bd9714e53ab"}]
 [{"name":"compile-path","duration":34363,"timestamp":1668453988051,"id":543,"tags":{"trigger":"middleware"},"startTime":1777334030489,"traceId":"f3411bd9714e53ab"}]
 [{"name":"compile-path","duration":2477,"timestamp":1672514215400,"id":544,"tags":{"trigger":"middleware"},"startTime":1777338090820,"traceId":"f3411bd9714e53ab"}]
+[{"name":"next-dev","duration":1566529,"timestamp":1748604792976,"id":1,"tags":{},"startTime":1777414181649,"traceId":"203b44c07175ebcb"}]
