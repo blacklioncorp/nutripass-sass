@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  useState, useMemo, useCallback, useTransition,
+  useState, useMemo, useCallback, useTransition, useEffect
 } from 'react';
 import {
   ShoppingCart, Plus, X, Check, ChevronLeft, ChevronRight,
