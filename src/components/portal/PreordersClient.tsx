@@ -19,7 +19,7 @@ type CartItem = {
   description?: string;   // Rich description for AI allergen analysis
   price: number;
   date: string;           // YYYY-MM-DD
-  walletType: 'comedor' | 'snack';
+  walletType: 'comedor' | 'snack' | 'No Definido';
   sourceType: 'daily_menu' | 'product';
   image_url?: string;
   category?: string;
@@ -261,13 +261,27 @@ export default function PreordersClient({
 
   const addSnackToCart = useCallback((product: Product, date: string) => {
     const cartKey = `snack-${product.id}-${date}`;
+
+    // Zero Trust Logic Normalization
+    const normalizedCategory = String(product.category || '').toLowerCase().trim();
+    let resolvedWalletType: 'comedor' | 'snack' | 'No Definido';
+
+    if (['comedor', 'desayuno', 'desayunos', 'alimento'].includes(normalizedCategory)) {
+      resolvedWalletType = 'comedor';
+    } else if (['snack', 'snacks', 'bebida', 'bebidas'].includes(normalizedCategory)) {
+      resolvedWalletType = 'snack';
+    } else {
+      console.error(`[Preorders] Categoría desconocida: "${product.category}". Asignando a 'No Definido'.`);
+      resolvedWalletType = 'No Definido';
+    }
+
     if (!cart.some(i => i.cartKey === cartKey)) {
       setCart(prev => [...prev, {
         id: product.id,
         name: product.name,
         price: parseFloat(String(product.base_price)),
         date,
-        walletType: 'snack',
+        walletType: resolvedWalletType,
         sourceType: 'product',
         image_url: product.image_url,
         category: product.category,
