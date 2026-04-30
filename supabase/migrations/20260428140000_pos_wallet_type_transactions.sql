@@ -56,6 +56,7 @@ BEGIN
     WHERE wallet_id IN (p_wallet_comedor_id, p_wallet_snack_id)
       AND type = 'debit'
       AND description NOT ILIKE '%Comisión%'
+      AND description NOT ILIKE '%Pre-orden%'
       AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE;
 
     IF (v_gasto_hoy + p_comedor_total + p_snack_total) > v_daily_limit THEN

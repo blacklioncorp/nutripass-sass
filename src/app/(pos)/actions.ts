@@ -8,7 +8,7 @@ export async function getStudentStatusByNFC(nfcUid: string) {
 
   const { data: consumer, error: consumerErr } = await supabase
     .from('consumers')
-    .select('id, first_name, last_name, allergies, type, school_id, wallets(type, balance)')
+    .select('id, first_name, last_name, allergies, type, school_id, wallets(id, type, balance)')
     .or(`nfc_tag_uid.eq.${nfcUid},identifier.eq.${nfcUid}`)
     .eq('is_active', true)
     .single();

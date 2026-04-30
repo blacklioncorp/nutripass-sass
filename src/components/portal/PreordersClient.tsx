@@ -303,10 +303,26 @@ export default function PreordersClient({
     setCheckoutError('');
     setCheckoutStatus('idle');
 
+    // Limpiar carritos huérfanos: filtrar items que ya no existen en la base de datos (eliminados durante desarrollo)
+    const validMenuIds = new Set(dailyMenus.map(m => m.id));
+    const validProductIds = new Set(products.map(p => p.id));
+    
+    const validCart = cart.filter(item => {
+      if (item.sourceType === 'daily_menu') return validMenuIds.has(item.id);
+      if (item.sourceType === 'product') return validProductIds.has(item.id);
+      return false;
+    });
+
+    if (validCart.length !== cart.length) {
+      alert("Atención: Algunos artículos de tu carrito ya no están disponibles en el menú y fueron removidos.");
+      setCart(validCart);
+      if (validCart.length === 0) return;
+    }
+
     setIsValidatingAllergens(true);
     const aiResult = await validateCartAllergens(
       activeConsumer.id,
-      cart.map(item => ({
+      validCart.map(item => ({
         id: item.id,
         name: item.name,
         // For daily_menu items, use the rich description built in addComboToCart.
