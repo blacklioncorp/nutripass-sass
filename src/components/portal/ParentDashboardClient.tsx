@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Wallet, Zap, ShieldCheck, History, ChevronDown,
@@ -13,6 +13,7 @@ import WalletReload from './WalletReload';
 import TransactionReceiptModal from './TransactionReceiptModal';
 import BulkReloadModal from './BulkReloadModal';
 import ParentProfileModal from './ParentProfileModal';
+import { createClient } from '@/utils/supabase/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
@@ -515,6 +516,7 @@ function TransactionsFeed({
 
 // ─── Main Client Component ────────────────────────────────────────────────────
 export default function ParentDashboardClient({ consumers, transactions, userProfile, needsOnboarding, userEmail }: Props) {
+  const [localConsumers, setLocalConsumers] = useState<Consumer[]>(consumers);
   const [activeStudentId, setActiveStudentId] = useState<string>(consumers[0]?.id ?? '');
   const [reloadWalletId, setReloadWalletId] = useState<string | null>(null);
   const [isBulkReloadOpen, setIsBulkReloadOpen] = useState(false);
@@ -522,9 +524,40 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
   const [showSettings, setShowSettings] = useState(needsOnboarding ?? false);
   const router = useRouter();
 
+  // Sync props to state if they change
+  useEffect(() => {
+    setLocalConsumers(consumers);
+  }, [consumers]);
+
+  // FIX 2: Reactividad con Supabase Realtime para las billeteras
+  useEffect(() => {
+    const supabase = createClient();
+    
+    const channel = supabase.channel('realtime-wallets')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'wallets' }, (payload) => {
+        const updatedWallet = payload.new as WalletType;
+        
+        setLocalConsumers(prev => prev.map(consumer => {
+           // Check if this consumer has the updated wallet
+           const hasWallet = consumer.wallets.some(w => w.id === updatedWallet.id);
+           if (!hasWallet) return consumer;
+
+           return {
+             ...consumer,
+             wallets: consumer.wallets.map(w => w.id === updatedWallet.id ? { ...w, balance: updatedWallet.balance } : w)
+           };
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const activeConsumer = useMemo(
-    () => consumers.find(c => c.id === activeStudentId) ?? consumers[0],
-    [consumers, activeStudentId]
+    () => localConsumers.find(c => c.id === activeStudentId) ?? localConsumers[0],
+    [localConsumers, activeStudentId]
   );
 
   const comedorWallet = activeConsumer?.wallets?.find(w => w.type === 'comedor');
@@ -620,9 +653,9 @@ export default function ParentDashboardClient({ consumers, transactions, userPro
         </div>
 
         {/* Student Selector Pills */}
-        {consumers.length > 1 && (
+        {localConsumers.length > 1 && (
           <div className="flex bg-white rounded-3xl md:rounded-full p-1.5 shadow-sm border border-[#e8f0f7] flex-wrap gap-2 w-full md:w-fit">
-            {consumers.map(c => (
+            {localConsumers.map(c => (
               <button
                 key={c.id}
                 onClick={() => setActiveStudentId(c.id)}

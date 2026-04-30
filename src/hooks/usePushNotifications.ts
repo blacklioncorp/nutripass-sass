@@ -15,6 +15,13 @@ export function usePushNotifications() {
           appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID as string,
           allowLocalhostAsSecureOrigin: true, // Útil para pruebas en localhost
         });
+
+        // FIX 1: Identidad en OneSignal para que reciba pushes enviadas por parent_id
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          OneSignal.login(session.user.id);
+        }
+
         setIsInitialized(true);
         setIsSubscribed(OneSignal.User.PushSubscription.optedIn ?? false);
       } catch (error) {

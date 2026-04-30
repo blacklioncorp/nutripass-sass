@@ -37,10 +37,17 @@
           "async": false,
           "exportedName": "stopImpersonation",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "stopImpersonation",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "stopImpersonation"
@@ -52,10 +59,17 @@
           "async": false,
           "exportedName": "impersonateSchool",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "impersonateSchool",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "impersonateSchool"
@@ -67,10 +81,17 @@
           "async": false,
           "exportedName": "createSchoolWithAdmin",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createSchoolWithAdmin",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "createSchoolWithAdmin"
@@ -82,10 +103,17 @@
           "async": false,
           "exportedName": "updateSchoolSettings",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolSettings",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "updateSchoolSettings"
@@ -97,10 +125,17 @@
           "async": false,
           "exportedName": "toggleSchoolStatus",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "toggleSchoolStatus",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "toggleSchoolStatus"
@@ -112,10 +147,17 @@
           "async": false,
           "exportedName": "updateSchoolCommission",
           "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
+        },
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolCommission",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts"
         }
       },
       "layer": {
-        "app/(dashboard)/school/page": "rsc"
+        "app/(dashboard)/school/page": "rsc",
+        "app/(dashboard)/school/settings/page": "rsc"
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts",
       "exportedName": "updateSchoolCommission"
@@ -284,6 +326,21 @@
       },
       "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(pos)/actions.ts",
       "exportedName": "processSmartCheckout"
+    },
+    "4081b9c1242625c798577c16e54bfcac4f188bae8c": {
+      "workers": {
+        "app/(dashboard)/school/settings/page": {
+          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(dashboard)/school/settings/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/master/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateSchoolSettingsJSONB",
+          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts"
+        }
+      },
+      "layer": {
+        "app/(dashboard)/school/settings/page": "action-browser"
+      },
+      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(dashboard)/school/settings/actions.ts",
+      "exportedName": "updateSchoolSettingsJSONB"
     }
   },
   "edge": {},
