@@ -28,6 +28,7 @@ export type Consumer = {
   identifier?: string;
   grade?: string;
   allergies?: string[];
+  daily_limit?: number;
   earned_nutri_points: number;
   nfc_tag_uid?: string;
   wallets: Wallet[];
@@ -59,7 +60,7 @@ export default async function ParentPortal() {
       .from('consumers')
       .select(`
         id, first_name, last_name, identifier, type, school_id,
-        allergies, earned_nutri_points, nfc_tag_uid,
+        allergies, daily_limit, earned_nutri_points, nfc_tag_uid,
         wallets ( id, type, balance, max_overdraft )
       `)
       .eq('parent_id', user.id)
@@ -94,7 +95,7 @@ export default async function ParentPortal() {
       .from('consumers')
       .select(`
         id, first_name, last_name, identifier, type, school_id,
-        allergies, earned_nutri_points, nfc_tag_uid,
+        allergies, daily_limit, earned_nutri_points, nfc_tag_uid,
         wallets ( id, type, balance, max_overdraft )
       `)
       .eq('parent_email', user.email.toLowerCase())

@@ -8,8 +8,8 @@ CREATE OR REPLACE FUNCTION public.smart_pos_checkout(
   p_cart_items JSONB,
   p_comedor_total NUMERIC,
   p_snack_total NUMERIC,
-  p_wallet_comedor_id UUID,
-  p_wallet_snack_id UUID
+  p_wallet_comedor_id UUID DEFAULT NULL,
+  p_wallet_snack_id UUID DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -54,7 +54,8 @@ BEGIN
     SELECT COALESCE(SUM(ABS(amount)), 0) INTO v_gasto_hoy
     FROM transactions 
     WHERE wallet_id IN (p_wallet_comedor_id, p_wallet_snack_id)
-      AND type = 'purchase'
+      AND type = 'debit'
+      AND description NOT ILIKE '%Comisión%'
       AND DATE(created_at AT TIME ZONE 'UTC') = CURRENT_DATE;
 
     IF (v_gasto_hoy + p_comedor_total + p_snack_total) > v_daily_limit THEN
@@ -106,22 +107,22 @@ BEGIN
   IF p_comedor_total > 0 THEN
       UPDATE wallets SET balance = balance - p_comedor_total WHERE id = p_wallet_comedor_id RETURNING balance INTO v_comedor_balance;
       INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) 
-      VALUES (p_wallet_comedor_id, -p_comedor_total, 'purchase', 'BILLETERA COMEDOR: Consumo Alimentos', 'comedor');
+      VALUES (p_wallet_comedor_id, -p_comedor_total, 'debit', 'BILLETERA COMEDOR: Consumo Alimentos', 'comedor');
       
       IF v_comedor_balance < 0 AND v_apply_fee AND v_fee_amount > 0 THEN
           UPDATE wallets SET balance = balance - v_fee_amount WHERE id = p_wallet_comedor_id;
-          INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) VALUES (p_wallet_comedor_id, -v_fee_amount, 'fee', 'Comisión por Sobregiro', 'comedor');
+          INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) VALUES (p_wallet_comedor_id, -v_fee_amount, 'debit', 'Comisión por Sobregiro', 'comedor');
       END IF;
   END IF;
 
   IF p_snack_total > 0 THEN
       UPDATE wallets SET balance = balance - p_snack_total WHERE id = p_wallet_snack_id RETURNING balance INTO v_snack_balance;
       INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) 
-      VALUES (p_wallet_snack_id, -p_snack_total, 'purchase', 'BILLETERA SNACK: Consumo Cafetería', 'snack');
+      VALUES (p_wallet_snack_id, -p_snack_total, 'debit', 'BILLETERA SNACK: Consumo Cafetería', 'snack');
       
       IF v_snack_balance < 0 AND v_apply_fee AND v_fee_amount > 0 THEN
           UPDATE wallets SET balance = balance - v_fee_amount WHERE id = p_wallet_snack_id;
-          INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) VALUES (p_wallet_snack_id, -v_fee_amount, 'fee', 'Comisión por Sobregiro', 'snack');
+          INSERT INTO transactions (wallet_id, amount, type, description, wallet_type) VALUES (p_wallet_snack_id, -v_fee_amount, 'debit', 'Comisión por Sobregiro', 'snack');
       END IF;
   END IF;
   

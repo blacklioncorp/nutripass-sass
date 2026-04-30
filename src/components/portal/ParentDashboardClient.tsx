@@ -166,6 +166,7 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
   const [isActive, setIsActive] = useState(initialLimit > 0);
   const [limit, setLimit] = useState<string>(initialLimit > 0 ? String(initialLimit) : '');
   const [saving, setSaving] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
 
   const handleToggle = async () => {
     const nextActive = !isActive;
@@ -180,6 +181,8 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
     try {
       const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
       await updateDailyLimit(consumer.id, numericLimit);
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -201,6 +204,8 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
     try {
       const { updateDailyLimit } = await import('@/app/(portal)/parent/actions');
       await updateDailyLimit(consumer.id, numericValue as any);
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -212,8 +217,8 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
     <div className="bg-white rounded-2xl p-6 border border-[#e8f0f7] shadow-sm">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="bg-amber-50 h-10 w-10 rounded-xl flex items-center justify-center">
-            <Tag className="h-5 w-5 text-amber-500" />
+          <div className="bg-purple-50 h-10 w-10 rounded-xl flex items-center justify-center">
+            <Tag className="h-5 w-5 text-purple-600" />
           </div>
           <div>
             <h3 className="font-black text-[#004B87] text-lg">Límite de Gasto</h3>
@@ -256,6 +261,11 @@ function ExpenditureLimitCard({ consumer }: { consumer: Consumer }) {
       {saving && (
         <div className="mt-3 flex items-center gap-2 text-[#7CB9E8] text-[10px] font-bold uppercase tracking-widest animate-pulse">
           <RefreshCcw className="h-3 w-3 animate-spin" /> Guardando...
+        </div>
+      )}
+      {showSaved && !saving && (
+        <div className="mt-3 flex items-center gap-2 text-emerald-500 text-[10px] font-bold uppercase tracking-widest animate-in fade-in duration-300">
+          <ShieldCheck className="h-3 w-3" /> Guardado con éxito
         </div>
       )}
     </div>
