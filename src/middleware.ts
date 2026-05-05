@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-pathname', request.nextUrl.pathname);
   
   return response;
-
+}
 
 export const config = {
   matcher: [
