@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { label: 'Dashboard', href: '/master', icon: '⊞' },
   { label: 'Colegios', href: '/master', icon: '🏫' },
+  { label: 'Reembolsos & Bajas', href: '/master/refunds', icon: '💰' },
   { label: 'Configuración', href: '/master', icon: '⚙️' },
 ];
 
