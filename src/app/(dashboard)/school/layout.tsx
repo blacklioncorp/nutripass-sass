@@ -30,14 +30,26 @@ export default async function SchoolLayout({
   const fullPath = headersList.get('x-pathname') || '/school';
 
   if (isStaff) {
-    const restrictedPaths = ['/school', '/school/settings'];
-    const isAtRestricted = restrictedPaths.some(p => fullPath === p || fullPath.startsWith(p + '/'));
+    // Whitelist de rutas permitidas para staff
+    const allowedPaths = [
+      '/point-of-sale',
+      '/school/kitchen',
+      '/school/menu',
+      '/school/checklist'
+    ];
     
-    // Note: If staff is at root /school, move them to /point-of-sale
-    if (fullPath === '/school' || fullPath === '/school/settings') {
-       redirect('/point-of-sale');
+    // Verificamos si la ruta actual está permitida
+    const isAllowed = allowedPaths.some(p => 
+      fullPath === p || fullPath.startsWith(p + '/')
+    );
+
+    // Si intenta acceder a una ruta no permitida (como Dashboard BI o Configuración),
+    // lo redirigimos al POS, pero solo si no está ya en una ruta permitida.
+    if (!isAllowed && fullPath !== '/point-of-sale') {
+      redirect('/point-of-sale');
     }
   }
+
 
   return <>{children}</>;
 }

@@ -46,10 +46,11 @@ export default async function SchoolDashboardPage() {
 
   const role = profile?.role || 'staff';
 
-  // 1. Guard: Staff cannot access BI Dashboard
+  // 1. Guard: Staff cannot access BI Dashboard, redirect to Kitchen instead of hard forcing POS
   if (role === 'staff') {
-    redirect('/point-of-sale');
+    redirect('/school/kitchen');
   }
+
 
   // Step 1: Get all consumer IDs for this school (students + staff)
   const { data: schoolConsumers } = await adminClient

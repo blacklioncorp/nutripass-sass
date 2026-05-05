@@ -2,14 +2,21 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  // Inject the current pathname into request headers so Server Components can read it via headers()
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
   // Manejo de la sesión de Supabase y redirecciones de seguridad
-  const response = await updateSession(request)
+  // Pasamos la solicitud con los headers actualizados
+  const response = await updateSession(new Request(request, {
+    headers: requestHeaders,
+  }) as any);
   
-  // Inject the current pathname into headers so Server Components can read it
-  response.headers.set('x-pathname', request.nextUrl.pathname)
+  // También lo ponemos en la respuesta por si acaso
+  response.headers.set('x-pathname', request.nextUrl.pathname);
   
-  return response
-}
+  return response;
+
 
 export const config = {
   matcher: [
