@@ -30,38 +30,22 @@ export async function upsertProduct(prevState: any, formData: FormData) {
     .filter(Boolean);
 
   const showsStock = true;
+  return await internalUpsertProduct(schoolId, id, name, description, category, base_price, stock_quantity, nutri_points_reward, image_url, manualAllergens);
+}
+
+async function internalUpsertProduct(schoolId: string, id: string, name: string, description: string, category: string, base_price: number, stock_quantity: number, nutri_points_reward: number, image_url: string, manualAllergens: string[]) {
+  const adminClient = await createAdminClient();
+  const showsStock = true;
+
 
   // ── ALLERGEN DETECTION: Manual first, AI as fallback ──────────────────
   let detectedAllergens: string[] = manualAllergens;
 
-  if (detectedAllergens.length === 0 && process.env.OPENAI_API_KEY) {
-    // AI assist only when admin has not set manual allergens
-    try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const aiResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "Eres un nutricionista experto. Analiza el nombre y la descripción de este producto escolar. Identifica si contiene alguno de estos alérgenos comunes: lácteos, cacahuate, nuez, gluten, soya, huevo, mariscos. Devuelve ÚNICAMENTE un arreglo JSON puro de strings en minúsculas con los alérgenos detectados (ej. [\"lácteos\", \"nuez\"]). Si no detectas ninguno o es ambiguo, devuelve []. No uses formato markdown, solo el JSON puro."
-          },
-          {
-            role: "user",
-            content: `Producto: ${name}\nDescripción: ${description || 'Sin descripción'}`
-          }
-        ],
-        temperature: 0,
-      });
-
-      const content = aiResponse.choices[0].message?.content || "[]";
-      detectedAllergens = JSON.parse(content.trim());
-      if (!Array.isArray(detectedAllergens)) detectedAllergens = [];
-    } catch (error) {
-      console.error("OpenAI Allergen detection error:", error);
-      detectedAllergens = [];
-    }
+  if (detectedAllergens.length === 0) {
+    detectedAllergens = await detectAllergensAction(name, description);
   }
   // ───────────────────────────────────────────────────────────────────────
+
 
   const payload: any = {
     school_id: schoolId,
@@ -90,3 +74,37 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   revalidatePath('/school/products');
   return { success: true };
 }
+
+/**
+ * Detecta alérgenos usando IA basándose en el nombre y descripción del producto.
+ * Accesible como Server Action desde el botón 'Mágico' del UI.
+ */
+export async function detectAllergensAction(name: string, description: string) {
+  if (!process.env.OPENAI_API_KEY) return [];
+
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un nutricionista experto. Analiza el nombre y la descripción de este producto escolar. Identifica si contiene alguno de estos alérgenos comunes: lácteos, cacahuate, nuez, gluten, soya, huevo, mariscos. Devuelve ÚNICAMENTE un arreglo JSON puro de strings en minúsculas con los alérgenos detectados (ej. [\"lácteos\", \"nuez\"]). Si no detectas ninguno o es ambiguo, devuelve []. No uses formato markdown, solo el JSON puro."
+        },
+        {
+          role: "user",
+          content: `Producto: ${name}\nDescripción: ${description || 'Sin descripción'}`
+        }
+      ],
+      temperature: 0,
+    });
+
+    const content = aiResponse.choices[0].message?.content || "[]";
+    let detected = JSON.parse(content.trim());
+    return Array.isArray(detected) ? detected : [];
+  } catch (error) {
+    console.error("OpenAI Allergen detection error:", error);
+    return [];
+  }
+}
+

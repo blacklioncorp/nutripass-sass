@@ -4,7 +4,9 @@ import { useActionState, useState, useEffect, useRef } from 'react';
 import { upsertProduct } from '@/app/(dashboard)/school/productActions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import UnsplashSelector from './UnsplashSelector';
-import { X, Package } from 'lucide-react';
+import { X, Package, Sparkles, Loader2 } from 'lucide-react';
+import { detectAllergensAction } from '@/app/(dashboard)/school/productActions';
+
 
 export default function ProductFormModal({ product }: { product?: any }) {
   const [open, setOpen] = useState(false);
@@ -20,6 +22,32 @@ export default function ProductFormModal({ product }: { product?: any }) {
   );
   const [allergenInput, setAllergenInput] = useState('');
   const allergenInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Detection State
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [productName, setProductName] = useState(product?.name || '');
+  const [productDesc, setProductDesc] = useState(product?.description || '');
+
+  const handleAIDetection = async () => {
+    if (!productName && !productDesc) return;
+    setIsDetecting(true);
+    try {
+      const detected = await detectAllergensAction(productName, productDesc);
+      if (detected.length > 0) {
+        // Merge with existing allergens, unique
+        setAllergens(prev => {
+          const combined = [...prev, ...detected];
+          return Array.from(new Set(combined.map(a => a.toLowerCase())))
+            .map(a => detected.find(d => d.toLowerCase() === a) || prev.find(p => p.toLowerCase() === a) || a);
+        });
+      }
+    } catch (err) {
+      console.error("AI Detection error", err);
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
 
   const addAllergen = () => {
     const trimmed = allergenInput.trim();
@@ -61,23 +89,51 @@ export default function ProductFormModal({ product }: { product?: any }) {
           
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Nombre Comercial</label>
-            <input name="name" defaultValue={product?.name} required className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Ej. Ensalada César o Papas Fritas" />
+            <input 
+              name="name" 
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              required 
+              className="w-full p-2 border border-slate-200 rounded-lg" 
+              placeholder="Ej. Ensalada César o Papas Fritas" 
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1 text-[#2b5fa6]">Descripción / Ingredientes</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-bold text-slate-700 text-[#2b5fa6]">Descripción / Ingredientes</label>
+            </div>
             <textarea 
               name="description" 
-              defaultValue={product?.description} 
+              value={productDesc}
+              onChange={(e) => setProductDesc(e.target.value)}
               rows={2} 
               className="w-full p-2 border border-slate-200 rounded-lg text-sm" 
               placeholder="Ej. Lechuga, crutones, queso parmesano y aderezo especial (contiene leche y huevo)."
             />
+            <button
+              type="button"
+              onClick={handleAIDetection}
+              disabled={isDetecting || (!productName && !productDesc)}
+              className="mt-2 flex items-center gap-2 text-xs font-black text-[#2b5fa6] bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isDetecting ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Detectando Alérgenos...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  Sugerir Alérgenos con IA
+                </>
+              )}
+            </button>
           </div>
 
-          {/* Manual Allergens — primary authority over AI */}
-          <div>
-            <label className="block text-sm font-bold text-red-600 mb-1">🚨 Alérgenos Confirmados</label>
+          {/* Manual Allergens — simplified UX */}
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <label className="block text-sm font-bold text-slate-600 mb-2 italic">Alérgenos (Opcional)</label>
             <input type="hidden" name="manualAllergens" value={allergens.join(',')} />
             <div className="flex gap-2">
               <input
@@ -86,33 +142,35 @@ export default function ProductFormModal({ product }: { product?: any }) {
                 value={allergenInput}
                 onChange={e => setAllergenInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAllergen(); } }}
-                placeholder="ej. Gluten, Lácteos, Cacahuate..."
-                className="flex-1 p-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-400 transition"
+                placeholder="ej. Gluten, Lácteos, Nueces..."
+                className="flex-1 p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2b5fa6] transition"
               />
               <button
                 type="button"
                 onClick={addAllergen}
-                className="px-3 py-2 bg-red-500 text-white text-sm font-bold rounded-lg hover:bg-red-600 transition"
+                className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-black rounded-lg hover:bg-slate-300 transition uppercase tracking-tighter"
               >
-                + Agregar
+                Añadir
               </button>
             </div>
-            {allergens.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+            {allergens.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mt-3">
                 {allergens.map(al => (
-                  <span key={al} className="flex items-center gap-1 bg-red-50 text-red-700 text-xs font-bold px-3 py-1 rounded-full border border-red-200">
+                  <span key={al} className="flex items-center gap-1 bg-white text-slate-700 text-[10px] font-black uppercase tracking-tight px-3 py-1 rounded-full border border-slate-200 shadow-sm">
                     {al}
-                    <button type="button" onClick={() => removeAllergen(al)} className="text-red-400 hover:text-red-700 ml-1">
+                    <button type="button" onClick={() => removeAllergen(al)} className="text-slate-400 hover:text-red-500 ml-1 transition-colors">
                       <X className="h-3 w-3" />
                     </button>
                   </span>
                 ))}
               </div>
+            ) : (
+              <p className="text-[10px] text-slate-400 mt-2 leading-tight">
+                Usa el botón de IA arriba o escribe manualmente. Si no hay nada, el sistema asumirá que es seguro o intentará detectarlo al guardar.
+              </p>
             )}
-            <p className="text-[10px] text-slate-400 mt-1">
-              Si dejas vacío, la IA intentará detectarlos automáticamente. Los alérgenos manuales siempre tienen prioridad.
-            </p>
           </div>
+
 
           <div className="grid grid-cols-2 gap-4">
             <div>
