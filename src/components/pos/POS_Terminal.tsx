@@ -208,10 +208,10 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-slate-50 overflow-hidden">
+    <div className="h-screen w-screen overflow-hidden flex bg-slate-50">
       
       {/* LEFT PANEL: CART */}
-      <div className="w-[350px] bg-white border-r border-slate-200 shadow-xl flex flex-col z-10 relative">
+      <div className="w-[350px] bg-white border-r border-slate-200 shadow-xl flex flex-col h-full z-10 relative">
         <div className="p-6 bg-slate-900 text-white flex justify-between items-center shadow-md">
           <h2 className="text-xl font-black tracking-widest">SAFELUNCH POS</h2>
           <span className="text-xs font-bold opacity-50 bg-white/20 px-2 py-1 rounded">CAJA VIRTUAL</span>
@@ -244,7 +244,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
           )}
         </div>
 
-        <div className="flex-shrink-0 p-6 pb-8 border-t border-slate-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
+        <div className="flex-shrink-0 mt-auto p-6 pb-8 border-t border-slate-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
           <div className="flex justify-between items-end mb-6">
             <span className="text-slate-500 font-bold uppercase tracking-widest text-sm">Total Orden</span>
             <span className="text-4xl font-black text-slate-900">${cartTotal.toFixed(2)}</span>
@@ -260,7 +260,7 @@ export default function POS_Terminal({ catalog }: { catalog: any[] }) {
       </div>
 
       {/* RIGHT PANEL: CATALOG GRID */}
-      <div className="flex-1 p-8 overflow-y-auto bg-[#F0F8FF]">
+      <div className="flex-1 h-full overflow-y-auto p-8 bg-[#F0F8FF]">
         {catalog.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
             <span className="text-6xl mb-4">🍩</span>
