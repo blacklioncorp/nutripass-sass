@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { usePendingOrders } from '@/hooks/usePendingOrders';
+
 
 const navItems = [
   { label: 'Dashboard', href: '/school', icon: '⊞' },
@@ -26,14 +28,22 @@ export default function SchoolSidebar({
 }) {
   const pathname = usePathname();
   const isStaff = role === 'staff';
+  const pendingCount = usePendingOrders();
 
   const filteredItems = navItems.filter(item => {
     if (isStaff) {
-      // Staff cannot see Dashboard, Settings or Staff Management
-      return item.href !== '/school' && item.href !== '/school/settings' && item.href !== '/school/staff';
+      // El staff ahora tiene acceso a: POS, Menú, Cocina y Checklist
+      const allowedPaths = [
+        '/point-of-sale',
+        '/school/menu',
+        '/school/kitchen',
+        '/school/checklist'
+      ];
+      return allowedPaths.includes(item.href);
     }
     return true;
   });
+
 
   return (
     <aside className="w-full md:w-60 bg-white border-r border-[#e8f0f7] flex-shrink-0 flex flex-col min-h-screen">
@@ -84,11 +94,19 @@ export default function SchoolSidebar({
                   : 'text-[#4a6fa5] hover:bg-[#e8f0f7] hover:text-[#2b5fa6]'
               }`}
             >
-              <span className={`text-base transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-[#8aa8cc]'}`}>
-                {item.icon}
-              </span>
+              <div className="relative">
+                <span className={`text-base transition-transform group-hover:scale-110 flex items-center justify-center ${isActive ? 'text-white' : 'text-[#8aa8cc]'}`}>
+                  {item.icon}
+                </span>
+                {item.label === 'Reporte Cocina' && pendingCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center justify-center min-w-[18px] h-[18px] border-2 border-white md:border-none shadow-sm">
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
               {item.label}
             </Link>
+
           );
         })}
       </nav>
