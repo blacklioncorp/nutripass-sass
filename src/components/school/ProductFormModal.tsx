@@ -58,16 +58,38 @@ export default function ProductFormModal({ product }: { product?: any }) {
   };
   const removeAllergen = (item: string) => setAllergens(prev => prev.filter(a => a !== item));
 
+  const resetForm = () => {
+    // Only reset if we are in "Create" mode (product is undefined)
+    if (!product) {
+      setProductName('');
+      setProductDesc('');
+      setAllergens([]);
+      setImageUrl('');
+      setCategory('comedor');
+      setAllergenInput('');
+    }
+  };
+
   useEffect(() => {
     if (state?.success) {
+      resetForm();
       setOpen(false);
     }
   }, [state]);
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetForm();
+    }
+  };
+
   const showsStock = true; // category === 'snack' || category === 'bebida';
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+
       <DialogTrigger asChild>
         {product ? (
            <button className="text-primary hover:text-blue-800 text-sm font-bold transition">Editar</button>
