@@ -254,7 +254,8 @@ export async function createPreOrderTransaction(
       ? [run(adminClient.from('pre_orders').insert(
           comedorItems.map(item => ({
             consumer_id: consumerId,
-            daily_menu_id: item.id,
+            daily_menu_id: item.sourceType === 'daily_menu' ? item.id : null,
+            product_id: item.sourceType === 'product' ? item.id : null,
             status: 'paid',
             order_date: item.date,
             special_instructions: item.specialInstructions,

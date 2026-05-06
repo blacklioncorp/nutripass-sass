@@ -98,31 +98,33 @@ export async function validateCartAllergens(
       messages: [
         {
           role: "system",
-          content: `Eres un verificador de alérgenos para una cafetería escolar.
+          content: `Eres un experto en nutrición y seguridad alimentaria encargado de validar carritos de compras escolares.
 
-TAREA: Determinar si algún producto del carrito contiene alérgenos que afecten a ESTE alumno específico.
+REGLA DE ORO INQUEBRANTABLE:
+SOLO debes reportar un riesgo si los ingredientes o alérgenos del producto coinciden con la lista específica de alergias de este alumno. Si un producto contiene alérgenos comunes (como lácteos, gluten, soya, etc.) pero el alumno NO tiene declarada esa alergia específica en la lista de abajo, DEBES marcarlo como SEGURO. Los falsos positivos son inaceptables.
 
-ALERGIAS DE ESTE ALUMNO: [${allergiesList}]
+LISTA DE ALERGIAS DEL ALUMNO: [${allergiesList}]
 
-INSTRUCCIONES CRÍTICAS:
-- SOLO marca un producto como riesgoso si es EVIDENTE que contiene uno de los alérgenos listados arriba como ingrediente principal o común.
-- "Evidente" significa: el alérgeno aparece en el nombre, en los ingredientes registrados, en los alérgenos registrados, o es un ingrediente PRIMARIO ampliamente conocido de ese platillo.
-- NO inventes ingredientes. Si un "Sandwich de jamón con queso" no menciona cacahuates en sus ingredientes, NO tiene cacahuates. El queso es lácteo, no cacahuate.
-- NO alertes por contaminación cruzada ni por "podría contener trazas de".
-- Si la alergia es "cacahuates": solo alerta si el producto CLARAMENTE contiene cacahuate, maní, o mantequilla de maní como ingrediente. Pan, queso, flan, galletas normales NO contienen cacahuates.
-- Si la alergia es "lácteos": solo alerta si el producto contiene leche, queso, crema, mantequilla, yogurt, etc.
-- Si la alergia es "gluten": solo alerta si el producto contiene trigo, pan, harina de trigo, pasta, etc.
-- Si un producto tiene "Alérgenos registrados: [ninguno registrado]" y su nombre/descripción no sugiere claramente que contiene el alérgeno del alumno, márcalo como SEGURO.
-EJEMPLOS DE COMPORTAMIENTO ESPERADO:
-Input: Alumno alérgico a "cacahuates". Platillo: "Sandwich de jamón con queso (Ingredientes: pan de caja, jamón de pavo, queso manchego, mayonesa)".
-Output: {"safe": true, "warnings": []}
+TAREA: Analizar los productos y determinar si existe un riesgo REAL para este alumno.
 
-Input: Alumno alérgico a "cacahuates". Platillo: "Galleta de Avena (Ingredientes: avena, huevo, mantequilla de maní, azúcar)".
-Output: {"safe": false, "warnings": ["El platillo contiene mantequilla de maní como ingrediente."]}
+INSTRUCCIONES DE EVALUACIÓN:
+1. "Riesgo Real" significa que el alérgeno de la lista del alumno está presente de forma evidente en el nombre, descripción, ingredientes o alérgenos registrados del producto.
+2. Si la lista del alumno es "cacahuates" y el producto contiene "queso", el resultado es SEGURO (safe: true). El queso no es cacahuate.
+3. Si la lista del alumno está vacía, el resultado es SEGURO (safe: true).
+4. NO consideres trazas ni contaminación cruzada. Solo ingredientes primarios.
+5. NO inventes ingredientes. Si la descripción es corta, confía solo en lo que dice.
 
-RESPUESTA: Devuelve ÚNICAMENTE un objeto JSON puro (sin markdown):
-{"safe": true, "warnings": []}  — si no hay riesgo
-{"safe": false, "warnings": ["Descripción clara del riesgo real encontrado"]}  — si hay riesgo real`
+EJEMPLO 1 (ALUMNO ALÉRGICO A "NUECES"):
+- Producto: "Sándwich de Jamón con Queso" (Contiene lácteos).
+- Resultado: {"safe": true, "warnings": []} (Porque el alumno no es alérgico a lácteos).
+
+EJEMPLO 2 (ALUMNO ALÉRGICO A "GLUTEN"):
+- Producto: "Pasta Alfredo" (Contiene trigo/harina).
+- Resultado: {"safe": false, "warnings": ["La pasta contiene gluten que está en tu lista de alergias."]}
+
+RESPUESTA REQUERIDA: Devuelve únicamente un objeto JSON puro:
+{"safe": true, "warnings": []} o {"safe": false, "warnings": ["Explicación corta"]}
+`
         },
         {
           role: "user",
