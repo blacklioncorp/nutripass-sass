@@ -1,12 +1,7 @@
 {
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(dashboard)/master/page": "app/(dashboard)/master/page.js",
-  "/(dashboard)/master/refunds/page": "app/(dashboard)/master/refunds/page.js",
-  "/(dashboard)/school/consumers/page": "app/(dashboard)/school/consumers/page.js",
-  "/(dashboard)/school/page": "app/(dashboard)/school/page.js",
   "/(portal)/parent/page": "app/(portal)/parent/page.js",
-  "/(portal)/parent/profile/page": "app/(portal)/parent/profile/page.js",
-  "/apple-icon.png/route": "app/apple-icon.png/route.js",
+  "/api/stripe/create-payment-intent/route": "app/api/stripe/create-payment-intent/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js"
 }

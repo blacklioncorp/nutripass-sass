@@ -11,6 +11,7 @@ export async function createConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
+  const parentPhone = (formData.get('parentPhone') as string)?.trim() || null;
   const allergiesRaw = (formData.get('allergies') as string) || '';
   const allergies = allergiesRaw
     .split(',')
@@ -34,6 +35,21 @@ export async function createConsumer(prevState: any, formData: FormData) {
     allergies: type === 'student' ? allergies : [],
     is_active: true
   };
+
+  if (type === 'student' && parentEmail) {
+    const { data: existingParent } = await supabaseAdmin
+      .from('parents')
+      .select('id')
+      .eq('email', parentEmail)
+      .maybeSingle();
+
+    if (existingParent) {
+      payload.parent_id = existingParent.id;
+      if (parentPhone) {
+        await supabaseAdmin.from('parents').update({ phone: parentPhone }).eq('id', existingParent.id);
+      }
+    }
+  }
 
   // Solo incluimos daily_limit si el valor no es nulo o si ya sabemos que la columna existe.
   // Esto evita el Internal Server Error (500) si la migración de la DB aún no se ha ejecutado.
@@ -61,6 +77,7 @@ export async function updateConsumer(prevState: any, formData: FormData) {
   const type = formData.get('type') as 'student' | 'staff';
   const grade = formData.get('grade') as string;
   const parentEmail = (formData.get('parentEmail') as string)?.trim().toLowerCase() || null;
+  const parentPhone = (formData.get('parentPhone') as string)?.trim() || null;
   const allergiesRaw = (formData.get('allergies') as string) || '';
   const allergies = allergiesRaw
     .split(',')
@@ -82,6 +99,25 @@ export async function updateConsumer(prevState: any, formData: FormData) {
     parent_email: type === 'student' ? parentEmail : null,
     allergies: type === 'student' ? allergies : [],
   };
+
+  if (type === 'student' && parentEmail) {
+    const { data: existingParent } = await supabaseAdmin
+      .from('parents')
+      .select('id')
+      .eq('email', parentEmail)
+      .maybeSingle();
+
+    if (existingParent) {
+      payload.parent_id = existingParent.id;
+      if (parentPhone) {
+        await supabaseAdmin.from('parents').update({ phone: parentPhone }).eq('id', existingParent.id);
+      }
+    } else {
+      payload.parent_id = null;
+    }
+  } else if (type === 'student' && !parentEmail) {
+    payload.parent_id = null;
+  }
 
   if (daily_limit !== null) {
     payload.daily_limit = daily_limit;

@@ -166,6 +166,20 @@ export default function ConsumerFormModal({ consumer, trigger, onSuccess }: Cons
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  Número de WhatsApp (Notificaciones)
+                </label>
+                <input
+                  name="parentPhone"
+                  type="tel"
+                  defaultValue={consumer?.parent_phone || ''}
+                  placeholder="ej. +521234567890 (Opcional)"
+                  disabled={true}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm placeholder:text-slate-300 focus:outline-none focus:border-primary transition disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
               {/* Hidden field: comma-separated allergies for the server action */}
               <input type="hidden" name="allergies" value={allergies.join(',')} />
               <div>

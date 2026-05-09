@@ -139,7 +139,7 @@ export async function POST(req: Request) {
         // INSERT succeeded → safe to update wallet balance
         const { data: wallet, error: walletError } = await supabaseAdmin
           .from('wallets')
-          .select('balance')
+          .select('balance, type, consumers(first_name, last_name, parent_email, parent_id)')
           .eq('id', singleWalletId)
           .single();
 
@@ -150,6 +150,44 @@ export async function POST(req: Request) {
           .from('wallets')
           .update({ balance: newBalance })
           .eq('id', singleWalletId);
+
+        // Disparar Webhook a n8n
+        try {
+          const consumerData: any = Array.isArray(wallet.consumers) ? wallet.consumers[0] : wallet.consumers;
+          let parentName = "Padre/Tutor";
+          
+          if (consumerData?.parent_id) {
+            const { data: parentObj } = await supabaseAdmin
+              .from('parents')
+              .select('full_name')
+              .eq('id', consumerData.parent_id)
+              .single();
+            if (parentObj?.full_name) {
+              parentName = parentObj.full_name;
+            }
+          }
+
+          const studentName = consumerData ? `${consumerData.first_name} ${consumerData.last_name}`.trim() : 'Alumno';
+          const parentEmail = consumerData?.parent_email || '';
+
+          const payload = {
+            transaction_type: "recharge",
+            amount: rechargeAmount,
+            wallet_type: wallet.type || 'comedor',
+            parent_email: parentEmail,
+            parent_name: parentName,
+            student_name: studentName,
+            date: new Date().toISOString()
+          };
+
+          await fetch('https://asistente.tlapafood.com/webhook-test/recharge-success', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (webhookErr) {
+          console.error('Error enviando webhook de recarga a n8n:', webhookErr);
+        }
       }
     } catch (err: any) {
       console.error('Error processing successful payment:', err);
