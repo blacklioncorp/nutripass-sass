@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   // Handle the event
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    
+
     const isBulk = paymentIntent.metadata.is_bulk === 'true';
     const bulkRechargeId = paymentIntent.metadata.bulk_recharge_id;
     const singleWalletId = paymentIntent.metadata.wallet_id;
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
           .select('*')
           .eq('id', bulkRechargeId)
           .single();
-        
+
         if (bulkError || !bulkDoc) throw new Error('Bulk recharge document not found');
         if (bulkDoc.status === 'completed') return NextResponse.json({ received: true });
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
             .select('balance')
             .eq('id', alloc.walletId)
             .single();
-          
+
           if (wallet) {
             const newBalance = wallet.balance + parseFloat(alloc.amount);
             await supabaseAdmin
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
 
         if (walletError || !wallet) throw new Error('Wallet not found after idempotency check');
         const newBalance = (parseFloat(wallet.balance.toString()) || 0) + rechargeAmount;
-        
+
         await supabaseAdmin
           .from('wallets')
           .update({ balance: newBalance })
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
         try {
           const consumerData: any = Array.isArray(wallet.consumers) ? wallet.consumers[0] : wallet.consumers;
           let parentName = "Padre/Tutor";
-          
+
           if (consumerData?.parent_id) {
             const { data: parentObj } = await supabaseAdmin
               .from('parents')
@@ -180,7 +180,7 @@ export async function POST(req: Request) {
             date: new Date().toISOString()
           };
 
-          await fetch('https://asistente.tlapafood.com/webhook-test/recharge-success', {
+          await fetch('https://asistente.tlapafood.com/webhook/recharge-success', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
