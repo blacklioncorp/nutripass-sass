@@ -1,35 +1,5 @@
 {
   "node": {
-    "60da716820648bbdd6bfc439d51f84f23643f7eb5d": {
-      "workers": {
-        "app/(auth)/login/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(auth)/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "loginAction",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(auth)/login/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts",
-      "exportedName": "loginAction"
-    },
-    "6069a6c8174ecfc208fb0db88409988503c36ff72f": {
-      "workers": {
-        "app/(auth)/login/page": {
-          "moduleId": "[project]/Documents/NUTRIPASS/nutripass-sass/.next-internal/server/app/(auth)/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": false,
-          "exportedName": "signUpAction",
-          "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts"
-        }
-      },
-      "layer": {
-        "app/(auth)/login/page": "action-browser"
-      },
-      "filename": "Documents/NUTRIPASS/nutripass-sass/src/app/(auth)/login/actions.ts",
-      "exportedName": "signUpAction"
-    },
     "40949c47f1561da36a17d5eccd20116bf0558bc066": {
       "workers": {
         "app/(portal)/parent/page": {

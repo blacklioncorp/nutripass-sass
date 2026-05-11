@@ -180,7 +180,9 @@ export async function POST(req: Request) {
             date: new Date().toISOString()
           };
 
-          await fetch('https://asistente.tlapafood.com/webhook/recharge-success', {
+          const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
+
+          await fetch(n8nWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
