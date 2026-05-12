@@ -72,15 +72,16 @@ export async function POST(req: Request) {
             if (insertErr.code === '23505') {
               // Duplicate detected — wallet was already funded, skip silently
               console.warn(`Webhook duplicado ignorado (bulk): ${compoundId}`);
-              continue;
+              continue; // Esto evita que se actualice el saldo y que se envíe el correo doble
             }
             throw insertErr;
           }
 
           // Step 2: INSERT succeeded → safe to update wallet balance
+          // ---> NUEVO: Ampliamos el select para traer los datos del padre/alumno necesarios para n8n
           const { data: wallet } = await supabaseAdmin
             .from('wallets')
-            .select('balance')
+            .select('balance, type, consumers(first_name, last_name, parent_email, parent_id)')
             .eq('id', alloc.walletId)
             .single();
 
@@ -90,6 +91,47 @@ export async function POST(req: Request) {
               .from('wallets')
               .update({ balance: newBalance })
               .eq('id', alloc.walletId);
+
+            // ---> NUEVO: Disparar Webhook a n8n por cada recarga individual dentro del bulk
+            try {
+              const consumerData: any = Array.isArray(wallet.consumers) ? wallet.consumers[0] : wallet.consumers;
+              let parentName = "Padre/Tutor";
+
+              if (consumerData?.parent_id) {
+                const { data: parentObj } = await supabaseAdmin
+                  .from('parents')
+                  .select('full_name')
+                  .eq('id', consumerData.parent_id)
+                  .single();
+                if (parentObj?.full_name) {
+                  parentName = parentObj.full_name;
+                }
+              }
+
+              const studentName = consumerData ? `${consumerData.first_name} ${consumerData.last_name}`.trim() : 'Alumno';
+              const parentEmail = consumerData?.parent_email || '';
+
+              const payload = {
+                transaction_type: "recharge",
+                amount: parseFloat(alloc.amount), // Usamos el monto específico de esta iteración
+                wallet_type: wallet.type || 'comedor',
+                parent_email: parentEmail,
+                parent_name: parentName,
+                student_name: studentName,
+                date: new Date().toISOString()
+              };
+
+              const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
+
+              await fetch(n8nWebhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+            } catch (webhookErr) {
+              console.error(`Error enviando webhook bulk a n8n para wallet ${alloc.walletId}:`, webhookErr);
+            }
+            // ---> FIN NUEVO
           }
         }
 
@@ -100,6 +142,7 @@ export async function POST(req: Request) {
           .eq('id', bulkRechargeId);
 
       } else if (singleWalletId && !isNaN(singleRechargeAmount)) {
+        // --- SINGLE RECHARGE LOGIC (Sin cambios, 100% intacta) ---
         const rechargeAmount = parseFloat(singleRechargeAmount.toString());
 
         // FIX 2 (SINGLE): Tenant Isolation — validate wallet belongs to correct school
