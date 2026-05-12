@@ -6,7 +6,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key', {
   apiVersion: '2026-02-25.clover',
 });
 
-// Use Service Role to bypass RLS in the webhook execution
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co',
   process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key'
@@ -29,7 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  // Handle the event
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
@@ -54,12 +52,10 @@ export async function POST(req: Request) {
 
         const allocations = bulkDoc.allocations as any[];
 
-        // FIX 1 (BULK): INSERT before UPDATE — idempotency gate
         for (let i = 0; i < allocations.length; i++) {
           const alloc = allocations[i];
           const compoundId = `${intentId}-bulk-${i}`;
 
-          // Step 1: Attempt INSERT first (idempotency gate)
           const { error: insertErr } = await supabaseAdmin.from('transactions').insert({
             wallet_id: alloc.walletId,
             amount: parseFloat(alloc.amount),
@@ -70,18 +66,16 @@ export async function POST(req: Request) {
 
           if (insertErr) {
             if (insertErr.code === '23505') {
-              // Duplicate detected — wallet was already funded, skip silently
               console.warn(`Webhook duplicado ignorado (bulk): ${compoundId}`);
-              continue; // Esto evita que se actualice el saldo y que se envíe el correo doble
+              continue;
             }
             throw insertErr;
           }
 
-          // Step 2: INSERT succeeded → safe to update wallet balance
-          // ---> NUEVO: Ampliamos el select para traer los datos del padre/alumno necesarios para n8n
+          // AQUI EXTRAEMOS DIRECTO DE CONSUMERS
           const { data: wallet } = await supabaseAdmin
             .from('wallets')
-            .select('balance, type, consumers(first_name, last_name, parent_email, parent_id)')
+            .select('balance, type, consumers(first_name, last_name, parent_email)')
             .eq('id', alloc.walletId)
             .single();
 
@@ -92,60 +86,48 @@ export async function POST(req: Request) {
               .update({ balance: newBalance })
               .eq('id', alloc.walletId);
 
-            // ---> NUEVO: Disparar Webhook a n8n por cada recarga individual dentro del bulk
             try {
               const consumerData: any = Array.isArray(wallet.consumers) ? wallet.consumers[0] : wallet.consumers;
-              let parentName = "Padre/Tutor";
-
-              if (consumerData?.parent_id) {
-                const { data: parentObj } = await supabaseAdmin
-                  .from('parents')
-                  .select('full_name')
-                  .eq('id', consumerData.parent_id)
-                  .single();
-                if (parentObj?.full_name) {
-                  parentName = parentObj.full_name;
-                }
-              }
-
               const studentName = consumerData ? `${consumerData.first_name} ${consumerData.last_name}`.trim() : 'Alumno';
               const parentEmail = consumerData?.parent_email || '';
 
-              const payload = {
-                transaction_type: "recharge",
-                amount: parseFloat(alloc.amount), // Usamos el monto específico de esta iteración
-                wallet_type: wallet.type || 'comedor',
-                parent_email: parentEmail,
-                parent_name: parentName,
-                student_name: studentName,
-                date: new Date().toISOString()
-              };
+              // ESCUDO PROTECTOR
+              if (parentEmail !== '') {
+                const payload = {
+                  transaction_type: "recharge",
+                  amount: parseFloat(alloc.amount),
+                  wallet_type: wallet.type || 'comedor',
+                  parent_email: parentEmail,
+                  parent_name: "Padre/Tutor", // Simplificado para no hacer más queries
+                  student_name: studentName,
+                  date: new Date().toISOString()
+                };
 
-              const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
+                const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
 
-              await fetch(n8nWebhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
+                await fetch(n8nWebhookUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+              } else {
+                console.log(`Webhook bloqueado (bulk): 'parent_email' vacío para wallet ${alloc.walletId}`);
+              }
             } catch (webhookErr) {
-              console.error(`Error enviando webhook bulk a n8n para wallet ${alloc.walletId}:`, webhookErr);
+              console.error(`Error enviando webhook bulk a n8n:`, webhookErr);
             }
-            // ---> FIN NUEVO
           }
         }
 
-        // Mark bulk recharge as completed
         await supabaseAdmin
           .from('bulk_recharges')
           .update({ status: 'completed' })
           .eq('id', bulkRechargeId);
 
       } else if (singleWalletId && !isNaN(singleRechargeAmount)) {
-        // --- SINGLE RECHARGE LOGIC (Sin cambios, 100% intacta) ---
+        // --- SINGLE RECHARGE LOGIC ---
         const rechargeAmount = parseFloat(singleRechargeAmount.toString());
 
-        // FIX 2 (SINGLE): Tenant Isolation — validate wallet belongs to correct school
         if (singleSchoolId) {
           const { data: validWallet, error: validationError } = await supabaseAdmin
             .from('wallets')
@@ -154,14 +136,9 @@ export async function POST(req: Request) {
             .eq('consumers.school_id', singleSchoolId)
             .single();
 
-          if (validationError || !validWallet) {
-            console.error(`SECURITY: Tenant isolation breach attempt — wallet ${singleWalletId} does not belong to school ${singleSchoolId}. Intent: ${intentId}`);
-            // Return 200 so Stripe stops retrying — but do NOT touch any wallet
-            return NextResponse.json({ received: true });
-          }
+          if (validationError || !validWallet) return NextResponse.json({ received: true });
         }
 
-        // FIX 1 (SINGLE): INSERT before UPDATE — idempotency gate
         const { error: insertError } = await supabaseAdmin.from('transactions').insert({
           wallet_id: singleWalletId,
           amount: rechargeAmount,
@@ -171,22 +148,18 @@ export async function POST(req: Request) {
         });
 
         if (insertError) {
-          if (insertError.code === '23505') {
-            // Duplicate webhook — wallet already funded, acknowledge and stop
-            console.warn(`Webhook duplicado ignorado (single): ${intentId}`);
-            return NextResponse.json({ received: true });
-          }
+          if (insertError.code === '23505') return NextResponse.json({ received: true });
           throw insertError;
         }
 
-        // INSERT succeeded → safe to update wallet balance
+        // AQUI EXTRAEMOS DIRECTO DE CONSUMERS
         const { data: wallet, error: walletError } = await supabaseAdmin
           .from('wallets')
-          .select('balance, type, consumers(first_name, last_name, parent_email, parent_id)')
+          .select('balance, type, consumers(first_name, last_name, parent_email)')
           .eq('id', singleWalletId)
           .single();
 
-        if (walletError || !wallet) throw new Error('Wallet not found after idempotency check');
+        if (walletError || !wallet) throw new Error('Wallet not found');
         const newBalance = (parseFloat(wallet.balance.toString()) || 0) + rechargeAmount;
 
         await supabaseAdmin
@@ -194,42 +167,33 @@ export async function POST(req: Request) {
           .update({ balance: newBalance })
           .eq('id', singleWalletId);
 
-        // Disparar Webhook a n8n
         try {
           const consumerData: any = Array.isArray(wallet.consumers) ? wallet.consumers[0] : wallet.consumers;
-          let parentName = "Padre/Tutor";
-
-          if (consumerData?.parent_id) {
-            const { data: parentObj } = await supabaseAdmin
-              .from('parents')
-              .select('full_name')
-              .eq('id', consumerData.parent_id)
-              .single();
-            if (parentObj?.full_name) {
-              parentName = parentObj.full_name;
-            }
-          }
-
           const studentName = consumerData ? `${consumerData.first_name} ${consumerData.last_name}`.trim() : 'Alumno';
           const parentEmail = consumerData?.parent_email || '';
 
-          const payload = {
-            transaction_type: "recharge",
-            amount: rechargeAmount,
-            wallet_type: wallet.type || 'comedor',
-            parent_email: parentEmail,
-            parent_name: parentName,
-            student_name: studentName,
-            date: new Date().toISOString()
-          };
+          // ESCUDO PROTECTOR
+          if (parentEmail !== '') {
+            const payload = {
+              transaction_type: "recharge",
+              amount: rechargeAmount,
+              wallet_type: wallet.type || 'comedor',
+              parent_email: parentEmail,
+              parent_name: "Padre/Tutor",
+              student_name: studentName,
+              date: new Date().toISOString()
+            };
 
-          const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
+            const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://asistente.tlapafood.com/webhook/recharge-success';
 
-          await fetch(n8nWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
+            await fetch(n8nWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          } else {
+            console.log(`Webhook bloqueado (single): 'parent_email' vacío para wallet ${singleWalletId}`);
+          }
         } catch (webhookErr) {
           console.error('Error enviando webhook de recarga a n8n:', webhookErr);
         }
