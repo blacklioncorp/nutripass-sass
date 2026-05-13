@@ -31,7 +31,7 @@ type School = {
   stripe_onboarding_complete: boolean;
   settings?: {
     financial?: {
-      min_recharge_amount?: number;
+      min_recharge?: number;
       overdraft_limit?: number;
       apply_convenience_fee?: boolean;
       convenience_fee_amount?: number;
@@ -118,7 +118,7 @@ function CommissionCell({ schoolId, initialValue }: { schoolId: string; initialV
 // ── Min Recharge Cell (Editable JSONB) ─────────────────────
 function MinRechargeCell({ schoolId, school }: { schoolId: string; school: School }) {
   const [isEditing, setIsEditing] = useState(false);
-  const currentVal = school.settings?.financial?.min_recharge_amount ?? 100;
+  const currentVal = school.settings?.financial?.min_recharge ?? 100;
   const [value, setValue] = useState(currentVal);
   const [loading, setLoading] = useState(false);
 
@@ -130,7 +130,7 @@ function MinRechargeCell({ schoolId, school }: { schoolId: string; school: Schoo
         ...school.settings,
         financial: {
           ...(school.settings?.financial || {}),
-          min_recharge_amount: value
+          min_recharge: value
         }
       };
       const { updateSchoolSettings } = await import('@/app/(dashboard)/master/actions');

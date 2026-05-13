@@ -96,11 +96,11 @@ export default function WalletReload({ walletId, schoolId, onSuccess }: { wallet
         
         if (fetchErr) throw fetchErr;
 
-        const val = (data?.settings as any)?.financial?.min_recharge_amount;
+        const val = (data?.settings as any)?.financial?.min_recharge;
         if (val !== undefined && val !== null) {
           setMinAmount(Number(val));
         } else {
-          setMinAmount(50); // Fallback
+          setMinAmount(100); // Fallback
         }
       } catch (e: any) {
         console.error('Error fetching min amount:', e);
@@ -196,7 +196,7 @@ export default function WalletReload({ walletId, schoolId, onSuccess }: { wallet
                 type="number" 
                 min={minAmount ?? 0}
                 step="50"
-                placeholder={String(minAmount ?? 50)}
+                placeholder={String(minAmount ?? 100)}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className={`w-full pl-10 pr-4 py-4 text-2xl font-black text-slate-900 border-2 rounded-2xl focus:border-[#7CB9E8] focus:outline-none transition-all ${minAmount && Number(amount) < minAmount && amount ? 'border-red-200 bg-red-50' : 'border-slate-100 bg-slate-50/30'}`}
