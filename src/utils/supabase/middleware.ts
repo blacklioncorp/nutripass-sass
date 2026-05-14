@@ -31,10 +31,39 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtectedPath = 
-    request.nextUrl.pathname.startsWith('/master') ||
     request.nextUrl.pathname.startsWith('/school') ||
     request.nextUrl.pathname.startsWith('/parent') ||
     request.nextUrl.pathname.startsWith('/point-of-sale');
+
+  // --- REGLA DE SILENCIO TOTAL PARA /master ---
+  if (request.nextUrl.pathname.startsWith('/master')) {
+    let isAuthorized = false;
+
+    if (user?.email) {
+      const MASTER_EMAILS = ['safelunch772@gmail.com'];
+      
+      if (MASTER_EMAILS.includes(user.email)) {
+        isAuthorized = true;
+      } else {
+        const { data: whitelist } = await supabase
+          .from('master_whitelist')
+          .select('email')
+          .eq('email', user.email)
+          .single();
+          
+        if (whitelist) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      // Rewrite silencioso a la raíz (/)
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.rewrite(url);
+    }
+  }
 
   // Si no hay usuario y trata de entrar a admin/parent, lo mandamos al login
   if (!user && isProtectedPath) {
