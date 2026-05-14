@@ -50,7 +50,23 @@ export default async function DashboardLayout({
     }
   }
 
-  const isMaster = role === 'superadmin';
+  let isMaster = role === 'superadmin';
+
+  // --- Fallback para usuarios de la ruta /micro que no tienen el rol en profiles ---
+  if (!isMaster && user?.email) {
+    const MASTER_EMAILS = ['safelunch772@gmail.com'];
+    if (MASTER_EMAILS.includes(user.email)) {
+      isMaster = true;
+    } else {
+      const { data: whitelist } = await supabaseAdmin
+        .from('master_whitelist')
+        .select('email')
+        .eq('email', user.email)
+        .single();
+      if (whitelist) isMaster = true;
+    }
+  }
+
   const cookieStore = await cookies();
   const impersonatedId = cookieStore.get('impersonated_school_id')?.value;
   const showSchoolLayout = (!isMaster) || (isMaster && !!impersonatedId);
